@@ -156,6 +156,7 @@ public:
     Atom eval(std::wistream& stream);
 
     friend class BytecodeParser;
+    friend class Compiler;
 };
 
 #endif // ENGINE_H

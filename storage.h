@@ -2,7 +2,6 @@
 #define STORAGE_H
 
 #include "env.h"
-#include "globalstorage.h"
 #include "lookuptable.h"
 #include "valuetable.h"
 

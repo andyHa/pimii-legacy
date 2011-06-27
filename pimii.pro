@@ -19,7 +19,8 @@ SOURCES += main.cpp \
     bytecodeparser.cpp \
     engine.cpp \
     bif.cpp \
-    storage.cpp
+    storage.cpp \
+    compiler.cpp
 
 HEADERS += \
     bytecodeparser.h \
@@ -28,7 +29,8 @@ HEADERS += \
     valuetable.h \
     storage.h \
     env.h \
-    tools.h
+    tools.h \
+    compiler.h
 
 OTHER_FILES += \
     example.pi

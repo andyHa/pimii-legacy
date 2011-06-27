@@ -192,12 +192,26 @@ void Engine::opADD(int a, int b) {
     push(s, makeNumber(a + b));
 }
 
+void Engine::opSUB(int a, int b) {
+    push(s, makeNumber(a - b));
+}
+
+void Engine::opMUL(int a, int b) {
+    push(s, makeNumber(a * b));
+}
+
 void Engine::dispatchArithmetic(Atom opcode) {
-    int a = getNumber(pop(s));
     int b = getNumber(pop(s));
+    int a = getNumber(pop(s));
     switch(opcode) {
     case SYMBOL_OP_ADD:
         opADD(a, b);
+        return;
+    case SYMBOL_OP_MUL:
+        opMUL(a, b);
+        return;
+    case SYMBOL_OP_SUB:
+        opSUB(a, b);
         return;
     case SYMBOL_OP_EQ:
         opEQ(a, b);

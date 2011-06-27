@@ -6,22 +6,23 @@
 #include <cassert>
 
 #include "env.h"
-#include "storage.h"
-#include "bytecodeparser.h"
 #include "engine.h"
+#include "compiler.h"
+
 int main(int argc, char *argv[])
 {    
-    try {
-    std::wcout << "Number of bits in a word: " << NUMBER_OF_BITS << std::endl;
-    std::wcout << "Max index size " << MAX_INDEX_SIZE << std::endl;
-    std::wcout << "Small int [" << MIN_SMALL_INT_SIZE << ".." << MAX_SMALL_INT_SIZE << "]" << std::endl;
+    std::wcout << "pimii v1.0 [" << NUMBER_OF_BITS << "bit] (c) 2011 Andreas Haufler"  << std::endl;
     Engine e;
     std::wstringstream ss;
-    ss << "(#LDC 3 #LDC '4' #BAP $parse #ADD #BAP $println)";
-//    ss << "(#LDC 3 #LDC 4 #ADD)";
-    e.eval(ss);
-    } catch(char const* c) {
-        std::cout << std::string(c);
+//    ss << "(#LDC 3 #LDC '4' " << std::endl <<" #BAP $parse #ADD #BAP $println)";
+    ss << "(3 + 4) * 5 - 85";
+    Compiler c(ss, &e);
+    try {
+        Atom xx = c.compile();
+        std::wcout << e.toString(xx) << std::endl;
+        std::wcout << e.toString(e.exec(xx)) << std::endl;
+    } catch(ParseException* e) {
+        std::wcout << e->line << ":" << e->pos << ": " << e->error;
     }
 
     return 0;
