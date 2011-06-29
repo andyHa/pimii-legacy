@@ -15,7 +15,7 @@ int main(int argc, char *argv[])
     Engine e;
     std::wstringstream ss;
 //    ss << "(#LDC 3 #LDC '4' " << std::endl <<" #BAP $parse #ADD #BAP $println)";
-    ss << "(3 + 4) * 5 - 85";
+    ss << "$println((3 + 4) * 5 - 85)";
     Compiler c(ss, &e);
     try {
         Atom xx = c.compile();

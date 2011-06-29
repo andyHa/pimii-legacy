@@ -237,7 +237,7 @@ const Atom SYMBOL_OP_NE = SYMBOL(20);
 /**
   Op code: Operator < (only for Numbers)
   */
-const Atom SYMBOL_OP_LE = SYMBOL(21);
+const Atom SYMBOL_OP_LT = SYMBOL(21);
 
 /**
   Op code: Operator > (only for Numbers)
@@ -247,7 +247,7 @@ const Atom SYMBOL_OP_GT = SYMBOL(22);
 /**
   Op code: Operator <= (only for Numbers)
   */
-const Atom SYMBOL_OP_LEQ = SYMBOL(23);
+const Atom SYMBOL_OP_LTQ = SYMBOL(23);
 
 /**
   Op code: Operator >= (only for Numbers)

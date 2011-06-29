@@ -37,9 +37,9 @@ void Storage::initializeSymbols() {
     declaredFixedSymbol(SYMBOL_OP_CONS, L"CONS");
     declaredFixedSymbol(SYMBOL_OP_EQ, L"EQ");
     declaredFixedSymbol(SYMBOL_OP_NE, L"NE");
-    declaredFixedSymbol(SYMBOL_OP_LE, L"LE");
+    declaredFixedSymbol(SYMBOL_OP_LT, L"LT");
     declaredFixedSymbol(SYMBOL_OP_GT, L"GT");
-    declaredFixedSymbol(SYMBOL_OP_LEQ, L"LEQ");
+    declaredFixedSymbol(SYMBOL_OP_LTQ, L"LTQ");
     declaredFixedSymbol(SYMBOL_OP_GTQ, L"GTQ");
     declaredFixedSymbol(SYMBOL_OP_ADD, L"ADD");
     declaredFixedSymbol(SYMBOL_OP_SUB, L"SUB");

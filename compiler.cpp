@@ -32,7 +32,7 @@ Token Compiler::fetchToken()  {
     result.type = TT_EMPTY;
     if (input.eof()) {
         result.type = TT_EOF;
-    } else if (std::isalpha(ch)) {
+    } else if (std::isalpha(ch) || ch == '$') {
         result.tokenString = String();
         result.tokenString += ch;
         result.type = TT_NAME;
@@ -170,14 +170,6 @@ Token Compiler::fetchToken()  {
             nextChar();
         }
         result.type = TT_SYMBOL;
-    } else if (ch == '$') {
-        result.tokenString = String();
-        nextChar();
-        while(std::isalnum(ch) && !input.eof()) {
-            result.tokenString += ch;
-            nextChar();
-        }
-        result.type = TT_BIF;
     } else if (std::isdigit(ch)) {
         result.tokenString = String();
         result.tokenString += ch;
@@ -290,6 +282,35 @@ void Compiler::inlineDefinition() {
 
 void Compiler::relExp() {
     logExp();
+    while(true) {
+        if (current.type == TT_EQ) {
+            fetch();
+            relExp();
+            addCode(SYMBOL_OP_EQ);
+        } else if (current.type == TT_NE) {
+            fetch();
+            relExp();
+            addCode(SYMBOL_OP_NE);
+        } else if (current.type == TT_LT) {
+            fetch();
+            relExp();
+            addCode(SYMBOL_OP_LT);
+        } else if (current.type == TT_LTEQ) {
+            fetch();
+            relExp();
+            addCode(SYMBOL_OP_LTQ);
+        } else if (current.type == TT_GT) {
+            fetch();
+            relExp();
+            addCode(SYMBOL_OP_GT);
+        } else if (current.type == TT_GTEQ) {
+            fetch();
+            relExp();
+            addCode(SYMBOL_OP_GTQ);
+        } else {
+            return;
+        }
+    }
 }
 
 void Compiler::logExp() {
@@ -324,11 +345,11 @@ void Compiler::termExp() {
         } else if (current.type == TT_DIV) {
             fetch();
             factorExp();
-            addCode(SYMBOL_OP_MUL);
+            addCode(SYMBOL_OP_DIV);
         } else if (current.type == TT_MOD) {
             fetch();
             factorExp();
-            addCode(SYMBOL_OP_MUL); // TODO
+            addCode(SYMBOL_OP_DIV); // TODO
         } else {
             return;
         }
@@ -348,7 +369,7 @@ void Compiler::factorExp() {
                 call();
             } else if(current.tokenString[current.tokenString.length() - 1] == ':'
                       && lookahead.type != TT_R_BRACE
-                      && lookahead.type != TT_R_BRACET
+                      && lookahead.type != TT_R_BRACKET
                       && lookahead.type != TT_KOMMA
                       && lookahead.type != TT_EOF
                       && lookahead.type != TT_SEMICOLON) {
@@ -379,5 +400,34 @@ void Compiler::variable() {
 }
 
 void Compiler::call() {
+
+    if (current.tokenString[0] == '$') {
+        builtinCall();
+    } else if (current.tokenString[current.tokenString.length()-1] == ':') {
+        colonCall();
+    } else {
+        standardCall();
+    }
+}
+
+void Compiler::builtinCall() {
+    String name = current.tokenString.substr(1);
+    fetch();
+    expect(TT_L_BRACE, String(L"("));
+    while(current.type != TT_R_BRACE) {
+        expression();
+        if (current.type != TT_R_BRACE) {
+            expect(TT_KOMMA,String(L","));
+        }
+    }
+    addCode(SYMBOL_OP_BAP);
+    addCode(engine->findBuiltInFunction(engine->storage.makeSymbol(name)));
+}
+
+void Compiler::colonCall() {
+
+}
+
+void Compiler::standardCall() {
 
 }

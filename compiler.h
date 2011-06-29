@@ -56,7 +56,7 @@
 
   COLON_CALL -> $COLON_NAME EXPRESSION ( $COLON_NAME EXPRESSION )*
 
-  COLON_CALL -> $BIF_NAME '(' ( EXPRESSION ( ',' EXPRESSION )* )? ')'
+  BUILTIN_CALL -> $BIF_NAME '(' ( EXPRESSION ( ',' EXPRESSION )* )? ')'
 
   */
 
@@ -82,7 +82,6 @@ enum TokenType {
     TT_EMPTY,
     TT_EOF,
     TT_NAME,
-    TT_BIF,
     TT_SYMBOL,
     TT_STRING,
     TT_NUMBER,
@@ -155,7 +154,9 @@ class Compiler
     void literal();
     void variable();
     void call();
-
+    void builtinCall();
+    void colonCall();
+    void standardCall();
 public:
     Compiler(std::wistream& inputStream, Engine* engine);
 

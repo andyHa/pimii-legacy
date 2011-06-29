@@ -320,8 +320,8 @@ void Engine::dispatch(Atom opcode) {
         opRTN();
         return;
     case SYMBOL_OP_EQ:
-    case SYMBOL_OP_LE:
-    case SYMBOL_OP_LEQ:
+    case SYMBOL_OP_LT:
+    case SYMBOL_OP_LTQ:
     case SYMBOL_OP_GT:
     case SYMBOL_OP_GTQ:
     case SYMBOL_OP_ADD:
