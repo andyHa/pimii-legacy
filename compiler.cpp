@@ -88,7 +88,7 @@ Token Compiler::fetchToken()  {
         result.tokenString = String(L"[");
         nextChar(); // Read over character
         result.type = TT_L_BRACKET;
-    } else if (ch == ')') {
+    } else if (ch == ']') {
         result.tokenString = String(L"]");
         nextChar(); // Read over character
         result.type = TT_R_BRACKET;
@@ -238,22 +238,79 @@ Atom Compiler::compile() {
 }
 
 void Compiler::block() {
-    do {
+    statement();
+    while(current.type == TT_SEMICOLON) {
+        fetch();
         statement();
-    } while(current.type == TT_SEMICOLON);
+    }
 }
 
 void Compiler::statement() {
     if (current.type == TT_NAME) {
         if (lookahead.type == TT_ASSIGNMENT) {
-            assignment();
+            normalAssignment();
+            return;
+        } else if (current.tokenString == String(L"var") && lookahead.type == TT_NAME && lookahead2.type == TT_ASSIGNMENT) {
+            localAssignment();
+            return;
         }
     }
     expression();
 }
 
-void Compiler::assignment() {
+void Compiler::localAssignment() {
+    if (symbolTable.size() == 0) {
+        throw new ParseException(line,pos, String(L"Local Variable assignments are only allowed within functions!"));
+    }
+    fetch();
+    String name = current.tokenString;
+    fetch();
+    fetch();
+    expression();
+    std::vector<String>* symbols = symbolTable[0];
+    Word minorIndex = 1;
+    while (minorIndex <= symbols->size()) {
+        if (symbols->at(minorIndex - 1) == name) {
+            break;
+        }
+        minorIndex++;
+    }
+    if (minorIndex > symbols->size()) {
+        symbols->push_back(name);
+    }
+    addCode(SYMBOL_OP_ST);
+    addCode(engine->storage.makeCons(makeNumber(1), makeNumber(minorIndex)));
+}
 
+void Compiler::normalAssignment() {
+    String name = current.tokenString;
+    fetch();
+    fetch();
+    expression();
+    std::pair<int, int> pair = findSymbol(name);
+    if (pair.first > 0) {
+        addCode(SYMBOL_OP_ST);
+        addCode(engine->storage.makeCons(makeNumber(pair.first), makeNumber(pair.second)));
+    } else {
+        addCode(SYMBOL_OP_STG);
+        addCode(engine->storage.findGlobal(engine->storage.makeSymbol(name)));
+    }
+}
+
+std::pair<int, int> Compiler::findSymbol(String name) {
+    Word majorIndex = 1;
+    while (majorIndex <= symbolTable.size()) {
+        std::vector<String>* symbols = symbolTable[majorIndex - 1];
+        Word minorIndex = 1;
+        while (minorIndex <= symbols->size()) {
+            if (symbols->at(minorIndex - 1) == name) {
+                return std::pair<int, int>(majorIndex, minorIndex);
+            }
+            minorIndex++;
+        }
+        majorIndex++;
+    }
+    return std::pair<int, int>(-1, -1);
 }
 
 void Compiler::expression() {
@@ -263,22 +320,101 @@ void Compiler::expression() {
         shortDefinition();
     } else if (current.type == TT_L_BRACKET) {
         inlineDefinition();
+    } else if (current.type == TT_ASM_BEGIN) {
+        includeAsm();
     } else {
         relExp();
     }
 }
 
-void Compiler::definition() {
+void Compile::includeAsm() {
+    fetch();
+    //TODO Sublist-Umbau
+    Linenumbers
+    Bessere Fehlermeldungen aus dem Compiler
+    Stacktraces in der VM
+    Exceptions in der VM
+    Inline Lists
+    BIFs
+    Tail-Call-Optimizer
+}
 
+void Compiler::definition() {
+    fetch(); // (
+    std::vector<String>* symbols = new std::vector<String>();
+    symbols->push_back(current.tokenString);
+    fetch(); // 1st param
+    while(current.type == TT_KOMMA) {
+        fetch(); // ,
+        symbols->push_back(current.tokenString);
+        fetch(); // nth param
+    }
+    expect(TT_R_BRACE, String(L")"));
+    expect(TT_ARROW, String(L"->"));
+    symbolTable.push_back(symbols);
+    bool brackets = false;
+    if (current.type == TT_L_BRACKET) {
+        fetch();
+        brackets = true;
+    }
+    generateFunctionCode(brackets);
+    symbolTable.pop_back();
+    delete symbols;
 }
 
 void Compiler::shortDefinition() {
-
+    std::vector<String>* symbols = new std::vector<String>();
+    symbols->push_back(current.tokenString);
+    fetch(); // param name...
+    expect(TT_ARROW, String(L"->"));
+    symbolTable.push_back(symbols);
+    bool brackets = false;
+    if (current.type == TT_L_BRACKET) {
+        fetch();
+        brackets = true;
+    }
+    generateFunctionCode(brackets);
+    symbolTable.pop_back();
+    delete symbols;
 }
 
 void Compiler::inlineDefinition() {
-
+    fetch(); // [
+    std::vector<String>* symbols = new std::vector<String>();
+    if (current.type == TT_NAME && (lookahead.type == TT_KOMMA || lookahead.type == TT_ARROW)) {
+        symbols->push_back(current.tokenString);
+        fetch(); // 1st param
+        while(current.type == TT_KOMMA) {
+            fetch(); // ,
+            symbols->push_back(current.tokenString);
+            fetch(); // nth param
+        }
+    }
+    expect(TT_ARROW, String(L"->"));
+    symbolTable.push_back(symbols);
+    generateFunctionCode(true);
+    symbolTable.pop_back();
+    delete symbols;
 }
+
+void Compiler::generateFunctionCode(bool expectBracet) {
+    addCode(SYMBOL_OP_LDF);
+    Atom backupCode = code;
+    Atom backupTail = tail;
+    code = NIL;
+    tail = NIL;
+    if (expectBracet) {
+        block();
+        expect(TT_R_BRACKET, String(L"]"));
+    } else {
+        statement();
+    }
+    Atom fn = code;
+    code = backupCode;
+    tail = backupTail;
+    addCode(fn);
+}
+
 
 void Compiler::relExp() {
     logExp();
@@ -396,7 +532,20 @@ void Compiler::literal() {
 }
 
 void Compiler::variable() {
+    String name = current.tokenString;
+    fetch();
+    load(name);
+}
 
+void Compiler::load(String variable) {
+    std::pair<int, int> pair = findSymbol(variable);
+    if (pair.first > 0) {
+        addCode(SYMBOL_OP_LD);
+        addCode(engine->storage.makeCons(makeNumber(pair.first), makeNumber(pair.second)));
+    } else {
+        addCode(SYMBOL_OP_LDG);
+        addCode(engine->storage.findGlobal(engine->storage.makeSymbol(variable)));
+    }
 }
 
 void Compiler::call() {
@@ -417,7 +566,7 @@ void Compiler::builtinCall() {
     while(current.type != TT_R_BRACE) {
         expression();
         if (current.type != TT_R_BRACE) {
-            expect(TT_KOMMA,String(L","));
+            expect(TT_KOMMA, String(L","));
         }
     }
     addCode(SYMBOL_OP_BAP);
@@ -425,9 +574,34 @@ void Compiler::builtinCall() {
 }
 
 void Compiler::colonCall() {
-
+    String name;
+    addCode(SYMBOL_OP_NIL);
+    while(current.type == TT_NAME &&
+          current.tokenString[current.tokenString.length()-1] == ':') {
+        name += current.tokenString;
+        fetch();
+        expression();
+        addCode(SYMBOL_OP_CHAIN);
+    }
+    addCode(SYMBOL_OP_CHAIN_END);
+    load(name);
+    addCode(SYMBOL_OP_AP);
 }
 
 void Compiler::standardCall() {
-
+    String name = current.tokenString;
+    fetch();
+    fetch();
+    addCode(SYMBOL_OP_NIL);
+    while(current.type != TT_R_BRACE) {
+        expression();
+        addCode(SYMBOL_OP_CHAIN);
+        if (current.type == TT_KOMMA) {
+            fetch();
+        }
+    }
+    addCode(SYMBOL_OP_CHAIN_END);
+    expect(TT_R_BRACE, String(L")"));
+    load(name);
+    addCode(SYMBOL_OP_AP);
 }

@@ -22,11 +22,11 @@
 
   STATEMENT -> ASSIGNMENT | EXPRESSION;
 
-  ASSIGNMENT -> SIMPLE_ASSIGNMENT | DOUBLE_ASSIGNMENT;
+  ASSIGNMENT -> LOCAL_ASSIGNMENT | NORMAL_ASSIGNMENT;
 
-  SIMPLE_ASSIGNMENT -> $NAME ':=' EXPRESSION;
+  LOCAL_ASSIGNMENT -> 'var' $NAME ':=' EXPRESSION;
 
-  DOUBLE_ASSIGNMENT -> '(' $NAME ',' $NAME ')' ':=' EXPRESSION;
+  NORMAL_ASSIGNMENT -> $NAME ':=' EXPRESSION;
 
   EXPRESSION -> DEFINITION | REL ( ( '=' | '!=' | '<' | '>' | '<=' | '>=' ) REL )?;
 
@@ -62,6 +62,7 @@
 
 #include <iostream>
 #include <string>
+#include <vector>
 
 #include "env.h"
 #include "engine.h"
@@ -127,32 +128,39 @@ class Compiler
     std::wistream& input;
     wchar_t nextChar();
 
+    std::vector< std::vector<String>* > symbolTable;
+    std::pair<int, int> findSymbol(String name);
     Token current;
     Token lookahead;
     Token lookahead2;
-    void fetch();
-    Token fetchToken();
-    void expect(TokenType tt, String rep);
 
     Engine* engine;
 
     Atom code;
     Atom tail;
+
+    void fetch();
+    Token fetchToken();
+    void expect(TokenType tt, String rep);
+
     void addCode(Atom atom);
 
     void block();
     void statement();
-    void assignment();
+    void localAssignment();
+    void normalAssignment();
     void expression();
     void definition();
     void shortDefinition();
     void inlineDefinition();
+    void generateFunctionCode(bool expectBracet);
     void relExp();
     void logExp();
     void termExp();
     void factorExp();
     void literal();
     void variable();
+    void load(String name);
     void call();
     void builtinCall();
     void colonCall();

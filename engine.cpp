@@ -137,13 +137,13 @@ void Engine::opJOIN() {
 }
 
 void Engine::opLDF() {
-    push(s, storage.makeCons(pop(s), e));
+    push(s, storage.makeCons(pop(c), e));
 }
 
 void Engine::opAP() {
     Atom fun = pop(s);
-    Cons funPair = storage.getCons(fun);
     Atom v = pop(s);
+    Cons funPair = storage.getCons(fun);
     push(d, c);
     push(d, e);
     push(d, s);
@@ -179,10 +179,52 @@ void Engine::opCDR() {
 }
 
 void Engine::opCONS() {
-    Atom a = pop(s);
     Atom b = pop(s);
+    Atom a = pop(s);
     push(s, storage.makeCons(a,b));
 }
+
+void Engine::opRPLACAR() {
+    Atom element = pop(s);
+    Atom cell = pop(s);
+    Cons c = storage.getCons(cell);
+    c->car = element;
+    push(s, cell);
+}
+
+void Engine::opRPLACDR() {
+    Atom element = pop(s);
+    Atom cell = pop(s);
+    Cons c = storage.getCons(cell);
+    c->cdr = element;
+    push(s, cell);
+}
+
+void Engine::opCHAIN() {
+    Atom element = pop(s);
+    Atom cell = pop(s);
+    if (isNil(cell)) {
+        Atom a = storage.makeCons(element, NIL);
+        push(s, storage.makeCons(a, a));
+    } else {
+        Cons c = storage.getCons(cell);
+        Cons tail = storage.getCons(c->cdr);
+        tail->cdr = storage.makeCons(element, NIL);
+        c->cdr = tail->cdr;
+        push(s, cell);
+    }
+}
+
+void Engine::opCHAINEND() {
+    Atom cell = pop(s);
+    if (!isCons(cell)) {
+        push(s, NIL);
+    } else {
+        Cons c = storage.getCons(cell);
+        push(s, c->car);
+    }
+}
+
 
 void Engine::opEQ(int a, int b) {
     push(s, a == b ? SYMBOL_TRUE : SYMBOL_FALSE);
@@ -225,60 +267,65 @@ Atom Engine::locate(Atom pos) {
     Word j = getNumber(cons->cdr);
     Atom env = e;
     while (i > 1) {
-        if (isNil(env)) {
+        if (!isCons(env)) {
             return NIL;
         }
         env = storage.getCons(env)->cdr;
         i--;
     }
-    if (isNil(env)) {
+    if (!isCons(env)) {
         return NIL;
     }
     env = storage.getCons(env)->car;
     while (j > 1) {
-        if (isNil(env)) {
+        if (!isCons(env)) {
             return NIL;
         }
         env = storage.getCons(env)->cdr;
         j--;
     }
-    if (isNil(env)) {
+    if (!isCons(env)) {
         return NIL;
     }
     return storage.getCons(env)->car;
 }
 
 void Engine::store(Atom pos, Atom value) {
-    /*
-    long i = loc.car().cast(IntegerConstant.class).getValue();
-    long j = loc.cdr().cast(IntegerConstant.class).getValue();
-    Value env = e.getValue();
-    if (env == Nil.NIL) {
-            env = new Cons();
-            e.setValue(env);
-    }
+    Cons cons = storage.getCons(pos);
+    Word i = getNumber(cons->car);
+    Word j = getNumber(cons->cdr);
+    Atom env = e;
     while (i > 1) {
-            if (env.cdr() == Nil.NIL) {
-                    ((Cons) env).cdr(new Cons());
-            }
-            env = env.cdr();
-            i--;
+        if (!isCons(env)) {
+            return;
+        }
+        env = storage.getCons(env)->cdr;
+        i--;
     }
-    env = env.car();
-    if (env == Nil.NIL) {
-            Cons c = new Cons();
-            ((Cons) env).car(c);
-            env = c;
+    if (!isCons(env)) {
+        return;
     }
+    Atom targetEnv = storage.getCons(env)->car;
+    if (isNil(targetEnv)) {
+        storage.getCons(env)->car = storage.makeCons(NIL, NIL);
+    }
+    env = storage.getCons(env)->car;
     while (j > 1) {
-            if (env.cdr() == Nil.NIL) {
-                    ((Cons) env).cdr(new Cons());
-            }
-            env = env.cdr();
-            j--;
+        if (!isCons(env)) {
+            return;
+        }
+        Cons c = storage.getCons(env);
+        if (isNil(c->cdr)) {
+            c->cdr = storage.makeCons(NIL, NIL);
+        }
+        env = c->cdr;
+        j--;
     }
-    ((Cons) env).car(value);
-    */
+    if (!isCons(env)) {
+        return;
+    }
+    storage.getCons(env)->car = value;
+
 }
 
 void Engine::dispatch(Atom opcode) {
@@ -340,6 +387,18 @@ void Engine::dispatch(Atom opcode) {
     case SYMBOL_OP_CONS:
         opCONS();
         return;
+    case SYMBOL_OP_RPLACAR:
+        opRPLACAR();
+        return;
+    case SYMBOL_OP_RPLACDR:
+        opRPLACDR();
+        return;
+    case SYMBOL_OP_CHAIN:
+        opCHAIN();
+        return;
+    case SYMBOL_OP_CHAIN_END:
+        opCHAINEND();
+        return;
     }
 }
 
@@ -369,7 +428,7 @@ String Engine::printList(Atom atom) {
     std::wstringstream sb;
     Cons cons = storage.getCons(atom);
     sb << "(" << toString(cons->car);
-    if (isCons(cons->cdr)) {
+    if (isCons(cons->cdr) || isNil(cons->cdr)) {
         Atom val = cons->cdr;
         while (!isNil(val)) {
             cons = storage.getCons(val);

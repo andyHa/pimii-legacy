@@ -94,6 +94,10 @@ class Engine
     void opCAR();
     void opCDR();
     void opCONS();
+    void opRPLACAR();
+    void opRPLACDR();
+    void opCHAIN();
+    void opCHAINEND();
     void opEQ(int a, int b);
     void opNQ(int a, int b);
     void opLE(int a, int b);

@@ -300,6 +300,30 @@ const Atom SYMBOL_OP_OR = SYMBOL(32);
 const Atom SYMBOL_OP_STOP = SYMBOL(33);
 
 /**
+  Op code: Pops a cons and a new value from the stack, replaces
+  the car of the cons cell with the second value and pushes the
+  modified cell on the stack.
+  */
+const Atom SYMBOL_OP_RPLACAR = SYMBOL(34);
+
+/**
+  Op code: Same as RPLACAR, but replaces the CDR of the cell.
+  */
+const Atom SYMBOL_OP_RPLACDR = SYMBOL(35);
+
+/**
+  Op code: Appends a value to a list. Short form of:
+  #LDC list, #LDC x, #NIL, #CONS #RPLACDR
+  */
+const Atom SYMBOL_OP_CHAIN = SYMBOL(36);
+
+/**
+  Op code: Finishes a sequence of chains and pushes
+  the resulting list onto the stack.
+  */
+const Atom SYMBOL_OP_CHAIN_END = SYMBOL(37);
+
+/**
   Checks whether the given atom is NIL.
   */
 inline bool isNil(Atom atom) {
