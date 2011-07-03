@@ -33,4 +33,5 @@ HEADERS += \
     compiler.h
 
 OTHER_FILES += \
-    example.pi
+    example.pi \
+    kernel.pi

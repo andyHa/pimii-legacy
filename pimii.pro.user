@@ -160,7 +160,10 @@
     <value key="Qt4ProjectManager.Qt4RunConfiguration.ProFile" type="QString">pimii.pro</value>
     <value key="Qt4ProjectManager.Qt4RunConfiguration.UseDyldImageSuffix" type="bool">false</value>
     <value key="Qt4ProjectManager.Qt4RunConfiguration.UseTerminal" type="bool">false</value>
-    <valuelist key="Qt4ProjectManager.Qt4RunConfiguration.UserEnvironmentChanges" type="QVariantList"/>
+    <valuelist key="Qt4ProjectManager.Qt4RunConfiguration.UserEnvironmentChanges" type="QVariantList">
+     <value type="QString">&lt;Variable>=&lt;Wert></value>
+     <value type="QString">PIMII_HOME=c:\users\aha\pimii</value>
+    </valuelist>
     <value key="Qt4ProjectManager.Qt4RunConfiguration.UserWorkingDirectory" type="QString"></value>
     <value key="RunConfiguration.QmlDebugServerPort" type="uint">3768</value>
     <value key="RunConfiguration.UseCppDebugger" type="bool">true</value>

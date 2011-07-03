@@ -218,7 +218,7 @@ void Engine::opCHAIN() {
 void Engine::opCHAINEND() {
     Atom cell = pop(s);
     if (!isCons(cell)) {
-        push(s, NIL);
+        push(s, storage.makeCons(cell, NIL));
     } else {
         Cons c = storage.getCons(cell);
         push(s, c->car);
@@ -257,6 +257,11 @@ void Engine::dispatchArithmetic(Atom opcode) {
         return;
     case SYMBOL_OP_EQ:
         opEQ(a, b);
+        return;
+    case SYMBOL_OP_LT:
+        push(s, a < b ? SYMBOL_TRUE : SYMBOL_FALSE);
+    case SYMBOL_OP_GT:
+        push(s, a > b ? SYMBOL_TRUE : SYMBOL_FALSE);
         return;
     }
 }

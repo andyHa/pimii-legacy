@@ -89,6 +89,7 @@ enum TokenType {
     TT_SEMICOLON,
     TT_ASSIGNMENT,
     TT_KOMMA,
+    TT_DOT,
     TT_PLUS,
     TT_MINUS,
     TT_MUL,
@@ -150,6 +151,8 @@ class Compiler
     void localAssignment();
     void normalAssignment();
     void expression();
+    void includeAsm();
+    void handleAsmSublist();
     void definition();
     void shortDefinition();
     void inlineDefinition();
@@ -159,6 +162,7 @@ class Compiler
     void termExp();
     void factorExp();
     void literal();
+    Atom compileLiteral();
     void variable();
     void load(String name);
     void call();

@@ -324,6 +324,16 @@ const Atom SYMBOL_OP_CHAIN = SYMBOL(36);
 const Atom SYMBOL_OP_CHAIN_END = SYMBOL(37);
 
 /**
+  Op code: Used to tell the VM the currently active file.
+  */
+const Atom SYMBOL_OP_FILE = SYMBOL(38);
+
+/**
+  Op code: Used to tell the VM the currently active line.
+  */
+const Atom SYMBOL_OP_LINE = SYMBOL(39);
+
+/**
   Checks whether the given atom is NIL.
   */
 inline bool isNil(Atom atom) {

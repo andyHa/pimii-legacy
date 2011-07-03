@@ -54,6 +54,8 @@ void Storage::initializeSymbols() {
     declaredFixedSymbol(SYMBOL_OP_RPLACDR, L"RPLACDR");
     declaredFixedSymbol(SYMBOL_OP_CHAIN, L"CHAIN");
     declaredFixedSymbol(SYMBOL_OP_CHAIN_END, L"CHAINEND");
+    declaredFixedSymbol(SYMBOL_OP_FILE, L"FILE");
+    declaredFixedSymbol(SYMBOL_OP_LINE, L"LINE");
 }
 
 

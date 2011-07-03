@@ -96,6 +96,10 @@ Token Compiler::fetchToken()  {
         result.tokenString = String(L",");
         nextChar(); // Read over character
         result.type = TT_KOMMA;
+    } else if (ch == '.') {
+        result.tokenString = String(L".");
+        nextChar(); // Read over character
+        result.type = TT_DOT;
     } else if (ch == '=') {
         result.tokenString = String(L"=");
         nextChar(); // Read over character
@@ -327,16 +331,51 @@ void Compiler::expression() {
     }
 }
 
-void Compile::includeAsm() {
+void Compiler::includeAsm() {
     fetch();
-    //TODO Sublist-Umbau
-    Linenumbers
-    Bessere Fehlermeldungen aus dem Compiler
-    Stacktraces in der VM
-    Exceptions in der VM
-    Inline Lists
-    BIFs
-    Tail-Call-Optimizer
+    while(current.type != TT_ASM_END) {
+        if (current.type == TT_L_BRACE) {
+            handleAsmSublist();
+        } else {
+            addCode(compileLiteral());
+        }
+    }
+    expect(TT_ASM_END, String(L">>"));
+}
+
+void Compiler::handleAsmSublist() {
+    fetch(); // (
+    if (lookahead.type == TT_DOT) {
+        Atom left = compileLiteral();
+        fetch(); //.
+        Atom right = compileLiteral();
+        addCode(engine->storage.makeCons(left, right));
+    } else {
+        Atom backupCode = code;
+        Atom backupTail = tail;
+        code = NIL;
+        tail = NIL;
+        while(current.type != TT_R_BRACE) {
+            if (current.type == TT_L_BRACE) {
+                handleAsmSublist();
+            } else {
+                addCode(compileLiteral());
+            }
+        }
+        Atom fn = code;
+        code = backupCode;
+        tail = backupTail;
+        addCode(fn);
+    }
+    expect(TT_R_BRACE,String(L")"));
+
+    //Linenumbers
+    //Bessere Fehlermeldungen aus dem Compiler
+    //Stacktraces in der VM
+    //Exceptions in der VM
+    //Inline Lists
+    //BIFs
+    //Tail-Call-Optimizer
 }
 
 void Compiler::definition() {
@@ -351,14 +390,14 @@ void Compiler::definition() {
     }
     expect(TT_R_BRACE, String(L")"));
     expect(TT_ARROW, String(L"->"));
-    symbolTable.push_back(symbols);
+    symbolTable.insert(symbolTable.begin(), symbols);
     bool brackets = false;
     if (current.type == TT_L_BRACKET) {
         fetch();
         brackets = true;
     }
     generateFunctionCode(brackets);
-    symbolTable.pop_back();
+    symbolTable.erase(symbolTable.begin());
     delete symbols;
 }
 
@@ -367,14 +406,14 @@ void Compiler::shortDefinition() {
     symbols->push_back(current.tokenString);
     fetch(); // param name...
     expect(TT_ARROW, String(L"->"));
-    symbolTable.push_back(symbols);
+    symbolTable.insert(symbolTable.begin(), symbols);
     bool brackets = false;
     if (current.type == TT_L_BRACKET) {
         fetch();
         brackets = true;
     }
     generateFunctionCode(brackets);
-    symbolTable.pop_back();
+    symbolTable.erase(symbolTable.begin());
     delete symbols;
 }
 
@@ -389,11 +428,11 @@ void Compiler::inlineDefinition() {
             symbols->push_back(current.tokenString);
             fetch(); // nth param
         }
+        expect(TT_ARROW, String(L"->"));
     }
-    expect(TT_ARROW, String(L"->"));
-    symbolTable.push_back(symbols);
+    symbolTable.insert(symbolTable.begin(), symbols);
     generateFunctionCode(true);
-    symbolTable.pop_back();
+    symbolTable.erase(symbolTable.begin());
     delete symbols;
 }
 
@@ -409,6 +448,7 @@ void Compiler::generateFunctionCode(bool expectBracet) {
     } else {
         statement();
     }
+    addCode(SYMBOL_OP_RTN);
     Atom fn = code;
     code = backupCode;
     tail = backupTail;
@@ -519,16 +559,24 @@ void Compiler::factorExp() {
     }
 }
 
-void Compiler::literal() {
-    addCode(SYMBOL_OP_LDC);
+Atom Compiler::compileLiteral() {
+    Atom result;
     if (current.type == TT_SYMBOL) {
-        addCode(engine->storage.makeSymbol(current.tokenString));
+         result = engine->storage.makeSymbol(current.tokenString);
     } else if (current.type == TT_STRING) {
-        addCode(engine->storage.makeString(current.tokenString));
+        result = engine->storage.makeString(current.tokenString);
     } else if (current.type == TT_NUMBER) {
-        addCode(makeNumber(current.tokenInteger));
+        result = makeNumber(current.tokenInteger);
+    } else {
+        throw new ParseException(line, pos, String(L"Unexpacted token! Expected a literal"));
     }
     fetch();
+    return result;
+}
+
+void Compiler::literal() {
+    addCode(SYMBOL_OP_LDC);
+    addCode(compileLiteral());
 }
 
 void Compiler::variable() {
@@ -569,6 +617,7 @@ void Compiler::builtinCall() {
             expect(TT_KOMMA, String(L","));
         }
     }
+    expect(TT_R_BRACE, String(L")"));
     addCode(SYMBOL_OP_BAP);
     addCode(engine->findBuiltInFunction(engine->storage.makeSymbol(name)));
 }
