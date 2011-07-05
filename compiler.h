@@ -137,6 +137,7 @@ class Compiler
 
     Engine* engine;
 
+    Atom file;
     Atom code;
     Atom tail;
 
@@ -170,7 +171,7 @@ class Compiler
     void colonCall();
     void standardCall();
 public:
-    Compiler(std::wistream& inputStream, Engine* engine);
+    Compiler(String fileName, std::wistream& inputStream, Engine* engine);
 
     Atom compile();
 };

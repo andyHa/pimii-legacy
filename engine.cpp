@@ -76,11 +76,11 @@ String Engine::getBIFName(Atom atom) {
 }
 
 
-Atom Engine::eval(std::wistream& stream) {
+Atom Engine::eval(String name, std::wistream& stream) {
     BytecodeParser p(stream, this);
     Atom at = p.parse();
     TRACE("Parsed: " << toString(at));
-    return exec(at);
+    return exec(name, at);
 }
 
 bool Engine::shouldGC() {
@@ -150,6 +150,8 @@ void Engine::opAP() {
     s = NIL;
     c = funPair->car;
     e = storage.makeCons(v, funPair->cdr);
+    push(p, storage.makeCons(currentFile, makeNumber(currentLine)));
+    std::wcout << toString(p) << std::endl;
 }
 
 void Engine::opBAP() {
@@ -166,6 +168,7 @@ void Engine::opRTN() {
     push(s, result);
     e = pop(d);
     c = pop(d);
+    pop(p);
 }
 
 void Engine::opCAR() {
@@ -226,8 +229,74 @@ void Engine::opCHAINEND() {
 }
 
 
-void Engine::opEQ(int a, int b) {
-    push(s, a == b ? SYMBOL_TRUE : SYMBOL_FALSE);
+void Engine::opEQ() {
+    Atom b = pop(s);
+    Atom a = pop(s);
+    if (a == b) {
+        push(s,SYMBOL_TRUE);
+    } else if (isString(a) && isString(b)) {
+        push(s,storage.getString(a) ==
+             storage.getString(b) ? SYMBOL_TRUE : SYMBOL_FALSE);
+    } else {
+        push(s,SYMBOL_FALSE);
+    }
+}
+
+void Engine::opNE() {
+    Atom b = pop(s);
+    Atom a = pop(s);
+    if (a == b) {
+        push(s,SYMBOL_FALSE);
+    } else if (isString(a) && isString(b)) {
+        push(s,storage.getString(a) !=
+             storage.getString(b) ? SYMBOL_TRUE : SYMBOL_FALSE);
+    } else {
+        push(s,SYMBOL_TRUE);
+    }
+}
+
+void Engine::opLT() {
+    Atom b = pop(s);
+    Atom a = pop(s);
+    if (isString(a) && isString(b)) {
+        push(s,storage.getString(a) <
+             storage.getString(b) ? SYMBOL_TRUE : SYMBOL_FALSE);
+    } else {
+        push(s,a < b ? SYMBOL_TRUE : SYMBOL_FALSE);
+    }
+}
+
+void Engine::opLTQ() {
+    Atom b = pop(s);
+    Atom a = pop(s);
+    if (isString(a) && isString(b)) {
+        push(s,storage.getString(a) <=
+             storage.getString(b) ? SYMBOL_TRUE : SYMBOL_FALSE);
+    } else {
+        push(s,a <= b ? SYMBOL_TRUE : SYMBOL_FALSE);
+    }
+}
+
+void Engine::opGT() {
+    Atom b = pop(s);
+    Atom a = pop(s);
+    if (isString(a) && isString(b)) {
+        push(s,storage.getString(a) >
+             storage.getString(b) ? SYMBOL_TRUE : SYMBOL_FALSE);
+    } else {
+        push(s,a > b ? SYMBOL_TRUE : SYMBOL_FALSE);
+    }
+}
+
+void Engine::opGTQ() {
+    Atom b = pop(s);
+    Atom a = pop(s);
+    if (isString(a) && isString(b)) {
+        push(s,storage.getString(a) >=
+             storage.getString(b) ? SYMBOL_TRUE : SYMBOL_FALSE);
+    } else {
+        push(s,a >= b ? SYMBOL_TRUE : SYMBOL_FALSE);
+    }
 }
 
 void Engine::opADD(int a, int b) {
@@ -242,6 +311,14 @@ void Engine::opMUL(int a, int b) {
     push(s, makeNumber(a * b));
 }
 
+void Engine::opDIV(int a, int b) {
+    push(s, makeNumber(a / b));
+}
+
+void Engine::opREM(int a, int b) {
+    push(s, makeNumber(a % b));
+}
+
 void Engine::dispatchArithmetic(Atom opcode) {
     int b = getNumber(pop(s));
     int a = getNumber(pop(s));
@@ -252,16 +329,14 @@ void Engine::dispatchArithmetic(Atom opcode) {
     case SYMBOL_OP_MUL:
         opMUL(a, b);
         return;
+    case SYMBOL_OP_DIV:
+        opDIV(a, b);
+        return;
+    case SYMBOL_OP_REM:
+        opREM(a, b);
+        return;
     case SYMBOL_OP_SUB:
         opSUB(a, b);
-        return;
-    case SYMBOL_OP_EQ:
-        opEQ(a, b);
-        return;
-    case SYMBOL_OP_LT:
-        push(s, a < b ? SYMBOL_TRUE : SYMBOL_FALSE);
-    case SYMBOL_OP_GT:
-        push(s, a > b ? SYMBOL_TRUE : SYMBOL_FALSE);
         return;
     }
 }
@@ -333,6 +408,14 @@ void Engine::store(Atom pos, Atom value) {
 
 }
 
+void Engine::opLine() {
+    currentLine = getNumber(pop(c));
+}
+
+void Engine::opFile() {
+    currentFile = pop(c);
+}
+
 void Engine::dispatch(Atom opcode) {
     switch (opcode) {
     case SYMBOL_OP_NIL:
@@ -372,10 +455,23 @@ void Engine::dispatch(Atom opcode) {
         opRTN();
         return;
     case SYMBOL_OP_EQ:
+        opEQ();
+        return;
+    case SYMBOL_OP_NE:
+        opNE();
+        return;
     case SYMBOL_OP_LT:
+        opLT();
+        return;
     case SYMBOL_OP_LTQ:
+        opLTQ();
+        return;
     case SYMBOL_OP_GT:
+        opGT();
+        return;
     case SYMBOL_OP_GTQ:
+        opGTQ();
+        return;
     case SYMBOL_OP_ADD:
     case SYMBOL_OP_SUB:
     case SYMBOL_OP_DIV:
@@ -404,21 +500,31 @@ void Engine::dispatch(Atom opcode) {
     case SYMBOL_OP_CHAIN_END:
         opCHAINEND();
         return;
+    case SYMBOL_OP_FILE:
+        opFile();
+        return;
+    case SYMBOL_OP_LINE:
+        opLine();
+        return;
     }
 }
 
-Atom Engine::exec(Atom code) {
+Atom Engine::exec(String name, Atom code) {
     s = NIL;
     e = NIL;
     c = code;
     d = NIL;
+    currentFile = storage.makeSymbol(name);
+    currentLine = makeNumber(1);
+    p = storage.makeCons(currentFile, currentLine);
+
     while (true) {
         Atom op = pop(c);
         if (isNil(op)) {
             return pop(s);
         }
         if (op == SYMBOL_OP_STOP) {
-             return pop(s);
+            return pop(s);
         }
         dispatch(op);
         if (shouldGC()) {
@@ -435,10 +541,13 @@ String Engine::printList(Atom atom) {
     sb << "(" << toString(cons->car);
     if (isCons(cons->cdr) || isNil(cons->cdr)) {
         Atom val = cons->cdr;
-        while (!isNil(val)) {
+        while (isCons(val)) {
             cons = storage.getCons(val);
             sb << " " << toString(cons->car);
             val = cons->cdr;
+        }
+        if (!isCons(val)) {
+            sb << " " << toString(val);
         }
     } else {
         sb << "." << toString(cons->cdr);

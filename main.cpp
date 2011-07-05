@@ -30,11 +30,11 @@ int main(int argc, char *argv[])
 //    ss << "(#LDC 3 #LDC '4' " << std::endl <<" #BAP $parse #ADD #BAP $println)";
 //    ss <<
 //"if:then:else: := (cond, tb, fb) -> <<#NIL #LD (1.1) #AP #SEL (#NIL #LD (1.2) #AP) (#NIL #LD (1.3) #AP) #JOIN>>; if: [->#TRUE] then: [-> $println('Hallo') ] else: [-> $println('Welt') ]";
-    Compiler c(ss, &e);
+    Compiler c(String(L"kernel.pi"), ss, &e);
     try {
         Atom xx = c.compile();
         std::wcout << e.toString(xx) << std::endl;
-        std::wcout << e.toString(e.exec(xx)) << std::endl;
+        std::wcout << e.toString(e.exec(String(L"trampoline"),xx)) << std::endl;
     } catch(ParseException* e) {
         std::wcout << e->line << ":" << e->pos << ": " << e->error << std::endl;
     }

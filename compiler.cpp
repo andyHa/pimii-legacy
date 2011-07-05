@@ -1,7 +1,8 @@
 #include "compiler.h"
 
-Compiler::Compiler(std::wistream& inputStream, Engine* engine) : input(inputStream), engine(engine)
+Compiler::Compiler(String fileName, std::wistream& inputStream, Engine* engine) : input(inputStream), engine(engine)
 {
+    file = engine->storage.makeSymbol(fileName);
     current.type = TT_EMPTY;
     pos = 1;
     line = 1;
@@ -124,7 +125,7 @@ Token Compiler::fetchToken()  {
         result.tokenString = String(L"*");
         nextChar(); // Read over character
         result.type = TT_MUL;
-    } else if (ch == '/') {
+    } else if (ch == '/') {        
         result.tokenString = String(L"/");
         nextChar(); // Read over character
         result.type = TT_DIV;
@@ -237,6 +238,8 @@ void Compiler::addCode(Atom atom) {
 Atom Compiler::compile() {
     code = NIL;
     fetch();
+    addCode(SYMBOL_OP_FILE);
+    addCode(file);
     block();
     return code;
 }
@@ -250,6 +253,8 @@ void Compiler::block() {
 }
 
 void Compiler::statement() {
+    addCode(SYMBOL_OP_LINE);
+    addCode(makeNumber(line));
     if (current.type == TT_NAME) {
         if (lookahead.type == TT_ASSIGNMENT) {
             normalAssignment();
@@ -442,6 +447,8 @@ void Compiler::generateFunctionCode(bool expectBracet) {
     Atom backupTail = tail;
     code = NIL;
     tail = NIL;
+    addCode(SYMBOL_OP_FILE);
+    addCode(file);
     if (expectBracet) {
         block();
         expect(TT_R_BRACKET, String(L"]"));

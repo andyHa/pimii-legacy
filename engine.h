@@ -39,23 +39,17 @@ typedef Atom (*BIF)(Engine* engine, Storage& storage, Atom param);
 class Engine
 {
 
-    class Register {
-        Atom value;
-    public:
-        Register();
-        Atom read();
-        void write(Atom atom);
-        Atom pop();
-        void push(Atom);
-        String toString();
-    };
-
     Storage storage;
 
     Atom s;
     Atom e;
     Atom c;
     Atom d;
+    Atom p;
+
+    Atom currentFile;
+    Word currentLine;
+
 
     void push(Atom& reg, Atom value);
 
@@ -98,12 +92,12 @@ class Engine
     void opRPLACDR();
     void opCHAIN();
     void opCHAINEND();
-    void opEQ(int a, int b);
-    void opNQ(int a, int b);
-    void opLE(int a, int b);
-    void opGT(int a, int b);
-    void opLEQ(int a, int b);
-    void opGTQ(int a, int b);
+    void opEQ();
+    void opNE();
+    void opLT();
+    void opGT();
+    void opLTQ();
+    void opGTQ();
     void opADD(int a, int b);
     void opSUB(int a, int b);
     void opMUL(int a, int b);
@@ -113,6 +107,8 @@ class Engine
     void opAND(Atom a, Atom b);
     void opOR(Atom a, Atom b);
     void opXOR(Atom a, Atom b);
+    void opFile();
+    void opLine();
 
     bool shouldGC();
     void gc();
@@ -156,8 +152,8 @@ public:
     Engine();
     ~Engine();
 
-    Atom exec(Atom code);
-    Atom eval(std::wistream& stream);
+    Atom exec(String name, Atom code);
+    Atom eval(String name, std::wistream& stream);
 
     friend class BytecodeParser;
     friend class Compiler;
