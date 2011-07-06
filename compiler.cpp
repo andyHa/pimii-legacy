@@ -27,6 +27,33 @@ Token Compiler::fetchToken()  {
     while(std::isspace(ch) && !input.eof()) {
         nextChar();
     }
+    if (ch == '/') {
+        nextChar();
+        if (ch == '*') {
+            nextChar();
+skip:
+            while(ch != '*' && !input.eof()) {
+                nextChar();
+            }
+            if (!input.eof()) {
+                nextChar();
+                if (ch != '/') {
+                    goto skip;
+                }
+                nextChar();
+            }
+            while(std::isspace(ch) && !input.eof()) {
+                nextChar();
+            }
+        } else {
+            Token result;
+            result.pos = pos - 1;
+            result.line = line;
+            result.tokenString = String(L"/");
+            result.type = TT_DIV;
+            return result;
+        }
+    }
     Token result;
     result.pos = pos - 1;
     result.line = line;
@@ -125,10 +152,6 @@ Token Compiler::fetchToken()  {
         result.tokenString = String(L"*");
         nextChar(); // Read over character
         result.type = TT_MUL;
-    } else if (ch == '/') {        
-        result.tokenString = String(L"/");
-        nextChar(); // Read over character
-        result.type = TT_DIV;
     } else if (ch == '!') {
         nextChar(); // Read over character
         if (ch == '=') {
@@ -168,13 +191,19 @@ Token Compiler::fetchToken()  {
             result.type = TT_GT;
         }
     } else if (ch == '#') {
-        result.tokenString = String();
-        nextChar();
-        while(std::isalnum(ch) && !input.eof()) {
-            result.tokenString += ch;
-            nextChar();
+        nextChar(); // Read over character
+        if (ch == '(') {
+            nextChar(); // Read over character
+            result.tokenString = String(L"#(");
+            result.type = TT_LIST_START;
+        } else {
+            result.tokenString = String();
+            while(std::isalnum(ch) && !input.eof()) {
+                result.tokenString += ch;
+                nextChar();
+            }
+            result.type = TT_SYMBOL;
         }
-        result.type = TT_SYMBOL;
     } else if (std::isdigit(ch)) {
         result.tokenString = String();
         result.tokenString += ch;
@@ -547,6 +576,8 @@ void Compiler::factorExp() {
     } else {
         if (current.type == TT_SYMBOL || current.type == TT_STRING || current.type == TT_NUMBER) {
             literal();
+        } else if (current.type == TT_LIST_START) {
+            inlineList();
         } else if (current.type == TT_NAME) {
             if (lookahead.type == TT_L_BRACE) {
                 call();
@@ -566,6 +597,20 @@ void Compiler::factorExp() {
     }
 }
 
+void Compiler::inlineList() {
+    fetch(); // #(
+    addCode(SYMBOL_OP_NIL);
+    while(current.type != TT_R_BRACE) {
+        expression();
+        addCode(SYMBOL_OP_CHAIN);
+        if (current.type == TT_KOMMA) {
+            fetch();
+        }
+    }
+    addCode(SYMBOL_OP_CHAIN_END);
+    expect(TT_R_BRACE, String(L")"));
+}
+
 Atom Compiler::compileLiteral() {
     Atom result;
     if (current.type == TT_SYMBOL) {
@@ -582,6 +627,7 @@ Atom Compiler::compileLiteral() {
 }
 
 void Compiler::literal() {
+
     addCode(SYMBOL_OP_LDC);
     addCode(compileLiteral());
 }

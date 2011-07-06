@@ -36,7 +36,7 @@
 
   SHORT_DEFINITION -> $NAME '->' '[' BLOCK ']';
 
-  INLINE_DEFINITION -> '[' ( $NAME ( ',' $NAME )* '|' )? BLOCK ']';
+  INLINE_DEFINITION -> '[' ( $NAME ( ',' $NAME )* '->' )? BLOCK ']';
 
   REL -> LOG ( ('&' | '|') LOG )*;
 
@@ -46,7 +46,9 @@
 
   FACTOR -> '(' EXPRESSION ')' | LITERAL | VARIABLE | CALL;
 
-  LITERAL -> $NUMBER | $STRING | $SYMBOL;
+  LITERAL -> $NUMBER | $STRING | $SYMBOL | INLINE_LIST;
+
+  INLINE_LIST -> '#(' EXPRESSION ( ',' EXPRESSION )* ')';
 
   VARIABLE -> $NAME;
 
@@ -110,7 +112,8 @@ enum TokenType {
     TT_R_BRACKET,
     TT_ASM_BEGIN,
     TT_ASM_END,
-    TT_ARROW
+    TT_ARROW,
+    TT_LIST_START
 };
 
 struct Token {
@@ -162,6 +165,7 @@ class Compiler
     void logExp();
     void termExp();
     void factorExp();
+    void inlineList();
     void literal();
     Atom compileLiteral();
     void variable();

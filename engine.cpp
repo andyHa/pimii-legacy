@@ -151,7 +151,7 @@ void Engine::opAP() {
     c = funPair->car;
     e = storage.makeCons(v, funPair->cdr);
     push(p, storage.makeCons(currentFile, makeNumber(currentLine)));
-    std::wcout << toString(p) << std::endl;
+    //std::wcout << toString(p) << std::endl;
 }
 
 void Engine::opBAP() {
