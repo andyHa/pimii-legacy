@@ -26,12 +26,9 @@ void Storage::initializeSymbols() {
     declaredFixedSymbol(SYMBOL_OP_RTN, L"RTN");
     declaredFixedSymbol(SYMBOL_OP_SEL, L"SEL");
     declaredFixedSymbol(SYMBOL_OP_JOIN, L"JOIN");
-    declaredFixedSymbol(SYMBOL_OP_RAP, L"RAP");
-    declaredFixedSymbol(SYMBOL_OP_DUM, L"DUM");
     declaredFixedSymbol(SYMBOL_OP_ST, L"ST");
     declaredFixedSymbol(SYMBOL_OP_LDG, L"LDG");
     declaredFixedSymbol(SYMBOL_OP_STG, L"STG");
-    declaredFixedSymbol(SYMBOL_OP_BAP, L"BAP");
     declaredFixedSymbol(SYMBOL_OP_CAR, L"CAR");
     declaredFixedSymbol(SYMBOL_OP_CDR, L"CDR");
     declaredFixedSymbol(SYMBOL_OP_CONS, L"CONS");

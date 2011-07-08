@@ -34,4 +34,5 @@ HEADERS += \
 
 OTHER_FILES += \
     example.pi \
-    kernel.pi
+    kernel.pi \
+    test.pi

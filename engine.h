@@ -84,7 +84,6 @@ class Engine
     void opST();
     void opLDG();
     void opSTG();
-    void opBAP();
     void opCAR();
     void opCDR();
     void opCONS();

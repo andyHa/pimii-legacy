@@ -180,158 +180,143 @@ const Atom SYMBOL_OP_SEL = SYMBOL(8);
 const Atom SYMBOL_OP_JOIN = SYMBOL(9);
 
 /**
-  Op code: Recursive apply
-  */
-const Atom SYMBOL_OP_RAP = SYMBOL(10);
-
-/**
-  Op code: Create a dummy env
-  */
-const Atom SYMBOL_OP_DUM = SYMBOL(11);
-
-/**
   Op code: Store in env.
   */
-const Atom SYMBOL_OP_ST = SYMBOL(12);
+const Atom SYMBOL_OP_ST = SYMBOL(10);
 
 /**
   Op code: Load contents of a global
   */
-const Atom SYMBOL_OP_LDG = SYMBOL(13);
+const Atom SYMBOL_OP_LDG = SYMBOL(11);
 
 /**
   Op code: Store global
   */
-const Atom SYMBOL_OP_STG = SYMBOL(14);
-
-/**
-  Op code: Call a built in function
-  */
-const Atom SYMBOL_OP_BAP = SYMBOL(15);
+const Atom SYMBOL_OP_STG = SYMBOL(12);
 
 /**
   Op code: Pushes the CAR of the stack top
   */
-const Atom SYMBOL_OP_CAR = SYMBOL(16);
+const Atom SYMBOL_OP_CAR = SYMBOL(13);
 
 /**
   Op code: Pushes the CDR of the stack top
   */
-const Atom SYMBOL_OP_CDR = SYMBOL(17);
+const Atom SYMBOL_OP_CDR = SYMBOL(14);
 
 /**
   Op code: Pops two values from the stack and pushes a new Cons
   */
-const Atom SYMBOL_OP_CONS = SYMBOL(18);
+const Atom SYMBOL_OP_CONS = SYMBOL(15);
 
 /**
   Op code: Operator ==
   */
-const Atom SYMBOL_OP_EQ = SYMBOL(19);
+const Atom SYMBOL_OP_EQ = SYMBOL(16);
 
 /**
   Op code: Operator !=
   */
-const Atom SYMBOL_OP_NE = SYMBOL(20);
+const Atom SYMBOL_OP_NE = SYMBOL(17);
 
 /**
   Op code: Operator < (only for Numbers)
   */
-const Atom SYMBOL_OP_LT = SYMBOL(21);
+const Atom SYMBOL_OP_LT = SYMBOL(18);
 
 /**
   Op code: Operator > (only for Numbers)
   */
-const Atom SYMBOL_OP_GT = SYMBOL(22);
+const Atom SYMBOL_OP_GT = SYMBOL(19);
 
 /**
   Op code: Operator <= (only for Numbers)
   */
-const Atom SYMBOL_OP_LTQ = SYMBOL(23);
+const Atom SYMBOL_OP_LTQ = SYMBOL(20);
 
 /**
   Op code: Operator >= (only for Numbers)
   */
-const Atom SYMBOL_OP_GTQ = SYMBOL(24);
+const Atom SYMBOL_OP_GTQ = SYMBOL(21);
 
 /**
   Op code: Operator + (only for Numbers)
   */
-const Atom SYMBOL_OP_ADD = SYMBOL(25);
+const Atom SYMBOL_OP_ADD = SYMBOL(22);
 
 /**
   Op code: Operator - (only for Numbers)
   */
-const Atom SYMBOL_OP_SUB = SYMBOL(26);
+const Atom SYMBOL_OP_SUB = SYMBOL(23);
 
 /**
   Op code: Operator * (only for Numbers)
   */
-const Atom SYMBOL_OP_MUL = SYMBOL(27);
+const Atom SYMBOL_OP_MUL = SYMBOL(24);
 
 /**
   Op code: Operator / (only for Numbers)
   */
-const Atom SYMBOL_OP_DIV = SYMBOL(28);
+const Atom SYMBOL_OP_DIV = SYMBOL(25);
 
 /**
   Op code: Operator % (only for Numbers)
   */
-const Atom SYMBOL_OP_REM = SYMBOL(29);
+const Atom SYMBOL_OP_REM = SYMBOL(26);
 
 /**
   Op code: Operator ! (Boolean logic on symbols TRUE and FALSE)
   */
-const Atom SYMBOL_OP_NOT = SYMBOL(30);
+const Atom SYMBOL_OP_NOT = SYMBOL(27);
 
 /**
   Op code: Operator & (Boolean logic on symbols TRUE and FALSE)
   */
-const Atom SYMBOL_OP_AND = SYMBOL(31);
+const Atom SYMBOL_OP_AND = SYMBOL(28);
 
 /**
   Op code: Operator | (Boolean logic on symbols TRUE and FALSE)
   */
-const Atom SYMBOL_OP_OR = SYMBOL(32);
+const Atom SYMBOL_OP_OR = SYMBOL(29);
 
 /**
   Op code: Stops the interpreter of the current function.
   */
-const Atom SYMBOL_OP_STOP = SYMBOL(33);
+const Atom SYMBOL_OP_STOP = SYMBOL(30);
 
 /**
   Op code: Pops a cons and a new value from the stack, replaces
   the car of the cons cell with the second value and pushes the
   modified cell on the stack.
   */
-const Atom SYMBOL_OP_RPLACAR = SYMBOL(34);
+const Atom SYMBOL_OP_RPLACAR = SYMBOL(31);
 
 /**
   Op code: Same as RPLACAR, but replaces the CDR of the cell.
   */
-const Atom SYMBOL_OP_RPLACDR = SYMBOL(35);
+const Atom SYMBOL_OP_RPLACDR = SYMBOL(32);
 
 /**
   Op code: Appends a value to a list. Short form of:
   #LDC list, #LDC x, #NIL, #CONS #RPLACDR
   */
-const Atom SYMBOL_OP_CHAIN = SYMBOL(36);
+const Atom SYMBOL_OP_CHAIN = SYMBOL(33);
 
 /**
   Op code: Finishes a sequence of chains and pushes
   the resulting list onto the stack.
   */
-const Atom SYMBOL_OP_CHAIN_END = SYMBOL(37);
+const Atom SYMBOL_OP_CHAIN_END = SYMBOL(34);
 
 /**
   Op code: Used to tell the VM the currently active file.
   */
-const Atom SYMBOL_OP_FILE = SYMBOL(38);
+const Atom SYMBOL_OP_FILE = SYMBOL(35);
 
 /**
   Op code: Used to tell the VM the currently active line.
   */
-const Atom SYMBOL_OP_LINE = SYMBOL(39);
+const Atom SYMBOL_OP_LINE = SYMBOL(36);
 
 /**
   Checks whether the given atom is NIL.

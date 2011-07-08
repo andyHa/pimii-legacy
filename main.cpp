@@ -20,7 +20,7 @@ int main(int argc, char *argv[])
     std::string path;
     char* pimiiHome = getenv("PIMII_HOME");
     if (pimiiHome != NULL) {
-        path = std::string(pimiiHome) + QDir::separator().toAscii() + "kernel.pi";
+        path = std::string(pimiiHome) + QDir::separator().toAscii() + "test.pi";
     } else {
         std::string path = (QCoreApplication::applicationDirPath() + QDir::separator() + QString("kernel.pi")).toStdString();
     }
@@ -31,13 +31,17 @@ int main(int argc, char *argv[])
 //    ss <<
 //"if:then:else: := (cond, tb, fb) -> <<#NIL #LD (1.1) #AP #SEL (#NIL #LD (1.2) #AP) (#NIL #LD (1.3) #AP) #JOIN>>; if: [->#TRUE] then: [-> $println('Hallo') ] else: [-> $println('Welt') ]";
     Compiler c(String(L"kernel.pi"), ss, &e);
-    try {
-        Atom xx = c.compile();
-        std::wcout << e.toString(xx) << std::endl;
-        std::wcout << e.toString(e.exec(String(L"trampoline"),xx)) << std::endl;
-    } catch(ParseException* e) {
-        std::wcout << e->line << ":" << e->pos << ": " << e->error << std::endl;
-    }
+
+        std::pair<Atom, std::vector<CompilationError> > xx = c.compile();
+        if (xx.second.empty()) {
+            std::wcout << e.toString(xx.first) << std::endl;
+            std::wcout << e.toString(e.exec(String(L"trampoline"),xx.first)) << std::endl;
+        } else {
+            for(std::vector<CompilationError>::iterator i = xx.second.begin(); i != xx.second.end(); i++) {
+                CompilationError e = *i;
+                std::wcout << e.line << ":" << e.pos << ": " << e.error << std::endl;
+            }
+        }
     ss.close();
     return 0;
 //    return a.exec();

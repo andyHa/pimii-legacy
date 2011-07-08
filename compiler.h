@@ -52,13 +52,11 @@
 
   VARIABLE -> $NAME;
 
-  CALL -> SIMPLE_CALL | COLON_CALL | BUILTIN_CALL;
+  CALL -> SIMPLE_CALL | COLON_CALL;
 
   SIMPLE_CALL -> $NAME '(' ( EXPRESSION ( ',' EXPRESSION )* )? ')'
 
   COLON_CALL -> $COLON_NAME EXPRESSION ( $COLON_NAME EXPRESSION )*
-
-  BUILTIN_CALL -> $BIF_NAME '(' ( EXPRESSION ( ',' EXPRESSION )* )? ')'
 
   */
 
@@ -69,16 +67,11 @@
 #include "env.h"
 #include "engine.h"
 
-class ParseException {
-public:
-    ParseException(int line, int pos, String error) :
-        line(line),
-        pos(pos),
-        error(error) {}
-
+struct CompilationError {
     int line;
     int pos;
     String error;
+    bool severe;
 };
 
 enum TokenType {
@@ -144,6 +137,8 @@ class Compiler
     Atom code;
     Atom tail;
 
+    std::vector<CompilationError> errors;
+
     void fetch();
     Token fetchToken();
     void expect(TokenType tt, String rep);
@@ -171,13 +166,14 @@ class Compiler
     void variable();
     void load(String name);
     void call();
-    void builtinCall();
     void colonCall();
     void standardCall();
+
+    void addError(int line, int pos, String errorMsg);
 public:
     Compiler(String fileName, std::wistream& inputStream, Engine* engine);
 
-    Atom compile();
+    std::pair< Atom, std::vector<CompilationError> > compile();
 };
 
 #endif // COMPILER_H

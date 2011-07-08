@@ -143,24 +143,20 @@ void Engine::opLDF() {
 void Engine::opAP() {
     Atom fun = pop(s);
     Atom v = pop(s);
-    Cons funPair = storage.getCons(fun);
-    push(d, c);
-    push(d, e);
-    push(d, s);
-    s = NIL;
-    c = funPair->car;
-    e = storage.makeCons(v, funPair->cdr);
-    push(p, storage.makeCons(currentFile, makeNumber(currentLine)));
-    //std::wcout << toString(p) << std::endl;
+    if (isBIF(fun)) {
+        BIF bif = getBuiltInFunction(fun);
+        push(s, bif(this, storage, v));
+    } else {
+        Cons funPair = storage.getCons(fun);
+        push(d, c);
+        push(d, e);
+        push(d, s);
+        s = NIL;
+        c = funPair->car;
+        e = storage.makeCons(v, funPair->cdr);
+        push(p, storage.makeCons(currentFile, makeNumber(currentLine)));
+    }
 }
-
-void Engine::opBAP() {
-    Atom fun = pop(c);
-    assert(isBIF(fun));
-    BIF bif = getBuiltInFunction(fun);
-    push(s, bif(this, storage, pop(s)));
-}
-
 
 void Engine::opRTN() {
     Atom result = pop(s);
@@ -448,9 +444,6 @@ void Engine::dispatch(Atom opcode) {
     case SYMBOL_OP_AP:
         opAP();
         return;
-    case SYMBOL_OP_BAP:
-        opBAP();
-        return;
     case SYMBOL_OP_RTN:
         opRTN();
         return;
@@ -546,7 +539,7 @@ String Engine::printList(Atom atom) {
             sb << " " << toString(cons->car);
             val = cons->cdr;
         }
-        if (!isCons(val)) {
+        if (!isCons(val) && !isNil(val)) {
             sb << " " << toString(val);
         }
     } else {

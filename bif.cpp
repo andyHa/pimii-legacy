@@ -16,6 +16,8 @@ Atom print(Engine* engine, Storage& storage, Atom args) {
 Atom println(Engine* engine, Storage& storage, Atom args) {
     if (isNil(args)) {
         std::wcout << std::endl;
+    } else if (isCons(args)) {
+        std::wcout << engine->toSimpleString(storage.getCons(args)->car) << std::endl;
     } else {
         std::wcout << engine->toSimpleString(args) << std::endl;
     }

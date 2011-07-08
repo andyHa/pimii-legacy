@@ -23,6 +23,15 @@ wchar_t Compiler::nextChar() {
     return ch;
 }
 
+void Compiler::addError(int line, int pos, String errorMsg) {
+    CompilationError e;
+    e.error = errorMsg;
+    e.line = line;
+    e.pos = pos;
+    e.severe = true;
+    errors.push_back(e);
+}
+
 Token Compiler::fetchToken()  {
     while(std::isspace(ch) && !input.eof()) {
         nextChar();
@@ -60,7 +69,7 @@ skip:
     result.type = TT_EMPTY;
     if (input.eof()) {
         result.type = TT_EOF;
-    } else if (std::isalpha(ch) || ch == '$') {
+    } else if (std::isalpha(ch)) {
         result.tokenString = String();
         result.tokenString += ch;
         result.type = TT_NAME;
@@ -102,7 +111,7 @@ skip:
             result.tokenString = String(L":=");
             result.type = TT_ASSIGNMENT;
         } else {
-            throw new ParseException(line, pos - 1, String(L"Unexpected colon. (Names must not start with a colon)"));
+            addError(line, pos-1, L"Unexpected colon. (Names must not start with a colon)");
         }
     } else if (ch == '(') {
         result.tokenString = String(L"(");
@@ -230,10 +239,9 @@ skip:
         result.type = TT_STRING;
     }
     if (result.type == TT_EMPTY) {
-        throw new ParseException(result.line, result.pos, String(L"Unexpected token"));
-    } else {
-        return result;
+        addError(result.line, result.pos, L"Unexpected end of input");
     }
+    return result;
 }
 
 void Compiler::fetch() {
@@ -250,9 +258,10 @@ void Compiler::fetch() {
 
 void Compiler::expect(TokenType tt, String rep) {
     if (current.type != tt) {
-        throw new ParseException(current.line, current.pos, String(L"Unexpected token: "+current.tokenString)+String(L". Expected: ")+rep);
+        addError(current.line, current.pos, String(L"Unexpected token: ")+current.tokenString+String(L". Expected: ")+rep);
+    } else {
+        fetch();
     }
-    fetch();
 }
 
 void Compiler::addCode(Atom atom) {
@@ -264,20 +273,31 @@ void Compiler::addCode(Atom atom) {
     }
 }
 
-Atom Compiler::compile() {
+std::pair<Atom, std::vector<CompilationError> > Compiler::compile() {
     code = NIL;
     fetch();
     addCode(SYMBOL_OP_FILE);
     addCode(file);
-    block();
-    return code;
+    while(current.type != TT_EOF) {
+        block();
+        if (current.type != TT_EOF) {
+            addError(current.line, current.pos, String(L"Missing Semicolon!"));
+        }
+    }
+    return std::pair<Atom, std::vector<CompilationError> >(code, errors);
 }
 
 void Compiler::block() {
     statement();
-    while(current.type == TT_SEMICOLON) {
+    while(current.type == TT_SEMICOLON
+          && lookahead.type != TT_R_BRACE
+          && lookahead.type != TT_R_BRACKET
+          && lookahead.type != TT_EOF) {
         fetch();
         statement();
+    }
+    if (current.type == TT_SEMICOLON) {
+        fetch();
     }
 }
 
@@ -298,7 +318,7 @@ void Compiler::statement() {
 
 void Compiler::localAssignment() {
     if (symbolTable.size() == 0) {
-        throw new ParseException(line,pos, String(L"Local Variable assignments are only allowed within functions!"));
+        addError(line,pos, String(L"Local Variable assignments are only allowed within functions!"));
     }
     fetch();
     String name = current.tokenString;
@@ -402,14 +422,6 @@ void Compiler::handleAsmSublist() {
         addCode(fn);
     }
     expect(TT_R_BRACE,String(L")"));
-
-    //Linenumbers
-    //Bessere Fehlermeldungen aus dem Compiler
-    //Stacktraces in der VM
-    //Exceptions in der VM
-    //Inline Lists
-    //BIFs
-    //Tail-Call-Optimizer
 }
 
 void Compiler::definition() {
@@ -479,7 +491,12 @@ void Compiler::generateFunctionCode(bool expectBracet) {
     addCode(SYMBOL_OP_FILE);
     addCode(file);
     if (expectBracet) {
-        block();
+        while (current.type != TT_R_BRACKET && current.type != TT_EOF) {
+            block();
+            if (current.type != TT_R_BRACKET) {
+                addError(current.line, current.pos, String(L"Missing Semicolon!"));
+            }
+        }
         expect(TT_R_BRACKET, String(L"]"));
     } else {
         statement();
@@ -592,7 +609,7 @@ void Compiler::factorExp() {
                 variable();
             }
         } else {
-            throw new ParseException(current.line, current.pos, String(L"Unexpected token: "+current.tokenString));
+            addError(current.line, current.pos, String(L"Unexpected token: "+current.tokenString));
         }
     }
 }
@@ -620,7 +637,7 @@ Atom Compiler::compileLiteral() {
     } else if (current.type == TT_NUMBER) {
         result = makeNumber(current.tokenInteger);
     } else {
-        throw new ParseException(line, pos, String(L"Unexpacted token! Expected a literal"));
+        addError(line, pos, String(L"Unexpacted token! Expected a literal"));
     }
     fetch();
     return result;
@@ -644,35 +661,25 @@ void Compiler::load(String variable) {
         addCode(SYMBOL_OP_LD);
         addCode(engine->storage.makeCons(makeNumber(pair.first), makeNumber(pair.second)));
     } else {
-        addCode(SYMBOL_OP_LDG);
-        addCode(engine->storage.findGlobal(engine->storage.makeSymbol(variable)));
+        Atom symbol = engine->storage.makeSymbol(variable);
+        Atom bif = engine->findBuiltInFunction(symbol);
+        if (bif != NIL){
+            addCode(SYMBOL_OP_LDC);
+            addCode(bif);
+        } else {
+            addCode(SYMBOL_OP_LDG);
+            addCode(engine->storage.findGlobal(symbol));
+        }
     }
 }
 
 void Compiler::call() {
 
-    if (current.tokenString[0] == '$') {
-        builtinCall();
-    } else if (current.tokenString[current.tokenString.length()-1] == ':') {
+    if (current.tokenString[current.tokenString.length()-1] == ':') {
         colonCall();
     } else {
         standardCall();
     }
-}
-
-void Compiler::builtinCall() {
-    String name = current.tokenString.substr(1);
-    fetch();
-    expect(TT_L_BRACE, String(L"("));
-    while(current.type != TT_R_BRACE) {
-        expression();
-        if (current.type != TT_R_BRACE) {
-            expect(TT_KOMMA, String(L","));
-        }
-    }
-    expect(TT_R_BRACE, String(L")"));
-    addCode(SYMBOL_OP_BAP);
-    addCode(engine->findBuiltInFunction(engine->storage.makeSymbol(name)));
 }
 
 void Compiler::colonCall() {
