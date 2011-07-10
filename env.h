@@ -1,3 +1,26 @@
+/**
+    Licensed to the Apache Software Foundation (ASF) under one
+    or more contributor license agreements.  See the NOTICE file
+    distributed with this work for additional information
+    regarding copyright ownership.  The ASF licenses this file
+    to you under the Apache License, Version 2.0 (the
+    "License"); you may not use this file except in compliance
+    with the License.  You may obtain a copy of the License at
+
+     http://www.apache.org/licenses/LICENSE-2.0
+
+    Unless required by applicable law or agreed to in writing,
+    software distributed under the License is distributed on an
+    "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+    KIND, either express or implied.  See the License for the
+    specific language governing permissions and limitations
+    under the License.
+ */
+// ---------------------------------------------------------------------------
+// Contains globally available constants and helper functions which are
+// inlined for performance reasons.
+// ---------------------------------------------------------------------------
+
 #ifndef ENV_H
 #define ENV_H
 
@@ -25,6 +48,24 @@ typedef Word Atom;
 typedef std::wstring String;
 
 /**
+  Converts std::string to String
+  */
+inline String asString(std::string str) {
+    String result;
+    result.assign(str.begin(), str.end());
+    return result;
+}
+
+/**
+  Converts String to std::String
+  */
+inline std::string asStdString(String str) {
+    std::string result;
+    result.assign(str.begin(), str.end());
+    return result;
+}
+
+/**
   Used to extract the tag from an atom.
   */
 const Word TAG_MASK        = 0b111;
@@ -33,6 +74,17 @@ const Word TAG_MASK        = 0b111;
   Used for bit shifting when tagging and untagging atoms.
   */
 const Word TAG_LENGTH      = 3;
+
+/**
+  Contains the number of bits in a machine word. This is used for
+  bit-fiddling operations and limit checks.
+  */
+const Word NUMBER_OF_BITS = sizeof(Word) * 8;
+
+/**
+  Determines how many bits are left for the data section of an atom.
+  */
+const Word EFFECTIVE_BITS = NUMBER_OF_BITS - TAG_LENGTH;
 
 /**
   This type is only used once for the constant NIL pointer.
@@ -73,17 +125,6 @@ const Word TAG_TYPE_GLOBAL = 0b101;
   table.
   */
 const Word TAG_TYPE_STRING  = 0b110;
-
-/**
-  Contains the number of bits in a machine word. This is used for
-  bit-fiddling operations and limit checks.
-  */
-const Word NUMBER_OF_BITS = sizeof(Word) * 8;
-
-/**
-  Determines how many bits are left for the data section of an atom.
-  */
-const Word EFFECTIVE_BITS = NUMBER_OF_BITS - TAG_LENGTH;
 
 /**
   Contains the highest table index for symbols, bifs, globals and values.
@@ -319,6 +360,13 @@ const Atom SYMBOL_OP_FILE = SYMBOL(35);
 const Atom SYMBOL_OP_LINE = SYMBOL(36);
 
 /**
+  Reads the tag of a given atom.
+  */
+inline Word getType(Atom atom) {
+    return atom & TAG_MASK;
+}
+
+/**
   Checks whether the given atom is NIL.
   */
 inline bool isNil(Atom atom) {
@@ -329,21 +377,21 @@ inline bool isNil(Atom atom) {
   Checks whether the given atom is a symbol.
   */
 inline bool isSymbol(Atom atom) {
-    return (atom & TAG_TYPE_SYMBOL) == TAG_TYPE_SYMBOL;
+    return getType(atom) == TAG_TYPE_SYMBOL;
 }
 
 /**
   Checks whether the given atom is a number.
   */
 inline bool isNumber(Atom atom) {
-    return (atom & TAG_TYPE_NUMBER) == TAG_TYPE_NUMBER;
+    return getType(atom) == TAG_TYPE_NUMBER;
 }
 
 /**
   Checks whether the given atom is a cell.
   */
 inline bool isCons(Atom atom) {
-    return (atom & TAG_TYPE_CONS) == TAG_TYPE_CONS;
+    return getType(atom) == TAG_TYPE_CONS;
 }
 
 /**
@@ -351,28 +399,21 @@ inline bool isCons(Atom atom) {
   (built in function).
   */
 inline bool isBIF(Atom atom) {
-    return (atom & TAG_TYPE_BIF) == TAG_TYPE_BIF;
+    return getType(atom) == TAG_TYPE_BIF;
 }
 
 /**
   Checks whether the given atom is a global.
   */
 inline bool isGlobal(Atom atom) {
-    return (atom & TAG_TYPE_GLOBAL) == TAG_TYPE_GLOBAL;
+    return getType(atom) == TAG_TYPE_GLOBAL;
 }
 
 /**
   Checks whether the given atom is a string.
   */
 inline bool isString(Atom atom) {
-    return (atom & TAG_TYPE_STRING) == TAG_TYPE_STRING;
-}
-
-/**
-  Reads the tag of a given atom.
-  */
-inline Word getType(Atom atom) {
-    return atom & TAG_MASK;
+    return getType(atom) == TAG_TYPE_STRING;
 }
 
 /**

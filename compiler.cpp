@@ -227,7 +227,7 @@ skip:
         result.type = TT_NUMBER;
     } else if (ch == '\'') {
         result.tokenString = String();
-        input >> ch;
+        nextChar();
         while(ch != '\'' && !input.eof()) {
             if (ch == '\\') {
                 nextChar();
@@ -273,7 +273,7 @@ void Compiler::addCode(Atom atom) {
     }
 }
 
-std::pair<Atom, std::vector<CompilationError> > Compiler::compile() {
+std::pair<Atom, std::vector<CompilationError> > Compiler::compile(bool appendStop) {
     code = NIL;
     fetch();
     addCode(SYMBOL_OP_FILE);
@@ -283,6 +283,11 @@ std::pair<Atom, std::vector<CompilationError> > Compiler::compile() {
         if (current.type != TT_EOF) {
             addError(current.line, current.pos, String(L"Missing Semicolon!"));
         }
+    }
+    if (appendStop) {
+        addCode(SYMBOL_OP_STOP);
+    } else {
+        addCode(SYMBOL_OP_RTN);
     }
     return std::pair<Atom, std::vector<CompilationError> >(code, errors);
 }

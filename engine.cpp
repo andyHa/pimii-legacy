@@ -22,16 +22,18 @@
 
 #include "engine.h"
 #include "tools.h"
+#include "compiler.h"
 #include "bytecodeparser.h"
 
 #include <cassert>
+#include <fstream>
 
 void Engine::push(Atom& reg, Atom atom) {
    reg = storage.makeCons(atom, reg);
 }
 
 Atom Engine::pop(Atom& reg) {
-    if (isNil(reg)) {
+    if (!isCons(reg)) {
         return NIL;
     }
     Cons cons = storage.getCons(reg);
@@ -40,8 +42,7 @@ Atom Engine::pop(Atom& reg) {
     return result;
 }
 
-Engine::Engine()
-{
+Engine::Engine() {
     initializeBIF();
 }
 
@@ -50,14 +51,20 @@ Engine::~Engine() {
 }
 
 Atom Engine::makeBuiltInFunction(Atom nameSymbol, BIF value) {
-    assert(isSymbol(nameSymbol));
+    expect(isSymbol(nameSymbol),
+           "nameSymbol is not a symbol",
+           __FILE__,
+           __LINE__);
     Word result = bifTable.add(nameSymbol, value);
     assert(result < MAX_INDEX_SIZE);
     return tagIndex(result, TAG_TYPE_BIF);
 }
 
 Atom Engine::findBuiltInFunction(Atom nameSymbol) {
-    assert(isSymbol(nameSymbol));
+    expect(isSymbol(nameSymbol),
+           "nameSymbol is not a symbol",
+           __FILE__,
+           __LINE__);
     Word index;
     if (!bifTable.find(nameSymbol, index)) {
         return NIL;
@@ -66,21 +73,19 @@ Atom Engine::findBuiltInFunction(Atom nameSymbol) {
 }
 
 BIF Engine::getBuiltInFunction(Atom atom) {
-    assert(isBIF(atom));
+    expect(isBIF(atom),
+           "given atom is not a built in function",
+           __FILE__,
+           __LINE__);
     return bifTable.getValue(untagIndex(atom));
 }
 
 String Engine::getBIFName(Atom atom) {
-    assert(isBIF(atom));
+    expect(isBIF(atom),
+           "given atom is not a built in function",
+           __FILE__,
+           __LINE__);
     return storage.getSymbolName(bifTable.getKey(untagIndex(atom)));
-}
-
-
-Atom Engine::eval(String name, std::wistream& stream) {
-    BytecodeParser p(stream, this);
-    Atom at = p.parse();
-    TRACE("Parsed: " << toString(at));
-    return exec(name, at);
 }
 
 bool Engine::shouldGC() {
@@ -113,11 +118,21 @@ void Engine::opST() {
 }
 
 void Engine::opLDG() {
-    push(s, storage.readGlobal(pop(c)));
+    Atom gobal = pop(c);
+    expect(isGlobal(gobal),
+           "#LDG: code top was not a global",
+           __FILE__,
+           __LINE__);
+    push(s, storage.readGlobal(gobal));
 }
 
 void Engine::opSTG() {
-    storage.writeGlobal(pop(c), pop(s));
+    Atom gobal = pop(c);
+    expect(isGlobal(gobal),
+           "#STG: code top was not a global",
+           __FILE__,
+           __LINE__);
+    storage.writeGlobal(gobal, pop(s));
 }
 
 void Engine::opSEL() {
@@ -147,6 +162,10 @@ void Engine::opAP() {
         BIF bif = getBuiltInFunction(fun);
         push(s, bif(this, storage, v));
     } else {
+        expect(isCons(fun),
+               "#AP: code top was neither a built in function or a closure!",
+               __FILE__,
+               __LINE__);
         Cons funPair = storage.getCons(fun);
         push(d, c);
         push(d, e);
@@ -168,12 +187,22 @@ void Engine::opRTN() {
 }
 
 void Engine::opCAR() {
-    Cons cons = storage.getCons(pop(s));
+    Atom atom = pop(s);
+    expect(isCons(atom),
+           "#CAR: stack top was not a cons!",
+           __FILE__,
+           __LINE__);
+    Cons cons = storage.getCons(atom);
     push(s, cons->car);
 }
 
 void Engine::opCDR() {
-    Cons cons = storage.getCons(pop(s));
+    Atom atom = pop(s);
+    expect(isCons(atom),
+           "#CDR: stack top was not a cons!",
+           __FILE__,
+           __LINE__);
+    Cons cons = storage.getCons(atom);
     push(s, cons->cdr);
 }
 
@@ -186,6 +215,10 @@ void Engine::opCONS() {
 void Engine::opRPLACAR() {
     Atom element = pop(s);
     Atom cell = pop(s);
+    expect(isCons(cell),
+           "#RPLACAR: stack top was not a cons!",
+           __FILE__,
+           __LINE__);
     Cons c = storage.getCons(cell);
     c->car = element;
     push(s, cell);
@@ -194,6 +227,10 @@ void Engine::opRPLACAR() {
 void Engine::opRPLACDR() {
     Atom element = pop(s);
     Atom cell = pop(s);
+    expect(isCons(cell),
+           "#RPLACDR: stack top was not a cons!",
+           __FILE__,
+           __LINE__);
     Cons c = storage.getCons(cell);
     c->cdr = element;
     push(s, cell);
@@ -206,6 +243,10 @@ void Engine::opCHAIN() {
         Atom a = storage.makeCons(element, NIL);
         push(s, storage.makeCons(a, a));
     } else {
+        expect(isCons(cell),
+               "#CHAIN: stack top was not a cons!",
+               __FILE__,
+               __LINE__);
         Cons c = storage.getCons(cell);
         Cons tail = storage.getCons(c->cdr);
         tail->cdr = storage.makeCons(element, NIL);
@@ -295,8 +336,27 @@ void Engine::opGTQ() {
     }
 }
 
-void Engine::opADD(int a, int b) {
-    push(s, makeNumber(a + b));
+void Engine::opADD() {
+    std::wcerr << toString(s) << std::endl;
+    Atom b = pop(s);
+    std::wcerr << toString(s) << std::endl;
+    Atom a = pop(s);
+    std::wcerr << toString(s) << std::endl;
+    std::wcerr << toString(b) << std::endl;
+    std::wcerr << toString(a) << std::endl;
+    if (isNumber(b) && isNumber(a)) {
+        push(s, makeNumber(getNumber(a) + getNumber(b)));
+        return;
+    }
+    if (isString(a) || isString(b)) {
+        push(s, storage.makeString(toSimpleString(a) + toSimpleString(b)));
+        return;
+    }
+    panic(String(L"Invalid operands for addition: '")
+          + toSimpleString(a)
+          + String(L"' and '")
+          + toSimpleString(b)
+          + String(L"'"));
 }
 
 void Engine::opSUB(int a, int b) {
@@ -316,12 +376,19 @@ void Engine::opREM(int a, int b) {
 }
 
 void Engine::dispatchArithmetic(Atom opcode) {
-    int b = getNumber(pop(s));
-    int a = getNumber(pop(s));
+    Atom atomb = pop(s);
+    expect(isNumber(atomb),
+           "Arithmetic: 1st stack top was not a number!",
+           __FILE__,
+           __LINE__);
+    Atom atoma = pop(s);
+    expect(isNumber(atoma),
+           "Arithmetic: 2nd stack top was not a number!",
+           __FILE__,
+           __LINE__);
+    int b = getNumber(atomb);
+    int a = getNumber(atoma);
     switch(opcode) {
-    case SYMBOL_OP_ADD:
-        opADD(a, b);
-        return;
     case SYMBOL_OP_MUL:
         opMUL(a, b);
         return;
@@ -338,12 +405,26 @@ void Engine::dispatchArithmetic(Atom opcode) {
 }
 
 Atom Engine::locate(Atom pos) {
+    expect(isCons(pos),
+           "locate: pos is not a pair!",
+           __FILE__,
+           __LINE__);
     Cons cons = storage.getCons(pos);
+    expect(isNumber(cons->car),
+           "locate: car is not a number!",
+           __FILE__,
+           __LINE__);
     Word i = getNumber(cons->car);
+    expect(isNumber(cons->car),
+           "locate: cdr is not a number!",
+           __FILE__,
+           __LINE__);
     Word j = getNumber(cons->cdr);
     Atom env = e;
     while (i > 1) {
         if (!isCons(env)) {
+            // We could also throw an exception here because this is most
+            // likely an error - but we keep hoping and simply return NIL.
             return NIL;
         }
         env = storage.getCons(env)->cdr;
@@ -355,6 +436,8 @@ Atom Engine::locate(Atom pos) {
     env = storage.getCons(env)->car;
     while (j > 1) {
         if (!isCons(env)) {
+            // This is probably not an error, but a read on a not yet defined
+            // local variable.
             return NIL;
         }
         env = storage.getCons(env)->cdr;
@@ -367,12 +450,26 @@ Atom Engine::locate(Atom pos) {
 }
 
 void Engine::store(Atom pos, Atom value) {
+    expect(isCons(pos),
+           "store: pos is not a pair!",
+           __FILE__,
+           __LINE__);
     Cons cons = storage.getCons(pos);
+    expect(isNumber(cons->car),
+           "store: car is not a number!",
+           __FILE__,
+           __LINE__);
     Word i = getNumber(cons->car);
+    expect(isNumber(cons->car),
+           "store: cdr is not a number!",
+           __FILE__,
+           __LINE__);
     Word j = getNumber(cons->cdr);
     Atom env = e;
     while (i > 1) {
         if (!isCons(env)) {
+            // We could also throw an exception here because this is most
+            // likely an error - but we keep hoping and simply return NIL.
             return;
         }
         env = storage.getCons(env)->cdr;
@@ -405,11 +502,21 @@ void Engine::store(Atom pos, Atom value) {
 }
 
 void Engine::opLine() {
-    currentLine = getNumber(pop(c));
+    Atom line = pop(c);
+    expect(isNumber(line),
+           "#LINE: code top is not a number!",
+           __FILE__,
+           __LINE__);
+    currentLine = getNumber(line);
 }
 
 void Engine::opFile() {
-    currentFile = pop(c);
+    Atom symbol = pop(c);
+    expect(isSymbol(symbol),
+           "#FILE: code top is not a symbol!",
+           __FILE__,
+           __LINE__);
+    currentFile = symbol;
 }
 
 void Engine::dispatch(Atom opcode) {
@@ -466,6 +573,8 @@ void Engine::dispatch(Atom opcode) {
         opGTQ();
         return;
     case SYMBOL_OP_ADD:
+        opADD();
+        return;
     case SYMBOL_OP_SUB:
     case SYMBOL_OP_DIV:
     case SYMBOL_OP_MUL:
@@ -499,33 +608,145 @@ void Engine::dispatch(Atom opcode) {
     case SYMBOL_OP_LINE:
         opLine();
         return;
+    default:
+        panic(String(L"Invalid op-code: ")+toString(opcode));
+        return;
     }
 }
 
-Atom Engine::exec(String name, Atom code) {
+Atom Engine::exec(String filename, Atom code) {
     s = NIL;
     e = NIL;
     c = code;
     d = NIL;
-    currentFile = storage.makeSymbol(name);
-    currentLine = makeNumber(1);
-    p = storage.makeCons(currentFile, currentLine);
+    p = NIL;
+    currentFile = storage.makeSymbol(filename);
+    currentLine = 1;
+    push(p, storage.makeCons(currentFile,  makeNumber(currentLine)));
 
-    while (true) {
-        Atom op = pop(c);
-        if (isNil(op)) {
-            return pop(s);
+    try {
+        try {
+            while (true) {
+                Atom op = pop(c);
+                if (op == SYMBOL_OP_STOP) {
+                    return pop(s);
+                } else {
+                    dispatch(op);
+                    if (shouldGC()) {
+                        gc();
+                    }
+                }
+            }
+        } catch(StopEngineException* e) {
+            //Error is already handled...
+            return NIL;
+        } catch(std::exception* e) {
+            std::wstringstream ss;
+            ss << e->what();
+            panic(ss.str());
         }
-        if (op == SYMBOL_OP_STOP) {
-            return pop(s);
+    } catch(StopEngineException* e) {
+        //Error is already handled...
+        return NIL;
+    }
+
+    return NIL; // unreachable
+}
+
+void Engine::kickstart(String filename) {
+    try {
+        s = NIL;
+        e = NIL;
+        c = NIL;
+        d = NIL;
+        p = NIL;
+        currentFile = storage.makeSymbol(String(L"kickstarter"));
+        currentLine = 1;
+        push(p, storage.makeCons(currentFile, makeNumber(currentLine)));
+        Atom code = compileFile(filename, true);
+        std::wcerr << toString(code) << std::endl;
+        exec(filename, code);
+    } catch(StopEngineException* e) {
+        //Error is already handled...
+    }
+}
+
+void Engine::expect(bool expectation, const char* errorMessage, const char* file, int line) {
+    if (!expectation) {
+        std::wstringstream str;
+        str << errorMessage << " (" << file << ":" << line << ")";
+        panic(str.str());
+    }
+}
+
+void Engine::panic(String error) {
+    std::wcerr << "Error:" << std::endl;
+    std::wcerr << "--------------------------------------------" << std::endl;
+    std::wcerr << error << std::endl << std::endl;
+    std::wcerr << "Stacktrace:" << std::endl;
+    std::wcerr << "--------------------------------------------" << std::endl;
+    std::wcerr << toSimpleString(currentFile) << ":" << currentLine << std::endl;
+    Atom pos = pop(p);
+    while(isCons(pos)) {
+        Cons location = storage.getCons(pos);
+        std::wcerr << toSimpleString(location->car) << ":" << toSimpleString(location->cdr) << std::endl;
+        pos = pop(p);
+    }
+    std::wcerr << std::endl;
+    std::wcerr << "Registers:" << std::endl;
+    std::wcerr << "--------------------------------------------" << std::endl;
+    std::wcerr << "S: " << toString(s) << std::endl;
+    std::wcerr << "E: " << toString(e) << std::endl;
+    std::wcerr << "C: " << toString(c) << std::endl;
+    std::wcerr << "D: " << toString(d) << std::endl << std::endl;
+
+    // Stop engine...
+    throw new StopEngineException();
+}
+
+String Engine::lookupSource(String fileName) {
+    for(std::vector<String>::iterator i = sourcePaths.begin(); i != sourcePaths.end(); i++) {
+        std::string path = asStdString((*i) + fileName);
+        std::wifstream is(path.c_str(), std::ios::in);
+        if (is) {
+            return (*i) + fileName;
         }
-        dispatch(op);
-        if (shouldGC()) {
-            gc();
+    }
+    return fileName;
+}
+
+void Engine::addSourcePath(String path) {
+    sourcePaths.insert(sourcePaths.begin(), path);
+}
+
+Atom Engine::compileFile(String file, bool insertStop) {
+    String path = lookupSource(file);
+    std::wifstream stream(asStdString(path).c_str(), std::ios::in);
+    if (!stream) {
+        panic(String(L"Cannot compile: ") + file + String(L". File was not found!"));
+        return NIL;
+    }
+    Compiler compiler(file, stream, this);
+    std::pair<Atom, std::vector<CompilationError> > result = compiler.compile(insertStop);
+    if (!result.second.empty()) {
+        std::wstringstream buf;
+        buf << "Compilation error(s) in: " << file << std::endl;
+        for(std::vector<CompilationError>::iterator i = result.second.begin(); i != result.second.end(); i++) {
+            CompilationError e = *i;
+            buf << e.line << ":" << e.pos << ": " << e.error << std::endl;
         }
-    }    
-    gc();
-    return s;
+        panic(buf.str());
+        return NIL;
+    }
+    return result.first;
+}
+
+void Engine::print(String string) {
+    std::wcout << string;
+}
+
+void Engine::newLine() {
+    std::wcout << std::endl;
 }
 
 String Engine::printList(Atom atom) {

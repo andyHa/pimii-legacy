@@ -16,14 +16,12 @@ TEMPLATE = app
 
 
 SOURCES += main.cpp \
-    bytecodeparser.cpp \
     engine.cpp \
     bif.cpp \
     storage.cpp \
     compiler.cpp
 
 HEADERS += \
-    bytecodeparser.h \
     engine.h \
     lookuptable.h \
     valuetable.h \

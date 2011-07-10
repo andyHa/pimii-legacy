@@ -16,7 +16,9 @@
     specific language governing permissions and limitations
     under the License.
  */
-
+// ---------------------------------------------------------------------------
+// Represents a value table used by the storage engine for string values etc.
+// ---------------------------------------------------------------------------
 #ifndef VALUETABLE_H
 #define VALUETABLE_H
 
