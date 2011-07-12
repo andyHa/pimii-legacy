@@ -127,8 +127,8 @@ Atom bif_substr(Engine* engine, Storage& storage, Atom args) {
                    __FILE__,
                    __LINE__);
     String str = storage.getString(first);
-    Word pos = std::min(getNumber(second) - 1, str.length() - 1);
-    Word length = std::min(getNumber(third), str.length() - pos);
+    Word pos = std::min((Word)getNumber(second) - 1, str.length());
+    Word length = std::min((Word)getNumber(third), str.length() - pos);
     return storage.makeString(str.substr(pos, length));
 }
 

@@ -337,13 +337,8 @@ void Engine::opGTQ() {
 }
 
 void Engine::opADD() {
-    std::wcerr << toString(s) << std::endl;
     Atom b = pop(s);
-    std::wcerr << toString(s) << std::endl;
     Atom a = pop(s);
-    std::wcerr << toString(s) << std::endl;
-    std::wcerr << toString(b) << std::endl;
-    std::wcerr << toString(a) << std::endl;
     if (isNumber(b) && isNumber(a)) {
         push(s, makeNumber(getNumber(a) + getNumber(b)));
         return;

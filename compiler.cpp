@@ -32,29 +32,46 @@ void Compiler::addError(int line, int pos, String errorMsg) {
     errors.push_back(e);
 }
 
+/**
+  Fetches the next token from the given stream. This method
+  also updates the current position in the file and skips
+  comments and whitespaces...
+
+  As one can see in the beginning, it uses two gotos while
+  parsing comments. This can propbably refactored with an
+  extra method+loop.
+
+  After that, the next chracter is read and it is decieded
+  which token is to be generated.
+  */
 Token Compiler::fetchToken()  {
-    while(std::isspace(ch) && !input.eof()) {
-        nextChar();
-    }
-    if (ch == '/') {
-        nextChar();
-        if (ch == '*') {
-            nextChar();
-skip:
-            while(ch != '*' && !input.eof()) {
-                nextChar();
-            }
-            if (!input.eof()) {
-                nextChar();
-                if (ch != '/') {
-                    goto skip;
-                }
-                nextChar();
-            }
-            while(std::isspace(ch) && !input.eof()) {
-                nextChar();
-            }
+begin: // <---------------------------------------------+
+    while(std::isspace(ch) && !input.eof()) {        // |
+        nextChar();                                  // |
+    }                                                // |
+    if (ch == '/') {                                 // |
+        nextChar();                                  // |
+        if (ch == '*') {                             // |
+            // We have a commend, read over it...       |
+            nextChar();                              // |
+skip: // <-----------------------------------------+    |
+            while(ch != '*' && !input.eof()) {  // |    |
+                nextChar();                     // |    |
+            }                                   // |    |
+            if (!input.eof()) {                 // |    |
+                nextChar();                     // |    |
+                if (ch != '/') {                // |    |
+                    // There was a * in the        |    |
+                    // comment. Ignore and repeat. |    |
+                    goto skip; // -----------------+    |
+                }                                    // |
+                // We the end of the comment.           |
+                // Skip / and restart "fetchToken".     |
+                nextChar();                          // |
+            }                                        // |
+            goto begin; //------------------------------+
         } else {
+            // We have a division operator...
             Token result;
             result.pos = pos - 1;
             result.line = line;
@@ -74,18 +91,23 @@ skip:
         result.tokenString += ch;
         result.type = TT_NAME;
         nextChar();
-        while((std::isalpha(ch) || std::isdigit(ch) || ch == ':') && !input.eof()) {
+        while((std::isalpha(ch)
+               || std::isdigit(ch)
+               || ch == ':'
+               || ch == '_')
+              && !input.eof())
+        {
             result.tokenString += ch;
             nextChar();
         }
     } else if (ch == ';') {
         result.tokenString = String(L";");
-        nextChar(); // Read over character
+        nextChar();
         result.type = TT_SEMICOLON;
     } else if (ch == '-') {
-        nextChar(); // Read over character
+        nextChar();
         if (ch == '>') {
-            nextChar(); // Read over character
+            nextChar();
             result.tokenString = String(L"->");
             result.type = TT_ARROW;
         } else if (std::isdigit(ch)) {
@@ -105,66 +127,75 @@ skip:
             result.type = TT_MINUS;
         }
     } else if (ch == ':') {
-        nextChar(); // Read over character
+        nextChar();
         if (ch == '=') {
-            nextChar(); // Read over character
+            nextChar();
             result.tokenString = String(L":=");
             result.type = TT_ASSIGNMENT;
+        } else if (ch == ':') {
+            nextChar();
+            if (ch == '=') {
+               nextChar();
+               result.tokenString = String(L"::=");
+               result.type = TT_GLOBAL_ASSIGNMENT;
+            } else {
+                addError(line, pos-1, L"Unexpected colon. (Names must not start with a colon)");
+            }
         } else {
             addError(line, pos-1, L"Unexpected colon. (Names must not start with a colon)");
         }
     } else if (ch == '(') {
         result.tokenString = String(L"(");
-        nextChar(); // Read over character
+        nextChar();
         result.type = TT_L_BRACE;
     } else if (ch == ')') {
         result.tokenString = String(L")");
-        nextChar(); // Read over character
+        nextChar();
         result.type = TT_R_BRACE;
     } else if (ch == '[') {
         result.tokenString = String(L"[");
-        nextChar(); // Read over character
+        nextChar();
         result.type = TT_L_BRACKET;
     } else if (ch == ']') {
         result.tokenString = String(L"]");
-        nextChar(); // Read over character
+        nextChar();
         result.type = TT_R_BRACKET;
     } else if (ch == ',') {
         result.tokenString = String(L",");
-        nextChar(); // Read over character
+        nextChar();
         result.type = TT_KOMMA;
     } else if (ch == '.') {
         result.tokenString = String(L".");
-        nextChar(); // Read over character
+        nextChar();
         result.type = TT_DOT;
     } else if (ch == '=') {
         result.tokenString = String(L"=");
-        nextChar(); // Read over character
+        nextChar();
         result.type = TT_EQ;
     } else if (ch == '+') {
         result.tokenString = String(L"+");
-        nextChar(); // Read over character
+        nextChar();
         result.type = TT_PLUS;
     } else if (ch == '&') {
         result.tokenString = String(L"&");
-        nextChar(); // Read over character
+        nextChar();
         result.type = TT_AND;
     } else if (ch == '|') {
         result.tokenString = String(L"&");
-        nextChar(); // Read over character
+        nextChar();
         result.type = TT_OR;
     } else if (ch == '%') {
         result.tokenString = String(L"%");
-        nextChar(); // Read over character
+        nextChar();
         result.type = TT_MOD;
     } else if (ch == '*') {
         result.tokenString = String(L"*");
-        nextChar(); // Read over character
+        nextChar();
         result.type = TT_MUL;
     } else if (ch == '!') {
-        nextChar(); // Read over character
+        nextChar();
         if (ch == '=') {
-            nextChar(); // Read over character
+            nextChar();
             result.tokenString = String(L"!=");
             result.type = TT_NE;
         } else {
@@ -172,13 +203,13 @@ skip:
             result.type = TT_NOT;
         }
     } else if (ch == '<') {
-        nextChar(); // Read over character
+        nextChar();
         if (ch == '<') {
-            nextChar(); // Read over character
+            nextChar();
             result.tokenString = String(L"<<");
             result.type = TT_ASM_BEGIN;
         } else if (ch == '='){
-            nextChar(); // Read over character
+            nextChar();
             result.tokenString = String(L"<=");
             result.type = TT_LTEQ;
         } else {
@@ -186,13 +217,13 @@ skip:
             result.type = TT_LT;
         }
     } else if (ch == '>') {
-        nextChar(); // Read over character
+        nextChar();
         if (ch == '>') {
-            nextChar(); // Read over character
+            nextChar();
             result.tokenString = String(L">>");
             result.type = TT_ASM_END;
         } else if (ch == '='){
-            nextChar(); // Read over character
+            nextChar();
             result.tokenString = String(L">=");
             result.type = TT_GTEQ;
         } else {
@@ -200,9 +231,9 @@ skip:
             result.type = TT_GT;
         }
     } else if (ch == '#') {
-        nextChar(); // Read over character
+        nextChar();
         if (ch == '(') {
-            nextChar(); // Read over character
+            nextChar();
             result.tokenString = String(L"#(");
             result.type = TT_LIST_START;
         } else {
@@ -311,10 +342,10 @@ void Compiler::statement() {
     addCode(makeNumber(line));
     if (current.type == TT_NAME) {
         if (lookahead.type == TT_ASSIGNMENT) {
-            normalAssignment();
-            return;
-        } else if (current.tokenString == String(L"var") && lookahead.type == TT_NAME && lookahead2.type == TT_ASSIGNMENT) {
             localAssignment();
+            return;
+        } else if (lookahead.type == TT_GLOBAL_ASSIGNMENT) {
+            globalAssignment();
             return;
         }
     }
@@ -323,7 +354,8 @@ void Compiler::statement() {
 
 void Compiler::localAssignment() {
     if (symbolTable.size() == 0) {
-        addError(line,pos, String(L"Local Variable assignments are only allowed within functions!"));
+        globalAssignment();
+        return;
     }
     fetch();
     String name = current.tokenString;
@@ -345,7 +377,7 @@ void Compiler::localAssignment() {
     addCode(engine->storage.makeCons(makeNumber(1), makeNumber(minorIndex)));
 }
 
-void Compiler::normalAssignment() {
+void Compiler::globalAssignment() {
     String name = current.tokenString;
     fetch();
     fetch();

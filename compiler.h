@@ -16,9 +16,11 @@
     specific language governing permissions and limitations
     under the License.
  */
-// ---------------------------------------------------------------------------
-// Contains the compiler which translates source code into bytecodes.
-// ---------------------------------------------------------------------------
+/**
+  ---------------------------------------------------------------------------
+  Contains the compiler which translates source code into bytecodes.
+  ---------------------------------------------------------------------------
+  */
 
 #ifndef COMPILER_H
 #define COMPILER_H
@@ -26,29 +28,64 @@
 /**
   Language:
 
-  $NAME -> [a..zA..Z]([a-zA-Z0-9:]*[a..zA..Z0-9])?;
+  There are several aims which influenced the design of the language:
 
-  $COLON_NAME -> [a..zA..Z][a-zA-Z0-9:]*'[a..zA..Z0-9])?':';
+   1) No built in keywords, so that it can be completely translated if
+      desired.
+   2) As few constructs as possible, so that the language is easy to learn.
+   3) It should be possible to parse and compile the language in one pass.
+   4) Keep everthing as simple as possible. Due to the "colon-calls" which
+      are borrowed from Smalltalk, the language can be easily extended.
+      Furthermore, one can always write a better / advanced compiler within
+      the language itself. Therefore, this compiler won't do any magic,
+      like inlining etc. The compiler and its generated code, should be
+      easily understood by people new to this subject.
 
-  $BIF_NAME -> [a..zA..Z][a-zA-Z0-9:]*'[a..zA..Z0-9])?'$';
+  The compiler is implemented as recursive descendand parser with a hand
+  written tokenizer. Therefore the complete tokenizer is contained in the
+  fetch() method and for each non-terminal is a method with the same name.
 
-  $SYMBOL -> '#'[a..zA..Z][a-zA-Z0-9]*;
+  Being a one pass compiler, each method directly outputs the appropriate
+  bytecode for the parsed sources.
 
-  $NUMBER -> [0-9]+;
+  Tokens
+  -------------------------------------------------------------------
 
+  // Represents a name of a variable or function.
+  $NAME -> [a..zA..Z_]([a-zA-Z0-9_:]*[a..zA..Z0-9_])?;
+
+  // Represents a name of a function which uses a Smalltalk like call
+  // pattern: The name consists of several words which each ends with
+  // a colon. Parameters are passed in after each word.
+  // So the method if:then:else: is invoked, via:
+  // if: [ condition ] then: [ do something ] else: [ do somethind else ]
+  $COLON_NAME -> [a..zA..Z_][a-zA-Z0-9:_]*'[a..zA..Z0-9_])?':';
+
+  // A symbol is a name for an internal constant. All op-codes are for
+  // example symbols. Once translated to its internal representation,
+  // symbols can be compared very fast.
+  $SYMBOL -> '#'[a..zA..Z_][a-zA-Z0-9_]*;
+
+  // Represents an integer number.
+  $NUMBER -> (0|'-'?[1-9][0-9]*);
+
+  // Represents a string constant.
   $STRING -> '''[^']''';
+
+  Rules
+  -------------------------------------------------------------------
 
   START -> BLOCK;
 
-  BLOCK -> STATEMENT ( ';' STATEMENT )* ';';
+  BLOCK -> STATEMENT ( ';' STATEMENT )* ';'?;
 
   STATEMENT -> ASSIGNMENT | EXPRESSION;
 
-  ASSIGNMENT -> LOCAL_ASSIGNMENT | NORMAL_ASSIGNMENT;
+  ASSIGNMENT -> LOCAL_ASSIGNMENT | GLOBAL_ASSIGNMENT;
 
-  LOCAL_ASSIGNMENT -> 'var' $NAME ':=' EXPRESSION;
+  LOCAL_ASSIGNMENT -> $NAME ':=' EXPRESSION;
 
-  NORMAL_ASSIGNMENT -> $NAME ':=' EXPRESSION;
+  GLOBAL_ASSIGNMENT -> $NAME '::=' EXPRESSION;
 
   EXPRESSION -> DEFINITION | REL ( ( '=' | '!=' | '<' | '>' | '<=' | '>=' ) REL )?;
 
@@ -68,9 +105,11 @@
 
   FACTOR -> '(' EXPRESSION ')' | LITERAL | VARIABLE | CALL;
 
-  LITERAL -> $NUMBER | $STRING | $SYMBOL | INLINE_LIST;
+  LITERAL -> $NUMBER | $STRING | $SYMBOL | INLINE_LIST | ASSEMBLY;
 
   INLINE_LIST -> '#(' EXPRESSION ( ',' EXPRESSION )* ')';
+
+  ASSEMBLY -> '<<' ($NUMBER | $STRING | $SYMBOL) ( ',' ($NUMBER | $STRING | $SYMBOL) )* '>>';
 
   VARIABLE -> $NAME;
 
@@ -105,6 +144,7 @@ enum TokenType {
     TT_NUMBER,
     TT_SEMICOLON,
     TT_ASSIGNMENT,
+    TT_GLOBAL_ASSIGNMENT,
     TT_KOMMA,
     TT_DOT,
     TT_PLUS,
@@ -170,7 +210,7 @@ class Compiler
     void block();
     void statement();
     void localAssignment();
-    void normalAssignment();
+    void globalAssignment();
     void expression();
     void includeAsm();
     void handleAsmSublist();
