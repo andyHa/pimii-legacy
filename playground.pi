@@ -1,0 +1,38 @@
+f := [
+    println(1 < 2 < 3);
+    println(2+2);
+    println(substr('12345',1,3));
+];
+f();
+
+
+signum := number -> {
+    [ number >= 0 :  1]
+    [ number < 0  : -1]
+};
+
+abs := number -> number * signum(number);
+
+each:do: := (list, op) -> {
+    [ isList(list) : op(first(list)); each: tail(list) do: op]
+    [              : nil ]
+}
+
+sum := (list,f,x) -> {
+    if: [ isList(list) ] then: [
+        sum(tail(list), f, f(first(list), x)
+    ] else: [ x ];
+};
+
+sum:with: := (list,aggr) -> [
+    helper := (list, f, x)  -> {
+        [ isList(list) : ^helper(tail(list), f, f(first(list), x)]
+        [              : ^x ]
+    };
+    ^helper(list,aggr,nil);
+]
+
+if:then:else: -> (cond, tf, ff) -> {
+    [cond() : tf() ]
+    [ _ : ff() ]
+}

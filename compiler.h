@@ -87,23 +87,27 @@
 
   GLOBAL_ASSIGNMENT -> $NAME '::=' EXPRESSION;
 
-  EXPRESSION -> DEFINITION | REL ( ( '=' | '!=' | '<' | '>' | '<=' | '>=' ) REL )?;
+  EXPRESSION -> DEFINITION | BASIC;
+
+  BASIC -> LOG ( ('&' | '|') LOG )*;
 
   DEFINITION -> NORMAL_DEFINITION | SHORT_DEFINITION | INLINE_DEFINITION;
 
-  NORMAL_DEFINITION -> '(' $NAME ( ',' $NAME)* ')' '->' '[' BLOCK ']';
+  NORMAL_DEFINITION -> '(' $NAME ( ',' $NAME)* ')' '->' ('[' BLOCK ']' | STATEMENT | GUARDED);
 
-  SHORT_DEFINITION -> $NAME '->' '[' BLOCK ']';
+  SHORT_DEFINITION -> $NAME '->' ('[' BLOCK ']' | STATEMENT | GUARDED);
+
+  GUARDED -> '{' ( '[' BASIC? ':' BLOCK ']' )+ '}';
 
   INLINE_DEFINITION -> '[' ( $NAME ( ',' $NAME )* '->' )? BLOCK ']';
 
-  REL -> LOG ( ('&' | '|') LOG )*;
+  LOG -> REL ( ( '=' | '!=' | '<' | '>' | '<=' | '>=' ) REL )?;
 
-  LOG -> TERM ( ('+' | '-') TERM )*;
+  REL -> TERM ( ('+' | '-') TERM )*;
 
   TERM -> FACTOR ( ('*' | '/' | '%') FACTOR )*;
 
-  FACTOR -> '(' EXPRESSION ')' | LITERAL | VARIABLE | CALL;
+  FACTOR -> '!' FACTOR | '(' EXPRESSION ')' | LITERAL | VARIABLE | CALL;
 
   LITERAL -> $NUMBER | $STRING | $SYMBOL | INLINE_LIST | ASSEMBLY;
 
@@ -145,6 +149,7 @@ enum TokenType {
     TT_SEMICOLON,
     TT_ASSIGNMENT,
     TT_GLOBAL_ASSIGNMENT,
+    TT_COLON,
     TT_KOMMA,
     TT_DOT,
     TT_PLUS,
@@ -165,6 +170,8 @@ enum TokenType {
     TT_R_BRACE,
     TT_L_BRACKET,
     TT_R_BRACKET,
+    TT_L_CURLY,
+    TT_R_CURLY,
     TT_ASM_BEGIN,
     TT_ASM_END,
     TT_ARROW,
@@ -218,8 +225,9 @@ class Compiler
     void shortDefinition();
     void inlineDefinition();
     void generateFunctionCode(bool expectBracet);
-    void relExp();
+    void basicExp();
     void logExp();
+    void relExp();
     void termExp();
     void factorExp();
     void inlineList();

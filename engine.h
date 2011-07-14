@@ -246,9 +246,8 @@ class Engine
     void opDIV(int a, int b);
     void opREM(int a, int b);
     void opNOT();
-    void opAND(Atom a, Atom b);
-    void opOR(Atom a, Atom b);
-    void opXOR(Atom a, Atom b);
+    void opAND();
+    void opOR();
     void opFile();
     void opLine();
 

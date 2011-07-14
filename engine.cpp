@@ -370,6 +370,23 @@ void Engine::opREM(int a, int b) {
     push(s, makeNumber(a % b));
 }
 
+void Engine::opAND() {
+    Atom atomb = pop(s);
+    Atom atoma = pop(s);
+    push(s, atomb == SYMBOL_TRUE && atoma == SYMBOL_TRUE ? SYMBOL_TRUE : SYMBOL_FALSE);
+}
+
+void Engine::opOR() {
+    Atom atomb = pop(s);
+    Atom atoma = pop(s);
+    push(s, atomb == SYMBOL_TRUE || atoma == SYMBOL_TRUE ? SYMBOL_TRUE : SYMBOL_FALSE);
+}
+
+void Engine::opNOT() {
+    Atom atom = pop(s);
+    push(s, atom == SYMBOL_TRUE ? SYMBOL_FALSE : SYMBOL_TRUE);
+}
+
 void Engine::dispatchArithmetic(Atom opcode) {
     Atom atomb = pop(s);
     expect(isNumber(atomb),
@@ -575,6 +592,15 @@ void Engine::dispatch(Atom opcode) {
     case SYMBOL_OP_MUL:
     case SYMBOL_OP_REM:
         dispatchArithmetic(opcode);
+        return;
+    case SYMBOL_OP_AND:
+        opAND();
+        return;
+    case SYMBOL_OP_OR:
+        opOR();
+        return;
+    case SYMBOL_OP_NOT:
+        opNOT();
         return;
     case SYMBOL_OP_CAR:
         opCAR();

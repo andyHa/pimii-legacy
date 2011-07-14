@@ -141,6 +141,9 @@ skip: // <-----------------------------------------+    |
             } else {
                 addError(line, pos-1, L"Unexpected colon. (Names must not start with a colon)");
             }
+        } else if (std::isspace(ch)){
+            result.tokenString = String(L":");
+            result.type = TT_COLON;
         } else {
             addError(line, pos-1, L"Unexpected colon. (Names must not start with a colon)");
         }
@@ -152,6 +155,14 @@ skip: // <-----------------------------------------+    |
         result.tokenString = String(L")");
         nextChar();
         result.type = TT_R_BRACE;
+    } else if (ch == '{') {
+        result.tokenString = String(L"{");
+        nextChar();
+        result.type = TT_L_CURLY;
+    } else if (ch == '}') {
+        result.tokenString = String(L"}");
+        nextChar();
+        result.type = TT_R_CURLY;
     } else if (ch == '[') {
         result.tokenString = String(L"[");
         nextChar();
@@ -418,7 +429,7 @@ void Compiler::expression() {
     } else if (current.type == TT_ASM_BEGIN) {
         includeAsm();
     } else {
-        relExp();
+        basicExp();
     }
 }
 
@@ -547,32 +558,64 @@ void Compiler::generateFunctionCode(bool expectBracet) {
 
 
 void Compiler::relExp() {
+    termExp();
+    Atom lastSubexpression = NIL;
+    while(true) {
+        Atom opCode = NIL;
+        if (current.type == TT_EQ) {
+            opCode = SYMBOL_OP_EQ;
+        } else if (current.type == TT_NE) {
+            opCode = SYMBOL_OP_NE;
+        } else if (current.type == TT_LT) {
+            opCode = SYMBOL_OP_LT;
+        } else if (current.type == TT_LTEQ) {
+            opCode = SYMBOL_OP_LTQ;
+        } else if (current.type == TT_GT) {
+            opCode = SYMBOL_OP_GT;
+        } else if (current.type == TT_GTEQ) {
+            opCode = SYMBOL_OP_GTQ;
+        }
+        if (opCode == NIL) {
+            return;
+        }
+        fetch(); // Read over operator
+        bool conjunction = lastSubexpression != NIL;
+        if (conjunction) {
+            // if we're in a conjunction, like 1 < x < 10, copy last
+            // argument (x in this case) so we build an expression like
+            // 1 < x & x < 10
+            Atom code = lastSubexpression;
+            Atom stop = tail;
+            while(isCons(code) && code != stop) {
+                std::wcout << engine->toString(code) << std::endl;
+                Cons cell = engine->storage.getCons(code);
+                addCode(cell->car);
+                code = cell->cdr;
+            }
+        }
+        lastSubexpression = tail;
+        termExp();
+        // Remember second argument in case we have a conjunction like
+        // 1 < x < 10...
+        lastSubexpression = engine->storage.getCons(lastSubexpression)->cdr;
+        addCode(opCode);
+        if (conjunction) {
+            addCode(SYMBOL_OP_AND);
+        }
+    }
+}
+
+void Compiler::basicExp() {
     logExp();
     while(true) {
-        if (current.type == TT_EQ) {
+        if (current.type == TT_AND) {
             fetch();
-            relExp();
-            addCode(SYMBOL_OP_EQ);
-        } else if (current.type == TT_NE) {
+            logExp();
+            addCode(SYMBOL_OP_AND);
+        } else if (current.type == TT_OR) {
             fetch();
-            relExp();
-            addCode(SYMBOL_OP_NE);
-        } else if (current.type == TT_LT) {
-            fetch();
-            relExp();
-            addCode(SYMBOL_OP_LT);
-        } else if (current.type == TT_LTEQ) {
-            fetch();
-            relExp();
-            addCode(SYMBOL_OP_LTQ);
-        } else if (current.type == TT_GT) {
-            fetch();
-            relExp();
-            addCode(SYMBOL_OP_GT);
-        } else if (current.type == TT_GTEQ) {
-            fetch();
-            relExp();
-            addCode(SYMBOL_OP_GTQ);
+            logExp();
+            addCode(SYMBOL_OP_OR);
         } else {
             return;
         }
@@ -580,15 +623,15 @@ void Compiler::relExp() {
 }
 
 void Compiler::logExp() {
-    termExp();
+    relExp();
     while(true) {
         if (current.type == TT_PLUS) {
             fetch();
-            termExp();
+            relExp();
             addCode(SYMBOL_OP_ADD);
         } else if (current.type == TT_MINUS) {
             fetch();
-            termExp();
+            relExp();
             addCode(SYMBOL_OP_SUB);
         } else if (current.type == TT_NUMBER && current.tokenInteger < 0) {
             addCode(SYMBOL_OP_LDC);
@@ -627,6 +670,10 @@ void Compiler::factorExp() {
         fetch();
         expression();
         expect(TT_R_BRACE, String(L")"));
+    } else if (current.type == TT_NOT) {
+        fetch();
+        factorExp();
+        addCode(SYMBOL_OP_NOT);
     } else {
         if (current.type == TT_SYMBOL || current.type == TT_STRING || current.type == TT_NUMBER) {
             literal();
