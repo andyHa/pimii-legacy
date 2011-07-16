@@ -1,1 +1,10 @@
-println(1 < 10 = 2*5)
+while:do: := (cond, block) -> {
+    [cond() : block(); while: cond do: block ]
+};
+
+x := 1;
+
+while: [ x < 100] do: [
+    println(x);
+    x ::= x + 1;
+]

@@ -88,6 +88,16 @@ class Engine
     Atom p;
 
     /**
+      Returns the nth item of th given list or register.
+      */
+    Atom nth(Atom list, Word idx);
+
+    /**
+      Returns the head of the given list or register.
+      */
+    Atom head(Atom list);
+
+    /**
       Pushes a value on the given machine register.
       */
     void push(Atom& reg, Atom value);
@@ -170,7 +180,7 @@ class Engine
     /**
       Invokes a function.
       */
-    void opAP();
+    void opAP(bool hasArguments);
 
     /**
       Returns from a function.
@@ -178,14 +188,9 @@ class Engine
     void opRTN();
 
     /**
-      Branches based on a condition.
+      Branches is the stack top is true.
       */
-    void opSEL();
-
-    /**
-      Returns from a branch.
-      */
-    void opJOIN();
+    void opBT();
 
     /**
       Loads a global onto the stack.

@@ -135,29 +135,44 @@ void Engine::opSTG() {
     storage.writeGlobal(gobal, pop(s));
 }
 
-void Engine::opSEL() {
+void Engine::opBT() {
     Atom discriminator = pop(s);
     Atom ct = pop(c);
-    Atom cf = pop(c);
-    push(d, c);
     if (discriminator == SYMBOL_TRUE) {
         c = ct;
-    } else {
-        c = cf;
     }
-}
-
-void Engine::opJOIN() {
-    c = pop(d);
 }
 
 void Engine::opLDF() {
     push(s, storage.makeCons(pop(c), e));
 }
 
-void Engine::opAP() {
+Atom Engine::nth(Atom list, Word idx) {
+    while(isCons(list) && idx > 0) {
+        idx--;
+        list = storage.getCons(list)->cdr;
+    }
+    if (isCons(list)) {
+        return storage.getCons(list)->car;
+    } else {
+        return NIL;
+    }
+}
+
+Atom Engine::head(Atom list) {
+    if (isCons(list)) {
+       return storage.getCons(list)->car;
+    } else {
+        return NIL;
+    }
+}
+
+void Engine::opAP(bool hasArguments) {
     Atom fun = pop(s);
-    Atom v = pop(s);
+    Atom v = NIL;
+    if (hasArguments) {
+        v = pop(s);
+    }
     if (isBIF(fun)) {
         BIF bif = getBuiltInFunction(fun);
         push(s, bif(this, storage, v));
@@ -167,22 +182,41 @@ void Engine::opAP() {
                __FILE__,
                __LINE__);
         Cons funPair = storage.getCons(fun);
-        push(d, c);
-        push(d, e);
-        push(d, s);
-        s = NIL;
-        c = funPair->car;
-        e = storage.makeCons(v, funPair->cdr);
-        push(p, storage.makeCons(currentFile, makeNumber(currentLine)));
+        if ((head(c) == SYMBOL_OP_RTN) && (funPair->car == head(d))) {
+            // We have a tail recursion -> don't push useless stuff on the
+            // dump-stack, only flush stack, restart code and environment
+            // (with new args)
+            s = NIL;
+            c = funPair->car;
+            if (isNil(v) && !isNil(funPair->cdr)) {
+                e = funPair->cdr;
+            } else {
+                e = storage.makeCons(v, funPair->cdr);
+            }
+        } else {
+            push(d, e);
+            push(d, s);
+            push(d, c);
+            s = NIL;
+            c = funPair->car;
+            push(d, c);
+            if (isNil(v) && !isNil(funPair->cdr)) {
+                e = funPair->cdr;
+            } else {
+                e = storage.makeCons(v, funPair->cdr);
+            }
+            push(p, storage.makeCons(currentFile, makeNumber(currentLine)));
+        }
     }
 }
 
 void Engine::opRTN() {
     Atom result = pop(s);
+    pop(d);
+    c = pop(d);
     s = pop(d);
     push(s, result);
     e = pop(d);
-    c = pop(d);
     pop(p);
 }
 
@@ -298,6 +332,8 @@ void Engine::opLT() {
     if (isString(a) && isString(b)) {
         push(s,storage.getString(a) <
              storage.getString(b) ? SYMBOL_TRUE : SYMBOL_FALSE);
+    } else if (isNumber(a) && isNumber(b)) {
+        push(s,getNumber(a) < getNumber(b) ? SYMBOL_TRUE : SYMBOL_FALSE);
     } else {
         push(s,a < b ? SYMBOL_TRUE : SYMBOL_FALSE);
     }
@@ -309,6 +345,8 @@ void Engine::opLTQ() {
     if (isString(a) && isString(b)) {
         push(s,storage.getString(a) <=
              storage.getString(b) ? SYMBOL_TRUE : SYMBOL_FALSE);
+    } else if (isNumber(a) && isNumber(b)) {
+        push(s,getNumber(a) <= getNumber(b) ? SYMBOL_TRUE : SYMBOL_FALSE);
     } else {
         push(s,a <= b ? SYMBOL_TRUE : SYMBOL_FALSE);
     }
@@ -320,6 +358,8 @@ void Engine::opGT() {
     if (isString(a) && isString(b)) {
         push(s,storage.getString(a) >
              storage.getString(b) ? SYMBOL_TRUE : SYMBOL_FALSE);
+    } else if (isNumber(a) && isNumber(b)) {
+        push(s,getNumber(a) > getNumber(b) ? SYMBOL_TRUE : SYMBOL_FALSE);
     } else {
         push(s,a > b ? SYMBOL_TRUE : SYMBOL_FALSE);
     }
@@ -331,6 +371,8 @@ void Engine::opGTQ() {
     if (isString(a) && isString(b)) {
         push(s,storage.getString(a) >=
              storage.getString(b) ? SYMBOL_TRUE : SYMBOL_FALSE);
+    } else if (isNumber(a) && isNumber(b)) {
+        push(s,getNumber(a) >= getNumber(b) ? SYMBOL_TRUE : SYMBOL_FALSE);
     } else {
         push(s,a >= b ? SYMBOL_TRUE : SYMBOL_FALSE);
     }
@@ -551,17 +593,17 @@ void Engine::dispatch(Atom opcode) {
     case SYMBOL_OP_STG:
         opSTG();
         break;
-    case SYMBOL_OP_SEL:
-        opSEL();
+    case SYMBOL_OP_BT:
+        opBT();
         return;
-    case SYMBOL_OP_JOIN:
-       opJOIN();
-       return;
     case SYMBOL_OP_LDF:
         opLDF();
         return;
+    case SYMBOL_OP_AP0:
+        opAP(false);
+        return;
     case SYMBOL_OP_AP:
-        opAP();
+        opAP(true);
         return;
     case SYMBOL_OP_RTN:
         opRTN();

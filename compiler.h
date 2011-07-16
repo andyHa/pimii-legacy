@@ -224,7 +224,8 @@ class Compiler
     void definition();
     void shortDefinition();
     void inlineDefinition();
-    void generateFunctionCode(bool expectBracet);
+    void generateGuardedFunctionCode();
+    void generateFunctionCode(bool expectBracet, bool asSublist);
     void basicExp();
     void logExp();
     void relExp();

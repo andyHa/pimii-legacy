@@ -24,8 +24,8 @@ void Storage::initializeSymbols() {
     declaredFixedSymbol(SYMBOL_OP_LDF, L"LDF");
     declaredFixedSymbol(SYMBOL_OP_AP, L"AP");
     declaredFixedSymbol(SYMBOL_OP_RTN, L"RTN");
-    declaredFixedSymbol(SYMBOL_OP_SEL, L"SEL");
-    declaredFixedSymbol(SYMBOL_OP_JOIN, L"JOIN");
+    declaredFixedSymbol(SYMBOL_OP_BT, L"BT");
+    declaredFixedSymbol(SYMBOL_OP_AP0, L"AP0");
     declaredFixedSymbol(SYMBOL_OP_ST, L"ST");
     declaredFixedSymbol(SYMBOL_OP_LDG, L"LDG");
     declaredFixedSymbol(SYMBOL_OP_STG, L"STG");

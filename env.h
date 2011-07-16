@@ -211,14 +211,15 @@ const Atom SYMBOL_OP_AP = SYMBOL(6);
 const Atom SYMBOL_OP_RTN = SYMBOL(7);
 
 /**
-  Op code:Select in if statement
+  Op code: Branch true: If the stack top is true
+  The list beneath it becomes the net code for this function.
   */
-const Atom SYMBOL_OP_SEL = SYMBOL(8);
+const Atom SYMBOL_OP_BT = SYMBOL(8);
 
 /**
-  Op code: Rejoin main control
+  Op code: Same as AP but without any arguments.
   */
-const Atom SYMBOL_OP_JOIN = SYMBOL(9);
+const Atom SYMBOL_OP_AP0 = SYMBOL(9);
 
 /**
   Op code: Store in env.

@@ -368,11 +368,9 @@ void Compiler::localAssignment() {
         globalAssignment();
         return;
     }
-    fetch();
     String name = current.tokenString;
-    fetch();
-    fetch();
-    expression();
+    fetch(); // name
+    fetch(); // :=
     std::vector<String>* symbols = symbolTable[0];
     Word minorIndex = 1;
     while (minorIndex <= symbols->size()) {
@@ -384,14 +382,15 @@ void Compiler::localAssignment() {
     if (minorIndex > symbols->size()) {
         symbols->push_back(name);
     }
+    expression();
     addCode(SYMBOL_OP_ST);
     addCode(engine->storage.makeCons(makeNumber(1), makeNumber(minorIndex)));
 }
 
 void Compiler::globalAssignment() {
     String name = current.tokenString;
-    fetch();
-    fetch();
+    fetch(); // name
+    fetch(); // ::=
     expression();
     std::pair<int, int> pair = findSymbol(name);
     if (pair.first > 0) {
@@ -485,14 +484,45 @@ void Compiler::definition() {
     expect(TT_R_BRACE, String(L")"));
     expect(TT_ARROW, String(L"->"));
     symbolTable.insert(symbolTable.begin(), symbols);
-    bool brackets = false;
-    if (current.type == TT_L_BRACKET) {
-        fetch();
-        brackets = true;
+    if (current.type == TT_L_CURLY) {
+        generateGuardedFunctionCode();
+    } else {
+        bool brackets = false;
+        if (current.type == TT_L_BRACKET) {
+            fetch();
+            brackets = true;
+        }
+        addCode(SYMBOL_OP_LDF);
+        generateFunctionCode(brackets, true);
     }
-    generateFunctionCode(brackets);
     symbolTable.erase(symbolTable.begin());
     delete symbols;
+}
+
+void Compiler::generateGuardedFunctionCode() {
+    expect(TT_L_CURLY, String(L"{"));
+    addCode(SYMBOL_OP_LDF);
+    Atom backupCode = code;
+    Atom backupTail = tail;
+    code = NIL;
+    tail = NIL;
+    do {
+        expect(TT_L_BRACKET, String(L"["));
+        bool asSublist = false;
+        if (current.type != TT_COLON) {
+            asSublist = true;
+            basicExp();
+            addCode(SYMBOL_OP_BT);
+        }
+        expect(TT_COLON, String(L":"));
+        generateFunctionCode(true, asSublist);
+    } while(current.type == TT_L_BRACKET);
+    addCode(SYMBOL_OP_RTN);
+    Atom fn = code;
+    code = backupCode;
+    tail = backupTail;
+    addCode(fn);
+    expect(TT_R_CURLY, String(L"}"));
 }
 
 void Compiler::shortDefinition() {
@@ -501,12 +531,17 @@ void Compiler::shortDefinition() {
     fetch(); // param name...
     expect(TT_ARROW, String(L"->"));
     symbolTable.insert(symbolTable.begin(), symbols);
-    bool brackets = false;
-    if (current.type == TT_L_BRACKET) {
-        fetch();
-        brackets = true;
+    if (current.type == TT_L_CURLY) {
+        generateGuardedFunctionCode();
+    } else {
+        bool brackets = false;
+        if (current.type == TT_L_BRACKET) {
+            fetch();
+            brackets = true;
+        }
+        addCode(SYMBOL_OP_LDF);
+        generateFunctionCode(brackets, true);
     }
-    generateFunctionCode(brackets);
     symbolTable.erase(symbolTable.begin());
     delete symbols;
 }
@@ -525,17 +560,19 @@ void Compiler::inlineDefinition() {
         expect(TT_ARROW, String(L"->"));
     }
     symbolTable.insert(symbolTable.begin(), symbols);
-    generateFunctionCode(true);
+    addCode(SYMBOL_OP_LDF);
+    generateFunctionCode(true, true);
     symbolTable.erase(symbolTable.begin());
     delete symbols;
 }
 
-void Compiler::generateFunctionCode(bool expectBracet) {
-    addCode(SYMBOL_OP_LDF);
+void Compiler::generateFunctionCode(bool expectBracet, bool asSublist) {
     Atom backupCode = code;
     Atom backupTail = tail;
-    code = NIL;
-    tail = NIL;
+    if (asSublist) {
+        code = NIL;
+        tail = NIL;
+    }
     addCode(SYMBOL_OP_FILE);
     addCode(file);
     if (expectBracet) {
@@ -550,10 +587,12 @@ void Compiler::generateFunctionCode(bool expectBracet) {
         statement();
     }
     addCode(SYMBOL_OP_RTN);
-    Atom fn = code;
-    code = backupCode;
-    tail = backupTail;
-    addCode(fn);
+    if (asSublist) {
+        Atom fn = code;
+        code = backupCode;
+        tail = backupTail;
+        addCode(fn);
+    }
 }
 
 
@@ -783,18 +822,24 @@ void Compiler::colonCall() {
 
 void Compiler::standardCall() {
     String name = current.tokenString;
-    fetch();
-    fetch();
-    addCode(SYMBOL_OP_NIL);
-    while(current.type != TT_R_BRACE) {
-        expression();
-        addCode(SYMBOL_OP_CHAIN);
-        if (current.type == TT_KOMMA) {
-            fetch();
+    fetch(); // name
+    fetch(); // (
+    if (current.type != TT_R_BRACE) {
+        addCode(SYMBOL_OP_NIL);
+        while(current.type != TT_R_BRACE) {
+            expression();
+            addCode(SYMBOL_OP_CHAIN);
+            if (current.type == TT_KOMMA) {
+                fetch();
+            }
         }
+        addCode(SYMBOL_OP_CHAIN_END);
+        expect(TT_R_BRACE, String(L")"));
+        load(name);
+        addCode(SYMBOL_OP_AP);
+    } else {
+        expect(TT_R_BRACE, String(L")"));
+        load(name);
+        addCode(SYMBOL_OP_AP0);
     }
-    addCode(SYMBOL_OP_CHAIN_END);
-    expect(TT_R_BRACE, String(L")"));
-    load(name);
-    addCode(SYMBOL_OP_AP);
 }
