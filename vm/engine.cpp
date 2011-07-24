@@ -25,6 +25,8 @@
 #include "compiler.h"
 
 
+#include <QElapsedTimer>
+
 #include <cassert>
 #include <fstream>
 #include <exception>
@@ -94,14 +96,15 @@ bool Engine::shouldGC() {
 }
 
 void Engine::gc() {
-    /*
+    QElapsedTimer timer;
+    timer.start();
     storage.gcBegin();
     storage.addGCRoot(s);
     storage.addGCRoot(e);
     storage.addGCRoot(c);
     storage.addGCRoot(d);
     storage.gcComplete();
-    */
+    println(toString(makeNumber(timer.elapsed())));
 }
 
 void Engine::opNIL() {

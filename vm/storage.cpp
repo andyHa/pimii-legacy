@@ -111,7 +111,10 @@ Word Storage::getTotalCells() {
     return cells.size();
 }
 
-void Storage::gcComplete() {
+void Storage::gcComplete() {    
+    for(Word i = 0; i < globalsTable.size(); i++) {
+        addGCRoot(globalsTable.getValue(i));
+    }
     mark();
     sweep();
 }
@@ -137,44 +140,33 @@ void Storage::mark() {
     do {
         if (cells[currentIndex].header == HEADER_GRAY) {
             Cons cell = cells[currentIndex].cell;
-            TRACE("Cell " << currentIndex << " is gray! ");
+           // TRACE("Cell " << currentIndex << " is gray! ");
             cells[currentIndex].header = HEADER_BLACK;
             if (isCons(cell->car)) {
                 Word carIdx = untagIndex(cell->car);
                 if (isCons(cell->cdr)) {
                     Word cdrIdx = untagIndex(cell->cdr);
-                    TRACE("Marking CAR " << carIdx << " and CDR " << cdrIdx <<  " gray... ");
                     cells[carIdx].header = HEADER_GRAY;
                     cells[cdrIdx].header = HEADER_GRAY;
                     currentIndex = std::max(nextGray, std::max(carIdx, cdrIdx));
                     nextGray = std::max(nextGray, std::min(carIdx, cdrIdx));
-                    TRACE("Next index is: " << currentIndex);
-                    TRACE("Next gray is: " << nextGray);
                 } else {
-                    TRACE("Marking CAR " << carIdx << " gray... ");
                     cells[carIdx].header = HEADER_GRAY;
                     currentIndex = std::max(nextGray, carIdx);
                     nextGray = std::min(nextGray, carIdx);
-                    TRACE("Next index is: " << currentIndex);
-                    TRACE("Next gray is: " << nextGray);
                 }
             } else {
                 if (isCons(cell->cdr)) {
                     Word cdrIdx = untagIndex(cell->cdr);
-                    TRACE("Marking CDR " << cdrIdx << " gray... ");
                     cells[cdrIdx].header = HEADER_GRAY;
                     currentIndex = std::max(nextGray, cdrIdx);
                     nextGray = std::min(nextGray, cdrIdx);
-                    TRACE("Next index is: " << currentIndex);
-                    TRACE("Next gray is: " << nextGray);
                 } else {
-                    TRACE("Goto next gray: " << nextGray);
                     currentIndex = nextGray;
                     nextGray--;
                 }
             }
         } else {
-            TRACE("Cell " << currentIndex << " is not gray! Goto next gray: " << nextGray);
             currentIndex = nextGray;
             nextGray--;
         }
@@ -184,12 +176,10 @@ void Storage::mark() {
 void Storage::sweep() {
     for(Word i = 0; i < cells.size(); i++) {
         if (cells[i].header == HEADER_WHITE) {
-            TRACE("Added #" << i << " to free list");
             cells[i].header = freeList;
             freeList = i + 1;
             allocatedCells--;
         } else if (cells[i].header == HEADER_BLACK) {
-            TRACE("Reverted #" << i << " to WHITE");
             cells[i].header = HEADER_WHITE;
         }
     }
