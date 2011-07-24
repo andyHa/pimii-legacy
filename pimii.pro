@@ -4,34 +4,43 @@
 #
 #-------------------------------------------------
 
-QT       += core
-
-QT       -= gui
+QT       += core gui
 
 TARGET = pimii
-CONFIG   += console
-CONFIG   -= app_bundle
-
 TEMPLATE = app
 
 
 SOURCES += main.cpp \
-    engine.cpp \
-    bif.cpp \
-    storage.cpp \
-    compiler.cpp
+    vm/engine.cpp \
+    vm/bif.cpp \
+    vm/storage.cpp \
+    compiler.cpp \
+    gui/mainwindow.cpp \
+    gui/highlighter.cpp \
+    parser/tokenizer.cpp \
+    vm/qengine.cpp
 
 HEADERS += \
-    engine.h \
-    lookuptable.h \
-    valuetable.h \
-    storage.h \
-    env.h \
+    vm/engine.h \
+    vm/lookuptable.h \
+    vm/valuetable.h \
+    vm/storage.h \
+    vm/env.h \
     tools.h \
-    compiler.h
+    compiler.h \
+    gui/mainwindow.h \
+    gui/highlighter.h \
+    parser/tokenizer.h \
+    vm/logger.h \
+    vm/qengine.h
+
+FORMS    +=
+
 
 OTHER_FILES += \
     example.pi \
     kernel.pi \
     test.pi \
     playground.pi
+
+INCLUDEPATH += ../boost/boost_1_47_0/boost

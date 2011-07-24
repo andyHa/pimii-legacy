@@ -8,7 +8,7 @@ Compiler::Compiler(String fileName, std::wistream& inputStream, Engine* engine) 
     line = 1;
     //Move to first non space character...
     nextChar();
-    while(std::isspace(ch)) {
+    while(std::isspace(ch) && !input.eof()) {
         nextChar();
     }
 }
@@ -83,7 +83,7 @@ skip: // <-----------------------------------------+    |
     Token result;
     result.pos = pos - 1;
     result.line = line;
-    result.type = TT_EMPTY;
+    result.type = TT_EOF;
     if (input.eof()) {
         result.type = TT_EOF;
     } else if (std::isalpha(ch)) {
@@ -114,7 +114,7 @@ skip: // <-----------------------------------------+    |
             result.tokenString = String(L"-");
             result.tokenString += ch;
             nextChar();
-            while(std::isdigit(ch)) {
+            while(std::isdigit(ch) && !input.eof()) {
                 result.tokenString += ch;
                 nextChar();
             }
@@ -434,7 +434,7 @@ void Compiler::expression() {
 
 void Compiler::includeAsm() {
     fetch();
-    while(current.type != TT_ASM_END) {
+    while(current.type != TT_ASM_END && current.type != TT_EOF) {
         if (current.type == TT_L_BRACE) {
             handleAsmSublist();
         } else {
@@ -456,7 +456,7 @@ void Compiler::handleAsmSublist() {
         Atom backupTail = tail;
         code = NIL;
         tail = NIL;
-        while(current.type != TT_R_BRACE) {
+        while(current.type != TT_R_BRACE && current.type != TT_EOF) {
             if (current.type == TT_L_BRACE) {
                 handleAsmSublist();
             } else {
@@ -740,7 +740,7 @@ void Compiler::factorExp() {
 void Compiler::inlineList() {
     fetch(); // #(
     addCode(SYMBOL_OP_NIL);
-    while(current.type != TT_R_BRACE) {
+    while(current.type != TT_R_BRACE && current.type != TT_EOF) {
         expression();
         addCode(SYMBOL_OP_CHAIN);
         if (current.type == TT_KOMMA) {
@@ -826,7 +826,7 @@ void Compiler::standardCall() {
     fetch(); // (
     if (current.type != TT_R_BRACE) {
         addCode(SYMBOL_OP_NIL);
-        while(current.type != TT_R_BRACE) {
+        while(current.type != TT_R_BRACE && current.type != TT_EOF) {
             expression();
             addCode(SYMBOL_OP_CHAIN);
             if (current.type == TT_KOMMA) {

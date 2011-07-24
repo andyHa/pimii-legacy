@@ -129,8 +129,8 @@
 #include <string>
 #include <vector>
 
-#include "env.h"
-#include "engine.h"
+#include "vm/env.h"
+#include "vm/engine.h"
 
 struct CompilationError {
     int line;

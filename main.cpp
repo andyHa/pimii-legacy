@@ -8,23 +8,25 @@
 #include <cassert>
 #include <cstdlib>
 
-#include "env.h"
-#include "engine.h"
+#include "vm/env.h"
+#include "vm/engine.h"
 #include "compiler.h"
+#include "gui/mainwindow.h"
+
+#include <QApplication>
+
+MainWindow* window;
 
 int main(int argc, char *argv[])
 {    
-    QCoreApplication a(argc, argv);
-    std::wcout << "pimii v1.0 [" << NUMBER_OF_BITS << "bit] (c) 2011 Andreas Haufler"  << std::endl;
-    Engine e;
-    std::string path;
-    char* pimiiHome = getenv("PIMII_HOME");
-    if (pimiiHome != NULL) {
-        path = std::string(pimiiHome) + QDir::separator().toAscii();
-    } else {
-        std::string path = (QCoreApplication::applicationDirPath() + QDir::separator()).toStdString();
-    }
-    e.addSourcePath(asString(path));
-    e.kickstart(String(L"test.pi"));
-    return 0;
+    QApplication a(argc, argv);
+    window = new MainWindow();
+    //e.kickstart(String(L"test.pi"));
+
+    window->show();
+
+
+    return a.exec();
 }
+
+
