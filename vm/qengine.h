@@ -8,7 +8,7 @@
 #include "vm/env.h"
 #include "vm/engine.h"
 
-class QEngine : public QObject, public Logger
+class QEngine : public QObject, public Interceptor
 {
     Q_OBJECT
 public:
@@ -36,6 +36,8 @@ public:
 
     virtual void println(String std);
 
+    virtual void reportStatus(EngineStatus status);
+
 signals:
     /**
       Emitted if exectuion starts.
@@ -51,6 +53,11 @@ signals:
       Emits a log message.
       */
     void log(QString msg);
+
+    /**
+      Emits the current machine status.
+      */
+    void status(EngineStatus status);
 
 public slots:
 

@@ -22,36 +22,35 @@
 #ifndef VALUETABLE_H
 #define VALUETABLE_H
 
-#include <QAtomicInt>
-#include <QMutex>
 #include <vector>
 
-template<typename I,typename V, typename Locker = QMutexLocker>
+template<typename I,typename V>
 class ValueTable
 {
 
     union Entry {
+        I refCount;
         I freePointer;
         V* data;
     };
 
     I freeList;
-    std::vector<Entry> table;
-    QMutex* mutex;
+    I usedCells;
+    std::vector<Entry> table;    
 
 public:
-    ValueTable() : mutex(new QMutex()) {
+    ValueTable() {
         clear();
     }
 
     void clear() {
-        Locker locker(mutex);
         freeList = 0;
+        usedCells = 0;
         table.clear();
     }
 
     I allocate(V initialValue) {
-        Locker locker(mutex);
+        usedCells++;
         if (freeList > 0) {
             I result = freeList - 1;
             freeList = table[result].freePointer;
@@ -67,25 +66,44 @@ public:
     }
 
     V get(I index) {
-        Locker locker(mutex);
         return *table[index].data;
     }
 
-    void earse(I index) {
-        Locker locker(mutex);
-        V* val = table[index]->data;
-        delete(val);
-        table[index].freePointer = freeList;
-        freeList = index + 1;
+    void resetRefCount() {
+        for(I i = 0; i < size(); i++) {
+            table[i].refCount = 0;
+        }
+    }
+
+    void inc(I index) {
+        table[index].refCount++;
+    }
+
+    I getNumberOfUsedCells() {
+        return usedCells;
+    }
+
+    I getTotalCells() {
+        return table.size();
+    }
+
+    void gc() {
+        for(I i = 0; i < size(); i++) {
+            Entry e = table[i];
+            if (e.refCount == 0) {
+                delete(e.data);
+                e.freePointer = freeList;
+                freeList = i + 1;
+                usedCells--;
+            }
+        }
     }
 
     I size() {
-        Locker locker(mutex);
         return table.size();
     }
 
     bool inUse(I index) {
-        Locker locker(mutex);
         I freeIdx = freeList;
         while(freeList != 0) {
             if (freeIdx == index + 1) {

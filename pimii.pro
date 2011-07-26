@@ -31,8 +31,8 @@ HEADERS += \
     gui/mainwindow.h \
     gui/highlighter.h \
     parser/tokenizer.h \
-    vm/logger.h \
-    vm/qengine.h
+    vm/qengine.h \
+    vm/interceptor.h
 
 FORMS    +=
 

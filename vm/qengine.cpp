@@ -10,6 +10,10 @@ void QEngine::println(String std) {
     emit log(QString::fromStdWString(std));
 }
 
+void QEngine::reportStatus(EngineStatus s) {
+    emit status(s);
+    std::wcout << s.instructionsExecuted << " " << s.gcRuns << " " << s.timeElapsed << std::endl;
+}
 
 void QEngine::interrupt() {
     engine.interrupt();

@@ -28,78 +28,56 @@
 #include <utility>
 #include <iostream>
 
-#include <QReadWriteLock>
-
 
 template<typename K, typename V, typename I>
 class LookupTable
 {
     std::map<K, I> mapping;
     std::vector< std::pair<K,V> > table;
-    QReadWriteLock* lock;
 public:
-    LookupTable() : lock(new QReadWriteLock()){}
+    LookupTable() {};
 
     void clear(){
-        lock->lockForWrite();
         mapping.clear();
         table.clear();
-        lock->unlock();
     }
 
     I add(K key, V initialValue){
-        lock->lockForRead();
         typename std::map<K,I>::iterator it = mapping.find(key);
         I result = 0;
         if (it == mapping.end()) {
-            lock->unlock();
-            lock->lockForWrite();
             result = table.size();
             table.push_back(std::make_pair(key, initialValue));
             mapping[key] = result;
         } else {
             result = it->second;
         }
-        lock->unlock();
         return result;
     }
 
     bool find(K key, I& index){
-        lock->lockForRead();
         typename std::map<K, I>::iterator iter = mapping.find(key);
         bool result = (iter != mapping.end());
         if (result) {
             index = iter->second;
         }
-        lock->unlock();
         return result;
     }
 
     K getKey(I index){
-        lock->lockForRead();
-        K result = this->table[index].first;
-        lock->unlock();
-        return result;
+        return this->table[index].first;
     }
 
     void setValue(I index, V value){
-        lock->lockForRead();
         this->table[index].second = value;
-        lock->unlock();
     }
 
     V getValue(I index){
-        lock->lockForRead();
-        V result = this->table[index].second;
-        lock->unlock();
-        return result;
+        return this->table[index].second;
     }
 
     I size() {
-        lock->lockForRead();
-        I result = table.size();
-        lock->unlock();
-        return result;
+        return table.size();
     }
 
 };

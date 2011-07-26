@@ -31,7 +31,9 @@
 
 #include "env.h"
 #include "storage.h"
-#include "logger.h"
+#include "interceptor.h"
+
+#include <QElapsedTimer>
 
 /**
   Forward reference for the declaration of built in functions.
@@ -66,12 +68,66 @@ class Engine
     /**
       Used to log output.
       */
-    Logger* logger;
+    Interceptor* interceptor;
 
     /**
       Used to interrupt the current execution.
       */
     volatile bool running;
+
+    /**
+      Conts the total instructions executed.
+      */
+    Word instructionCounter;
+
+    /**
+      Counts the total number of garbage collections.
+      */
+    Word gcRuns;
+
+    /**
+      Tracks execution duration.
+      */
+    QElapsedTimer timer;
+
+    /**
+      Contains the state of timer since the last status report.
+      */
+    Word lastStatusReport;
+
+    /**
+      Contains the state of timer sind the last GC.
+      */
+    Word lastGC;
+
+    /**
+      Min number of cells allocated, before GC becomes active.
+      */
+    static const Word MIN_HEAP_SIZE = 4096;
+
+    /**
+      If the heap grows above this limit, we perform GCs in ver short
+      intervals. This is the "heavy duty" mode.
+      */
+    static const Word MIN_HEAVY_GC_SIZE = 4096 * 4096;
+
+    /**
+      Determines the minimal interval as number of instructions before a
+      new GC is executed in heavy duty mode.
+      */
+    static const Word GC_MIN_WAIT = 1000;
+
+    /**
+      Determines the interval as number of instructions before a new GC
+      is executed in normal mode (heap is between 50% and 75% full).
+      */
+    static const Word GC_WAIT = 100000;
+
+    /**
+      Determines the interval of milliseconds in which status updates
+      are generted.
+      */
+    static const Word REPORT_INTERVAL = 100000;
 
     /**
       Represents the stack register on which most of the computations are
@@ -100,7 +156,7 @@ class Engine
     Atom p;
 
     /**
-      Returns the nth item of th given list or register.
+      Returns the nth item of the given list or register.
       */
     Atom nth(Atom list, Word idx);
 
@@ -327,6 +383,11 @@ public:
     void println(String string);
 
     /**
+      Reports the engine status to the current interceptor.
+      */
+    void reportStatus();
+
+    /**
       Registers a built in function.
       */
     Atom makeBuiltInFunction(Atom nameSymbol, BIF value);
@@ -377,7 +438,7 @@ public:
       */
     void continueEvaluation();
 
-    Engine(Logger* logger);
+    Engine(Interceptor* interceptor);
     ~Engine();
 
     friend class Compiler;

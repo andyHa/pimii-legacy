@@ -34,7 +34,7 @@ Atom bif_parse(Engine* engine, Storage& storage, Atom args) {
     buffer << str;
     int value;
     buffer >> value;
-    return makeNumber(value);
+    return storage.makeNumber(value);
 }
 
 /**
@@ -67,7 +67,7 @@ Atom bif_strlen(Engine* engine, Storage& storage, Atom args) {
                    "bif_strlen requires a string as first parameter!",
                    __FILE__,
                    __LINE__);
-    return makeNumber(storage.getString(first).length());
+    return storage.makeNumber(storage.getString(first).length());
 }
 /**
   Returns a substring of the given string.
@@ -106,8 +106,8 @@ Atom bif_substr(Engine* engine, Storage& storage, Atom args) {
                    __FILE__,
                    __LINE__);
     String str = storage.getString(first);
-    Word pos = std::min((Word)getNumber(second) - 1, str.length());
-    Word length = std::min((Word)getNumber(third), str.length() - pos);
+    Word pos = std::min((Word)storage.getNumber(second) - 1, str.length());
+    Word length = std::min((Word)storage.getNumber(third), str.length() - pos);
     return storage.makeString(str.substr(pos, length));
 }
 

@@ -68,12 +68,12 @@ inline std::string asStdString(String str) {
 /**
   Used to extract the tag from an atom.
   */
-const Word TAG_MASK        = 0b111;
+const Word TAG_MASK        = 0b1111;
 
 /**
   Used for bit shifting when tagging and untagging atoms.
   */
-const Word TAG_LENGTH      = 3;
+const Word TAG_LENGTH      = 4;
 
 /**
   Contains the number of bits in a machine word. This is used for
@@ -89,42 +89,54 @@ const Word EFFECTIVE_BITS = NUMBER_OF_BITS - TAG_LENGTH;
 /**
   This type is only used once for the constant NIL pointer.
   */
-const Word TAG_TYPE_NIL    = 0b000;
+const Word TAG_TYPE_NIL    = 0b0000;
 
 /**
   Declares that the data part of the atom is a pointer into the symbol
   table.
   */
-const Word TAG_TYPE_SYMBOL = 0b001;
+const Word TAG_TYPE_SYMBOL = 0b0001;
 
 /**
   Declares that the data part of the atom is a n-bit (see below)
   signed integer
   */
-const Word TAG_TYPE_NUMBER = 0b010;
+const Word TAG_TYPE_NUMBER = 0b0010;
 
 /**
   Declares that the data part of the atom is a pointer into a cell space.
   */
-const Word TAG_TYPE_CONS   = 0b011;
+const Word TAG_TYPE_CONS   = 0b0011;
 
 /**
   Declares that the data part of the atom is a pointer into the bif
   (built in functions) table.
   */
-const Word TAG_TYPE_BIF    = 0b100;
+const Word TAG_TYPE_BIF    = 0b0100;
 
 /**
   Declares that the data part of the atom is a pointer into the globals
   table.
   */
-const Word TAG_TYPE_GLOBAL = 0b101;
+const Word TAG_TYPE_GLOBAL = 0b0101;
 
 /**
   Declares that the data part of the atom is a pointer into the string
   table.
   */
-const Word TAG_TYPE_STRING  = 0b110;
+const Word TAG_TYPE_STRING  = 0b0110;
+
+/**
+  Declares that the data part of the atom is a pointer into the large number
+  table.
+  */
+const Word TAG_TYPE_LARGE_NUMBER  = 0b0111;
+
+/**
+  Declares that the data part of the atom is a pointer into the decimal
+  number table.
+  */
+const Word TAG_TYPE_DECIMAL_NUMBER  = 0b1000;
 
 /**
   Contains the highest table index for symbols, bifs, globals and values.
@@ -418,26 +430,25 @@ inline bool isString(Atom atom) {
 }
 
 /**
-  Creates an atom for the given number.
+  Checks whether the given atom is a large number.
   */
-inline Atom makeNumber(int value) {
-    if ((value & LOST_BITS) == 0 || (value & LOST_BITS) == LOST_BITS) {
-        return value << TAG_LENGTH | TAG_TYPE_NUMBER;
-    } else {
-        throw "Overflow error";
-    }
+inline bool isLargeNumber(Atom atom) {
+    return getType(atom) == TAG_TYPE_LARGE_NUMBER;
 }
 
 /**
-  Returns the number stored in the given atom.
+  Checks whether the given atom is a decimal number.
   */
-inline int getNumber(Atom atom) {
-    assert(isNumber(atom));
-    Word result = atom >> TAG_LENGTH;
-    if (atom & SIGN_CHECK_BIT) {
-        result |= LOST_BITS;
-    }
-    return (int)result;
+inline bool isDecimalNumber(Atom atom) {
+    return getType(atom) == TAG_TYPE_DECIMAL_NUMBER;
+}
+
+/**
+  Checks whether the given atom is a number, large number
+  or decimal number.
+  */
+inline bool isNumeric(Atom atom) {
+    return isNumber(atom) || isLargeNumber(atom) || isDecimalNumber(atom);
 }
 
 /**
@@ -454,40 +465,30 @@ inline Atom tagIndex(Word index, Word type) {
     return (index << TAG_LENGTH) | type;
 }
 
-inline String toDumpString(Atom atom) {
-    if (isNil(atom)) {
-        return String(L"NIL");
-    }
-    Word type = getType(atom);
-    std::wstringstream sb;
-    switch(type) {
-    case TAG_TYPE_NUMBER:
-        sb << getNumber(atom);
-        return sb.str();
-    case TAG_TYPE_STRING:
-        sb << "STRING: ";
-        sb << untagIndex(atom);
-        return sb.str();
-    case TAG_TYPE_SYMBOL:
-        sb << "SYMBOL: ";
-        sb << untagIndex(atom);
-        return sb.str();
-    case TAG_TYPE_BIF:
-        sb << "BIF: ";
-        sb << untagIndex(atom);
-        return sb.str();
-    case TAG_TYPE_GLOBAL:
-        sb << "GLOBAL:";
-        sb << untagIndex(atom);
-        return sb.str();
-    case TAG_TYPE_CONS:
-        sb << "CELL: ";
-        sb << untagIndex(atom);
-        return sb.str();
-    default:
-        return String(L"UNKNOWN");
-    }
-}
+/**
+  Provides information about the current state of the storage.
+  */
+struct StorageStatus {
+    Word cellsUsed;
+    Word totalCells;
+    Word numSymbols;
+    Word numGlobals;
+    Word stringsUsed;
+    Word totalStrings;
+    Word numbersUsed;
+    Word totalNumbers;
+    Word deicmalsUsed;
+    Word totalDecimals;
+};
 
+/**
+  Provides information about the status of an Engine.
+  */
+struct EngineStatus {
+    Word timeElapsed;
+    Word instructionsExecuted;
+    Word gcRuns;
+    StorageStatus storageStats;
+};
 
 #endif // ENV_H

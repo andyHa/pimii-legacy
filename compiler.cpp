@@ -350,7 +350,7 @@ void Compiler::block() {
 
 void Compiler::statement() {
     addCode(SYMBOL_OP_LINE);
-    addCode(makeNumber(line));
+    addCode(engine->storage.makeNumber(line));
     if (current.type == TT_NAME) {
         if (lookahead.type == TT_ASSIGNMENT) {
             localAssignment();
@@ -384,7 +384,7 @@ void Compiler::localAssignment() {
     }
     expression();
     addCode(SYMBOL_OP_ST);
-    addCode(engine->storage.makeCons(makeNumber(1), makeNumber(minorIndex)));
+    addCode(engine->storage.makeCons(engine->storage.makeNumber(1), engine->storage.makeNumber(minorIndex)));
 }
 
 void Compiler::globalAssignment() {
@@ -395,7 +395,9 @@ void Compiler::globalAssignment() {
     std::pair<int, int> pair = findSymbol(name);
     if (pair.first > 0) {
         addCode(SYMBOL_OP_ST);
-        addCode(engine->storage.makeCons(makeNumber(pair.first), makeNumber(pair.second)));
+        addCode(engine->storage.makeCons(
+                    engine->storage.makeNumber(pair.first),
+                    engine->storage.makeNumber(pair.second)));
     } else {
         addCode(SYMBOL_OP_STG);
         addCode(engine->storage.findGlobal(engine->storage.makeSymbol(name)));
@@ -674,7 +676,7 @@ void Compiler::logExp() {
             addCode(SYMBOL_OP_SUB);
         } else if (current.type == TT_NUMBER && current.tokenInteger < 0) {
             addCode(SYMBOL_OP_LDC);
-            addCode(makeNumber(current.tokenInteger));
+            addCode(engine->storage.makeNumber(current.tokenInteger));
             addCode(SYMBOL_OP_ADD);
             fetch();
         } else {
@@ -758,7 +760,7 @@ Atom Compiler::compileLiteral() {
     } else if (current.type == TT_STRING) {
         result = engine->storage.makeString(current.tokenString);
     } else if (current.type == TT_NUMBER) {
-        result = makeNumber(current.tokenInteger);
+        result = engine->storage.makeNumber(current.tokenInteger);
     } else {
         addError(line, pos, String(L"Unexpacted token! Expected a literal"));
     }
@@ -782,7 +784,7 @@ void Compiler::load(String variable) {
     std::pair<int, int> pair = findSymbol(variable);
     if (pair.first > 0) {
         addCode(SYMBOL_OP_LD);
-        addCode(engine->storage.makeCons(makeNumber(pair.first), makeNumber(pair.second)));
+        addCode(engine->storage.makeCons(engine->storage.makeNumber(pair.first), engine->storage.makeNumber(pair.second)));
     } else {
         Atom symbol = engine->storage.makeSymbol(variable);
         Atom bif = engine->findBuiltInFunction(symbol);

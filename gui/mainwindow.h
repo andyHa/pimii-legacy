@@ -7,7 +7,6 @@
 
 #include "highlighter.h"
 #include "vm/env.h"
-#include "vm/logger.h"
 #include "vm/qengine.h"
 
 QT_BEGIN_NAMESPACE

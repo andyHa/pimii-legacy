@@ -103,20 +103,41 @@ Cons Storage::getCons(Atom atom) {
     return cells[untagIndex(atom)].cell;
 }
 
-Word Storage::getAllocatedCells() {
-    return allocatedCells;
+StorageStatus Storage::getStatus() {
+    StorageStatus status;
+    status.cellsUsed = allocatedCells;
+    status.totalCells = cells.size();
+    status.numSymbols = symbolTable.size();
+    status.numGlobals = globalsTable.size();
+    status.stringsUsed = stringTable.getNumberOfUsedCells();
+    status.totalStrings = stringTable.getTotalCells();
+    status.numbersUsed = largeNumberTable.getNumberOfUsedCells();
+    status.totalNumbers = largeNumberTable.getNumberOfUsedCells();
+    status.deicmalsUsed = decimalNumberTable.getNumberOfUsedCells();
+    status.totalDecimals = decimalNumberTable.getNumberOfUsedCells();
+    return status;
+}
+
+Word Storage::getUsedCells() {
+   return allocatedCells;
 }
 
 Word Storage::getTotalCells() {
-    return cells.size();
+   return cells.size();
 }
 
 void Storage::gcComplete() {    
     for(Word i = 0; i < globalsTable.size(); i++) {
         addGCRoot(globalsTable.getValue(i));
     }
+    stringTable.resetRefCount();
+    largeNumberTable.resetRefCount();
+    decimalNumberTable.resetRefCount();
     mark();
     sweep();
+    stringTable.gc();
+    largeNumberTable.gc();
+    decimalNumberTable.gc();
 }
 
 void Storage::gcBegin() {
@@ -134,14 +155,26 @@ void Storage::addGCRoot(Atom atom) {
     cells[untagIndex(atom)].header = HEADER_GRAY;
 }
 
+void Storage::incValueTable(Atom atom) {
+    Word idx = untagIndex(atom);
+    if (isLargeNumber(atom)) {
+        largeNumberTable.inc(idx);
+    } else if (isDecimalNumber(atom)) {
+        decimalNumberTable.inc(idx);
+    } else if (isString(atom)) {
+        stringTable.inc(idx);
+    }
+}
+
 void Storage::mark() {
-    Word currentIndex = getTotalCells() - 1;
+    Word currentIndex = cells.size() - 1;
     Word nextGray = currentIndex - 1;
     do {
         if (cells[currentIndex].header == HEADER_GRAY) {
             Cons cell = cells[currentIndex].cell;
-           // TRACE("Cell " << currentIndex << " is gray! ");
             cells[currentIndex].header = HEADER_BLACK;
+            incValueTable(cell->car);
+            incValueTable(cell->cdr);
             if (isCons(cell->car)) {
                 Word carIdx = untagIndex(cell->car);
                 if (isCons(cell->cdr)) {
@@ -201,66 +234,6 @@ String getColor(Word header) {
     return String(L"?");
 }
 
-void Storage::dumpCells() {
-    std::wcout << "CELL STORAGE " << std::endl;
-    std::wcout << "------------------------------------------------------------------------------" << std::endl;
-    for(unsigned int i = 0; i < cells.size(); i++) {
-        Cons cons = cells[i].cell;
-        std::wcout << std::setw(10)
-                   << i
-                   << L": ["
-                   << std::setw(20)
-                   << toDumpString(cons->car)
-                   << " :: "
-                   << std::setw(20)
-                   << toDumpString(cons->cdr)
-                   << L"|"
-                   << std::setw(20)
-                   << getColor(cells[i].header)
-                   << L"]"
-                   << std::endl;
-    }
-}
-
-/*
-
-void dumpSymbols(std::wostream& stream) {
-    stream << "SYMBOLS " << std::endl;
-    stream << "------------------------------------------------------------------------------" << std::endl;
-    for(unsigned int i = 0; i < symbolTable.size(); i++) {
-        stream << std::setw(10) << i << L": " << std::setw(66) <<  symbolTable.getKey(i) << std::endl;
-    }
-}
-
-void dumpValues(std::wostream& stream) {
-    stream << "STRINGS " << std::endl;
-    stream << "------------------------------------------------------------------------------" << std::endl;
-    for(unsigned int i = 0; i < stringTable.size(); i++) {
-        if (stringTable.inUse(i)) {
-            stream << std::setw(10) << i << L": " << std::setw(66) << stringTable.get(i) << std::endl;
-        } else {
-            stream << std::setw(78) << "FREE" << std::endl;
-        }
-    }
-}
-
-void dumpBIF(std::wostream& stream) {
-    stream << "BIF " << std::endl;
-    stream << "------------------------------------------------------------------------------" << std::endl;
-    for(unsigned int i = 0; i < bifTable.size(); i++) {
-        stream << std::setw(10) << i << L": " << std::setw(66) <<  getName(bifTable.getKey(i)) << std::endl;
-    }
-}
-
-void dumpGlobals(std::wostream& stream) {
-    stream << "GLOBALS " << std::endl;
-    stream << "------------------------------------------------------------------------------" << std::endl;
-    for(unsigned int i = 0; i < globalsTable.size(); i++) {
-        stream << std::setw(10) << i << L": " << std::setw(30) <<  getName(globalsTable.getKey(i)) << " -> " << std::setw(32) << toDumpString(globalsTable.getValue(i)) << std::endl;
-    }
-}
-*/
-
 Atom Storage::cons(Cons cons, Atom next) {
     Atom tmp = makeCons(next, NIL);
     cons->cdr = tmp;
@@ -295,8 +268,45 @@ Atom Storage::makeString(String string) {
     return tagIndex(index, TAG_TYPE_STRING);
 }
 
+double Storage::getDecimal(Atom atom) {
+    assert(isDecimalNumber(atom));
+    Word index = untagIndex(atom);
+    return decimalNumberTable.get(index);
+}
+Atom Storage::makeDecimal(double value) {
+    Word index = decimalNumberTable.allocate(value);
+    assert(index < MAX_INDEX_SIZE);
+    return tagIndex(index, TAG_TYPE_DECIMAL_NUMBER);
+}
+
 String Storage::getString(Atom atom) {
     assert(isString(atom));
     Word index = untagIndex(atom);
     return stringTable.get(index);
 }
+
+Atom Storage::makeNumber(long value) {
+    if ((value & LOST_BITS) == 0 || (value & LOST_BITS) == LOST_BITS) {
+        return value << TAG_LENGTH | TAG_TYPE_NUMBER;
+    } else {
+        Word index = largeNumberTable.allocate(value);
+        assert(index < MAX_INDEX_SIZE);
+        return tagIndex(index, TAG_TYPE_LARGE_NUMBER);
+    }
+}
+
+long Storage::getNumber(Atom atom) {
+    assert(isNumber(atom) || isLargeNumber(atom));
+    if (isNumber(atom)) {
+        Word result = atom >> TAG_LENGTH;
+        if (atom & SIGN_CHECK_BIT) {
+            result |= LOST_BITS;
+        }
+        return (long)result;
+    } else {
+        Word index = untagIndex(atom);
+        return largeNumberTable.get(index);
+    }
+}
+
+

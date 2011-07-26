@@ -45,7 +45,7 @@ Atom Engine::pop(Atom& reg) {
     return result;
 }
 
-Engine::Engine(Logger* logger) : logger(logger) {
+Engine::Engine(Interceptor* interceptor) : interceptor(interceptor) {
     initializeBIF();
 }
 
@@ -92,19 +92,43 @@ String Engine::getBIFName(Atom atom) {
 }
 
 bool Engine::shouldGC() {
+    // Check is enough time elapsed...
+    Word elapsed = instructionCounter - lastGC;
+    if (elapsed < GC_MIN_WAIT) {
+        return false;
+    }
+    Word inUse = storage.getUsedCells();
+    // We wait till the heap grows a certain amount before we to anything.
+    if (inUse < MIN_HEAP_SIZE) {
+        return false;
+    }
+
+    Word total = storage.getTotalCells();
+    // Check if heap is at least half full...
+    if (inUse > (total >> 1)) {
+        if (elapsed > GC_WAIT) {
+            // If enough time elapsed, run GC
+            return true;
+        }
+        // If heap is 75% full...
+        if ((total - inUse) < (total >> 2)) {
+            // Check if the heap has a certain size before we enter
+            // "heavy duty" mode. This is, GC in very shot intervalö
+            return (total > MIN_HEAVY_GC_SIZE);
+        }
+    }
     return false;
 }
 
 void Engine::gc() {
-    QElapsedTimer timer;
-    timer.start();
+    gcRuns++;
     storage.gcBegin();
     storage.addGCRoot(s);
     storage.addGCRoot(e);
     storage.addGCRoot(c);
     storage.addGCRoot(d);
     storage.gcComplete();
-    println(toString(makeNumber(timer.elapsed())));
+    lastGC = instructionCounter;
 }
 
 void Engine::opNIL() {
@@ -211,7 +235,7 @@ void Engine::opAP(bool hasArguments) {
             } else {
                 e = storage.makeCons(v, funPair->cdr);
             }
-            push(p, storage.makeCons(currentFile, makeNumber(currentLine)));
+            push(p, storage.makeCons(currentFile, storage.makeNumber(currentLine)));
         }
     }
 }
@@ -339,7 +363,7 @@ void Engine::opLT() {
         push(s,storage.getString(a) <
              storage.getString(b) ? SYMBOL_TRUE : SYMBOL_FALSE);
     } else if (isNumber(a) && isNumber(b)) {
-        push(s,getNumber(a) < getNumber(b) ? SYMBOL_TRUE : SYMBOL_FALSE);
+        push(s, storage.getNumber(a) < storage.getNumber(b) ? SYMBOL_TRUE : SYMBOL_FALSE);
     } else {
         push(s,a < b ? SYMBOL_TRUE : SYMBOL_FALSE);
     }
@@ -352,7 +376,7 @@ void Engine::opLTQ() {
         push(s,storage.getString(a) <=
              storage.getString(b) ? SYMBOL_TRUE : SYMBOL_FALSE);
     } else if (isNumber(a) && isNumber(b)) {
-        push(s,getNumber(a) <= getNumber(b) ? SYMBOL_TRUE : SYMBOL_FALSE);
+        push(s,storage.getNumber(a) <= storage.getNumber(b) ? SYMBOL_TRUE : SYMBOL_FALSE);
     } else {
         push(s,a <= b ? SYMBOL_TRUE : SYMBOL_FALSE);
     }
@@ -365,7 +389,7 @@ void Engine::opGT() {
         push(s,storage.getString(a) >
              storage.getString(b) ? SYMBOL_TRUE : SYMBOL_FALSE);
     } else if (isNumber(a) && isNumber(b)) {
-        push(s,getNumber(a) > getNumber(b) ? SYMBOL_TRUE : SYMBOL_FALSE);
+        push(s,storage.getNumber(a) > storage.getNumber(b) ? SYMBOL_TRUE : SYMBOL_FALSE);
     } else {
         push(s,a > b ? SYMBOL_TRUE : SYMBOL_FALSE);
     }
@@ -378,7 +402,7 @@ void Engine::opGTQ() {
         push(s,storage.getString(a) >=
              storage.getString(b) ? SYMBOL_TRUE : SYMBOL_FALSE);
     } else if (isNumber(a) && isNumber(b)) {
-        push(s,getNumber(a) >= getNumber(b) ? SYMBOL_TRUE : SYMBOL_FALSE);
+        push(s,storage.getNumber(a) >= storage.getNumber(b) ? SYMBOL_TRUE : SYMBOL_FALSE);
     } else {
         push(s,a >= b ? SYMBOL_TRUE : SYMBOL_FALSE);
     }
@@ -388,7 +412,7 @@ void Engine::opADD() {
     Atom b = pop(s);
     Atom a = pop(s);
     if (isNumber(b) && isNumber(a)) {
-        push(s, makeNumber(getNumber(a) + getNumber(b)));
+        push(s, storage.makeNumber(storage.getNumber(a) + storage.getNumber(b)));
         return;
     }
     if (isString(a) || isString(b)) {
@@ -403,19 +427,19 @@ void Engine::opADD() {
 }
 
 void Engine::opSUB(int a, int b) {
-    push(s, makeNumber(a - b));
+    push(s, storage.makeNumber(a - b));
 }
 
 void Engine::opMUL(int a, int b) {
-    push(s, makeNumber(a * b));
+    push(s, storage.makeNumber(a * b));
 }
 
 void Engine::opDIV(int a, int b) {
-    push(s, makeNumber(a / b));
+    push(s, storage.makeNumber(a / b));
 }
 
 void Engine::opREM(int a, int b) {
-    push(s, makeNumber(a % b));
+    push(s, storage.makeNumber(a % b));
 }
 
 void Engine::opAND() {
@@ -446,8 +470,8 @@ void Engine::dispatchArithmetic(Atom opcode) {
            "Arithmetic: 2nd stack top was not a number!",
            __FILE__,
            __LINE__);
-    int b = getNumber(atomb);
-    int a = getNumber(atoma);
+    int b = storage.getNumber(atomb);
+    int a = storage.getNumber(atoma);
     switch(opcode) {
     case SYMBOL_OP_MUL:
         opMUL(a, b);
@@ -474,12 +498,12 @@ Atom Engine::locate(Atom pos) {
            "locate: car is not a number!",
            __FILE__,
            __LINE__);
-    Word i = getNumber(cons->car);
+    Word i = storage.getNumber(cons->car);
     expect(isNumber(cons->car),
            "locate: cdr is not a number!",
            __FILE__,
            __LINE__);
-    Word j = getNumber(cons->cdr);
+    Word j = storage.getNumber(cons->cdr);
     Atom env = e;
     while (i > 1) {
         if (!isCons(env)) {
@@ -519,12 +543,12 @@ void Engine::store(Atom pos, Atom value) {
            "store: car is not a number!",
            __FILE__,
            __LINE__);
-    Word i = getNumber(cons->car);
+    Word i = storage.getNumber(cons->car);
     expect(isNumber(cons->car),
            "store: cdr is not a number!",
            __FILE__,
            __LINE__);
-    Word j = getNumber(cons->cdr);
+    Word j = storage.getNumber(cons->cdr);
     Atom env = e;
     while (i > 1) {
         if (!isCons(env)) {
@@ -567,7 +591,7 @@ void Engine::opLine() {
            "#LINE: code top is not a number!",
            __FILE__,
            __LINE__);
-    currentLine = getNumber(line);
+    currentLine = storage.getNumber(line);
 }
 
 void Engine::opFile() {
@@ -580,6 +604,7 @@ void Engine::opFile() {
 }
 
 void Engine::dispatch(Atom opcode) {
+    instructionCounter++;
     switch (opcode) {
     case SYMBOL_OP_NIL:
         opNIL();
@@ -693,14 +718,14 @@ void Engine::prepareEval(String source, String filename) {
 
     currentFile = storage.makeSymbol(String(L"kickstarter"));
     currentLine = 1;
-    push(p, storage.makeCons(currentFile, makeNumber(currentLine)));
+    push(p, storage.makeCons(currentFile, storage.makeNumber(currentLine)));
     Atom code = compileSource(filename, source, true);
     c = code;
     p = NIL;
     if (c != NIL) {
         currentFile = storage.makeSymbol(filename);
         currentLine = 1;
-        push(p, storage.makeCons(currentFile,  makeNumber(currentLine)));
+        push(p, storage.makeCons(currentFile,  storage.makeNumber(currentLine)));
     }
 }
 
@@ -709,6 +734,10 @@ void Engine::interrupt() {
 }
 
 void Engine::continueEvaluation() {
+    instructionCounter = 0;
+    gcRuns = 0;
+    timer.start();
+
     if (c == NIL) {
         return;
     }
@@ -719,17 +748,24 @@ void Engine::continueEvaluation() {
                 Atom op = pop(c);
                 if (op == SYMBOL_OP_STOP) {
                     gc();
+                    reportStatus();
                     return;
                 } else {
                     dispatch(op);
                     if (shouldGC()) {
                         gc();
                     }
+                    if (instructionCounter - lastStatusReport >
+                            REPORT_INTERVAL)
+                    {
+                        reportStatus();
+                    }
                 }
             }
         } catch(StopEngineException* e) {
             //Error is already handled...
             gc();
+            reportStatus();
             return;
         } catch(std::exception* e) {
             std::wstringstream ss;
@@ -739,6 +775,7 @@ void Engine::continueEvaluation() {
     } catch(StopEngineException* e) {
         //Error is already handled...
     }
+    reportStatus();
 }
 
 void Engine::expect(bool expectation, const char* errorMessage, const char* file, int line) {
@@ -825,7 +862,17 @@ Atom Engine::compileSource(String file, String source, bool insertStop) {
 
 
 void Engine::println(String string) {
-    logger->println(string);
+    interceptor->println(string);
+}
+
+void Engine::reportStatus() {
+    EngineStatus status;
+    status.storageStats = storage.getStatus();
+    status.instructionsExecuted = instructionCounter;
+    status.gcRuns = gcRuns;
+    status.timeElapsed = timer.elapsed();
+    interceptor->reportStatus(status);
+    lastStatusReport = instructionCounter;
 }
 
 String Engine::printList(Atom atom) {
@@ -857,7 +904,7 @@ String Engine::toString(Atom atom) {
     std::wstringstream sb;
     switch(type) {
     case TAG_TYPE_NUMBER:
-        sb << getNumber(atom);
+        sb << storage.getNumber(atom);
         return sb.str();
     case TAG_TYPE_BIF:
         return  std::wstring(L"$") + getBIFName(atom);
@@ -881,8 +928,12 @@ String Engine::toSimpleString(Atom atom) {
     Word type = getType(atom);
     std::wstringstream sb;
     switch(type) {
-    case TAG_TYPE_NUMBER:
-        sb << getNumber(atom);
+    case TAG_TYPE_NUMBER :
+    case TAG_TYPE_LARGE_NUMBER:
+        sb << storage.getNumber(atom);
+        return sb.str();
+    case TAG_TYPE_DECIMAL_NUMBER:
+        sb << storage.getDecimal(atom);
         return sb.str();
     case TAG_TYPE_BIF:
         return getBIFName(atom);

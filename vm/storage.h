@@ -82,7 +82,6 @@ const Word HEADER_WHITE = 0b11 << (NUMBER_OF_BITS - 2);
   */
 const Word HEADER_BITS = 0b11 << (NUMBER_OF_BITS - 2);
 
-
 /**
   Storage area, contains a complete storage image for
   exectuion.
@@ -115,6 +114,16 @@ class Storage
     ValueTable <Word, String> stringTable;
 
     /**
+      Contains the table of large numbers.
+      */
+    ValueTable <Word, long> largeNumberTable;
+
+    /**
+      Contains the table of decimal numbers.
+      */
+    ValueTable <Word, double> decimalNumberTable;
+
+    /**
       Points to the index of the first free cell + 1.
       If this value is 0, no cells are free, and a new one
       must be allocated.
@@ -130,6 +139,12 @@ class Storage
       Contains the number of allocated cells.
       */
     Word allocatedCells;
+
+    /**
+      Increments the location in the given value table if the given
+      atom points to one.
+      */
+    void incValueTable(Atom atom);
 
     /**
       Implements the mark-phase of the garbage collector.
@@ -212,29 +227,49 @@ public:
     void writeGlobal(Atom atom, Atom value);
 
     /**
-      Generates a a value atom, pointing to the given string.
-      */
-    Atom makeString(String string);
-
-    /**
       Returns the string value to which the given atom points.
       */
     String getString(Atom atom);
 
     /**
-      Returns the total number of cells reserved.
+      Generates a a value atom, pointing to the given string.
+      */
+    Atom makeString(String string);
+
+    /**
+      Returns the number value to which the given atom points.
+      */
+    long getNumber(Atom atom);
+
+    /**
+      Generates a a value atom, pointing to the given string.
+      */
+    Atom makeNumber(long value);
+
+    /**
+      Returns the double value to which the given atom points.
+      */
+    double getDecimal(Atom atom);
+
+    /**
+      Generates a a value atom, pointing to the given double.
+      */
+    Atom makeDecimal(double value);
+
+    /**
+      Returns the current status of the storage.
+      */
+    StorageStatus getStatus();
+
+    /**
+      Returns the number of cells in use.
+      */
+    Word getUsedCells();
+
+    /**
+      Returns the total number of allocated cells.
       */
     Word getTotalCells();
-
-    /**
-      Returns the number of used (allocated) cells.
-      */
-    Word getAllocatedCells();
-
-    /**
-      Dumps the contents of the cell storage to the console.
-      */
-    void dumpCells();
 
 };
 
