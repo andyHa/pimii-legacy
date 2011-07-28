@@ -754,7 +754,7 @@ void Compiler::inlineList() {
 }
 
 Atom Compiler::compileLiteral() {
-    Atom result;
+    Atom result = NIL;
     if (current.type == TT_SYMBOL) {
          result = engine->storage.makeSymbol(current.tokenString);
     } else if (current.type == TT_STRING) {

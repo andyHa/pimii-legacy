@@ -9,7 +9,6 @@ QT       += core gui
 TARGET = pimii
 TEMPLATE = app
 
-
 SOURCES += main.cpp \
     vm/engine.cpp \
     vm/bif.cpp \
@@ -34,13 +33,9 @@ HEADERS += \
     vm/qengine.h \
     vm/interceptor.h
 
-FORMS    +=
-
-
 OTHER_FILES += \
     example.pi \
     kernel.pi \
     test.pi \
     playground.pi
 
-INCLUDEPATH += ../boost/boost_1_47_0/boost

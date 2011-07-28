@@ -115,13 +115,13 @@ class Engine
       Determines the minimal interval as number of instructions before a
       new GC is executed in heavy duty mode.
       */
-    static const Word GC_MIN_WAIT = 1000;
+    static const Word GC_MIN_WAIT = 100;
 
     /**
       Determines the interval as number of instructions before a new GC
       is executed in normal mode (heap is between 50% and 75% full).
       */
-    static const Word GC_WAIT = 100000;
+    static const Word GC_WAIT = 10000;
 
     /**
       Determines the interval of milliseconds in which status updates

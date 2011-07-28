@@ -6,7 +6,6 @@
 
 Storage::Storage()
 {
-    freeList = 0;
     initializeSymbols();
 }
 
@@ -68,15 +67,12 @@ String Storage::getSymbolName(Atom symbol) {
 }
 
 Atom Storage::makeCons(Atom car, Atom cdr) {
-    if (freeList > 0) {
-        Word index = freeList-1;
-        StorageEntry se = cells[index];
-        freeList = se.header;
-        cells[index].header = HEADER_GRAY;
-        Cons cons = se.cell;
+    if (!freeList.empty()) {
+        Word index = freeList.back();
+        freeList.pop_back();
+        Cons cons = cells[index].cell;
         cons->car = car;
         cons->cdr = cdr;
-        allocatedCells++;
         return tagIndex(index, TAG_TYPE_CONS);
     } else {
         Cons cons = new Cell();
@@ -85,27 +81,23 @@ Atom Storage::makeCons(Atom car, Atom cdr) {
 
         StorageEntry entry;
         entry.cell = cons;
-        entry.header = HEADER_GRAY;
+        entry.state = UNUSED;
         Word result = cells.size();
-        assert((result < MAX_INDEX_SIZE) && ((result & HEADER_BITS) == 0));
+        assert(result < MAX_INDEX_SIZE);
         cells.push_back(entry);
-        allocatedCells++;
 
         return tagIndex(result, TAG_TYPE_CONS);
     }
 }
 
 Cons Storage::getCons(Atom atom) {
-    if (!isCons(atom)) {
-        TRACE(34);
-    }
     assert(isCons(atom));
     return cells[untagIndex(atom)].cell;
 }
 
 StorageStatus Storage::getStatus() {
     StorageStatus status;
-    status.cellsUsed = allocatedCells;
+    status.cellsUsed = (Word)cells.size() - (Word)freeList.size();
     status.totalCells = cells.size();
     status.numSymbols = symbolTable.size();
     status.numGlobals = globalsTable.size();
@@ -119,16 +111,34 @@ StorageStatus Storage::getStatus() {
 }
 
 Word Storage::getUsedCells() {
-   return allocatedCells;
+   return (Word)cells.size() -  (Word)freeList.size();
 }
 
 Word Storage::getTotalCells() {
    return cells.size();
 }
 
-void Storage::gcComplete() {    
+void Storage::gc(Atom root1, Atom root2, Atom root3, Atom root4, Atom root5) {
+    if (isCons(root1)) {
+        cells[untagIndex(root1)].state = REFERENCED;
+    }
+    if (isCons(root2)) {
+        cells[untagIndex(root2)].state = REFERENCED;
+    }
+    if (isCons(root3)) {
+        cells[untagIndex(root3)].state = REFERENCED;
+    }
+    if (isCons(root4)) {
+        cells[untagIndex(root4)].state = REFERENCED;
+    }
+    if (isCons(root5)) {
+        cells[untagIndex(root5)].state = REFERENCED;
+    }
+
     for(Word i = 0; i < globalsTable.size(); i++) {
-        addGCRoot(globalsTable.getValue(i));
+        if (isCons(globalsTable.getValue(i))) {
+            cells[untagIndex(globalsTable.getValue(i))].state = REFERENCED;
+        }
     }
     stringTable.resetRefCount();
     largeNumberTable.resetRefCount();
@@ -140,23 +150,7 @@ void Storage::gcComplete() {
     decimalNumberTable.gc();
 }
 
-void Storage::gcBegin() {
-    for(Word i = 0; i < cells.size(); i++) {
-        if (cells[i].header == HEADER_GRAY || cells[i].header == HEADER_BLACK) {
-            cells[i].header = HEADER_WHITE;
-        }
-    }
-}
-
-void Storage::addGCRoot(Atom atom) {
-    if (!isCons(atom)) {
-        return;
-    }
-    cells[untagIndex(atom)].header = HEADER_GRAY;
-}
-
-void Storage::incValueTable(Atom atom) {
-    Word idx = untagIndex(atom);
+void Storage::incValueTable(Atom atom, Word idx) {
     if (isLargeNumber(atom)) {
         largeNumberTable.inc(idx);
     } else if (isDecimalNumber(atom)) {
@@ -167,71 +161,37 @@ void Storage::incValueTable(Atom atom) {
 }
 
 void Storage::mark() {
-    Word currentIndex = cells.size() - 1;
-    Word nextGray = currentIndex - 1;
-    do {
-        if (cells[currentIndex].header == HEADER_GRAY) {
-            Cons cell = cells[currentIndex].cell;
-            cells[currentIndex].header = HEADER_BLACK;
-            incValueTable(cell->car);
-            incValueTable(cell->cdr);
-            if (isCons(cell->car)) {
-                Word carIdx = untagIndex(cell->car);
-                if (isCons(cell->cdr)) {
-                    Word cdrIdx = untagIndex(cell->cdr);
-                    cells[carIdx].header = HEADER_GRAY;
-                    cells[cdrIdx].header = HEADER_GRAY;
-                    currentIndex = std::max(nextGray, std::max(carIdx, cdrIdx));
-                    nextGray = std::max(nextGray, std::min(carIdx, cdrIdx));
-                } else {
-                    cells[carIdx].header = HEADER_GRAY;
-                    currentIndex = std::max(nextGray, carIdx);
-                    nextGray = std::min(nextGray, carIdx);
-                }
-            } else {
-                if (isCons(cell->cdr)) {
-                    Word cdrIdx = untagIndex(cell->cdr);
-                    cells[cdrIdx].header = HEADER_GRAY;
-                    currentIndex = std::max(nextGray, cdrIdx);
-                    nextGray = std::min(nextGray, cdrIdx);
-                } else {
-                    currentIndex = nextGray;
-                    nextGray--;
-                }
+    Word index = 0;
+    while(index < cells.size()) {
+        if (cells[index].state == REFERENCED) {
+            cells[index].state = CHECKED;
+            Cons cell = cells[index].cell;
+            Word carIdx = untagIndex(cell->car);
+            Word cdrIdx = untagIndex(cell->cdr);
+            incValueTable(cell->car, carIdx);
+            incValueTable(cell->cdr, cdrIdx);
+            if (isCons(cell->car) && cells[carIdx].state != CHECKED) {
+                 cells[carIdx].state = REFERENCED;
+                 index = std::min(index, carIdx - 1);
             }
-        } else {
-            currentIndex = nextGray;
-            nextGray--;
+            if (isCons(cell->cdr) && cells[cdrIdx].state != CHECKED) {
+                 cells[cdrIdx].state = REFERENCED;
+                 index = std::min(index, cdrIdx - 1);
+            }
         }
-    } while(currentIndex > 0);
+        index++;
+    }
 }
 
 void Storage::sweep() {
+    freeList.clear();
     for(Word i = 0; i < cells.size(); i++) {
-        if (cells[i].header == HEADER_WHITE) {
-            cells[i].header = freeList;
-            freeList = i + 1;
-            allocatedCells--;
-        } else if (cells[i].header == HEADER_BLACK) {
-            cells[i].header = HEADER_WHITE;
+        if (cells[i].state == UNUSED) {
+            freeList.push_back(i);
+        } else {
+            cells[i].state = UNUSED;
         }
     }
-}
-
-String getColor(Word header) {
-    if ((header & HEADER_BITS) == HEADER_FREE) {
-        return String(L"FREE");
-    }
-    if ((header & HEADER_BITS) == HEADER_GRAY) {
-        return String(L"GRAY");
-    }
-    if ((header & HEADER_BITS) == HEADER_BLACK) {
-        return String(L"BLACK");
-    }
-    if ((header & HEADER_BITS) == HEADER_WHITE) {
-        return String(L"WHITE");
-    }
-    return String(L"?");
 }
 
 Atom Storage::cons(Cons cons, Atom next) {

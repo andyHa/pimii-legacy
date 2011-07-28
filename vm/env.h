@@ -28,6 +28,8 @@
 #include <string>
 #include <sstream>
 
+#include <QMetaType>
+
 /**
   Represents a machine word. According to the C++ standard, int should be
   one word in size. If not, only this type needs to be redefined but all
@@ -490,5 +492,6 @@ struct EngineStatus {
     Word gcRuns;
     StorageStatus storageStats;
 };
+Q_DECLARE_METATYPE(EngineStatus)
 
 #endif // ENV_H

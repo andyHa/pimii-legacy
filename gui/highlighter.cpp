@@ -60,8 +60,6 @@ Highlighter::Highlighter(QTextDocument *parent)
     stringFormat.setFontItalic(true);
     colonCallFormat.setForeground(Qt::blue);
     colonCallFormat.setFontWeight(QFont::Bold);
-    colonCallFormat.setUnderlineStyle(QTextCharFormat::SpellCheckUnderline);
-    colonCallFormat.setUnderlineColor(Qt::red);
 }
 
 void Highlighter::highlightBlock(const QString &text)

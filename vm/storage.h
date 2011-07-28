@@ -47,40 +47,31 @@ struct Cell {
 typedef Cell* Cons;
 
 /**
+  Represents the state of an entry (Used by the garbage collector).
+  */
+enum EntryState {
+    /**
+      The entry is currently unused.
+      */
+    UNUSED,
+    /**
+      The entry is referenced, but its contents are not checked.
+      */
+    REFERENCED,
+    /**
+      The entr is used and its contents are checked.
+      */
+    CHECKED
+};
+
+/**
   Internally used to store memory cells along with a header used
   for garbage collection and free-list management.
   */
 struct StorageEntry {
-    volatile Word header;
+    EntryState state;
     Cons cell;
 };
-
-/**
-  Marks a cell as free. Used be the GC algorithm.
-  */
-const Word HEADER_FREE = 0b00 << (NUMBER_OF_BITS - 2);
-
-/**
-  Marks a cell as "gray" (touched). Used be the GC algorithm.
-  */
-const Word HEADER_GRAY = 0b01 << (NUMBER_OF_BITS - 2);
-
-/**
-  Marks a cell as "black" (in use). Used be the GC algorithm.
-  */
-const Word HEADER_BLACK = 0b10 << (NUMBER_OF_BITS - 2);
-
-/**
-  Marks a cell as "white" (in unused). Used be the GC algorithm.
-  */
-const Word HEADER_WHITE = 0b11 << (NUMBER_OF_BITS - 2);
-
-/**
-  Used to detect an index-overflow in the white-list management.
-  This is required, because the highest 2 bits are used for
-  coloring cells.
-  */
-const Word HEADER_BITS = 0b11 << (NUMBER_OF_BITS - 2);
 
 /**
   Storage area, contains a complete storage image for
@@ -124,27 +115,20 @@ class Storage
     ValueTable <Word, double> decimalNumberTable;
 
     /**
-      Points to the index of the first free cell + 1.
-      If this value is 0, no cells are free, and a new one
-      must be allocated.
-      */
-    Word freeList;
-
-    /**
       Contains the cell storage.
       */
-    std::vector <StorageEntry> cells;
+    std::vector<StorageEntry> cells;
 
     /**
-      Contains the number of allocated cells.
+      Contains indices of unused cells.
       */
-    Word allocatedCells;
+    std::vector<Word> freeList;
 
     /**
       Increments the location in the given value table if the given
       atom points to one.
       */
-    void incValueTable(Atom atom);
+    void incValueTable(Atom atom, Word idx);
 
     /**
       Implements the mark-phase of the garbage collector.
@@ -169,19 +153,9 @@ public:
     String getSymbolName(Atom symbol);
 
     /**
-      Prepares the garbage collector...
+      Runs the GC with the given root nodes.
       */
-    void gcBegin();
-
-    /**
-      Used by the engine to mark a register as gc root.
-      */
-    void addGCRoot(Atom atom);
-
-    /**
-      Performs the garbage reclaim...
-      */
-    void gcComplete();
+    void gc(Atom root1,Atom root2, Atom root3, Atom root4, Atom root5);
 
     /**
       Generates a new cell, initialized with the two given atoms.

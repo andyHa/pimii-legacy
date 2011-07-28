@@ -23,12 +23,15 @@ MainWindow::MainWindow(QWidget *parent)
     console->setPalette(p);
     splitter->addWidget(console);
     currentFile = QString("unnamed");
-
+    status = new QLabel();
+    status->setText(" STOPPED ");
+    statusBar()->addPermanentWidget(status);
 
     setCentralWidget(splitter);
-    setWindowTitle(tr("Syntax Highlighter"));
-
+    setWindowTitle(tr("pimii 1.0"));
+    qRegisterMetaType<EngineStatus>("EngineStatus");
     connect(engine,SIGNAL(log(QString)), this, SLOT(onLog(QString)));
+    connect(engine,SIGNAL(status(EngineStatus)), this, SLOT(onReport(EngineStatus)));
     connect(engine,SIGNAL(computationStarted()), this, SLOT(onComputationStarted()));
     connect(engine,SIGNAL(computationStopped()), this, SLOT(onComputationStopped()));
     engine->getEngine().println(String(L"pimii v1.0 (c) 2011 Andreas Haufler"));
@@ -49,13 +52,32 @@ void MainWindow::onLog(QString str) {
 }
 
 void MainWindow::onComputationStarted() {
-    timer.start();
+    status->setText(" RUNNING ");
 }
 
 void MainWindow::onComputationStopped() {
-    console->append(QString("Eval took: %1 ms").arg(QString::number(timer.elapsed())));
+    status->setText(" STOPPED ");
 }
 
+void MainWindow::onReport(EngineStatus status) {
+    statusBar()->showMessage(
+                QString("INSTS: %1 (%9/ms), GCs: %2, Symbols: %3, Globals: %4, Cells: %5, Strings: %6, Numbers: %7, Decimals: %8")
+                .arg(QString::number(status.instructionsExecuted),
+                     QString::number(status.gcRuns),
+                     QString::number(status.storageStats.numSymbols),
+                     QString::number(status.storageStats.numGlobals),
+                     QString("%1/%2").arg(QString::number(status.storageStats.cellsUsed),
+                                          QString::number(status.storageStats.totalCells)),
+                     QString("%1/%2").arg(QString::number(status.storageStats.stringsUsed),
+                                          QString::number(status.storageStats.totalStrings)),
+                     QString("%1/%2").arg(QString::number(status.storageStats.numbersUsed),
+                                          QString::number(status.storageStats.totalNumbers)),
+                     QString("%1/%2").arg(QString::number(status.storageStats.deicmalsUsed),
+                                          QString::number(status.storageStats.totalDecimals)),
+                     QString::number(status.instructionsExecuted / (status.timeElapsed + 1))
+                     )
+                );
+}
 
 void MainWindow::about()
 {
@@ -93,7 +115,7 @@ void MainWindow::saveFile() {
     if (!currentFile.isEmpty()) {
         QFile file(currentFile);
         if (file.open(QFile::ReadWrite | QFile::Text)) {
-            file.write(editor->document()->toPlainText().toUtf8());
+            file.write(editor->toPlainText().toUtf8());
         }
     } else {
         saveFileAs();

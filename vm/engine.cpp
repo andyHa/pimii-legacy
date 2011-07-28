@@ -122,12 +122,9 @@ bool Engine::shouldGC() {
 
 void Engine::gc() {
     gcRuns++;
-    storage.gcBegin();
-    storage.addGCRoot(s);
-    storage.addGCRoot(e);
-    storage.addGCRoot(c);
-    storage.addGCRoot(d);
-    storage.gcComplete();
+
+    storage.gc(s, e, c, d, p);
+
     lastGC = instructionCounter;
 }
 
@@ -218,11 +215,7 @@ void Engine::opAP(bool hasArguments) {
             // (with new args)
             s = NIL;
             c = funPair->car;
-            if (isNil(v) && !isNil(funPair->cdr)) {
-                e = funPair->cdr;
-            } else {
-                e = storage.makeCons(v, funPair->cdr);
-            }
+            e = storage.makeCons(v, funPair->cdr);
         } else {
             push(d, e);
             push(d, s);
@@ -230,11 +223,7 @@ void Engine::opAP(bool hasArguments) {
             s = NIL;
             c = funPair->car;
             push(d, c);
-            if (isNil(v) && !isNil(funPair->cdr)) {
-                e = funPair->cdr;
-            } else {
-                e = storage.makeCons(v, funPair->cdr);
-            }
+            e = storage.makeCons(v, funPair->cdr);
             push(p, storage.makeCons(currentFile, storage.makeNumber(currentLine)));
         }
     }
@@ -723,6 +712,7 @@ void Engine::prepareEval(String source, String filename) {
     c = code;
     p = NIL;
     if (c != NIL) {
+        println(toString(c));
         currentFile = storage.makeSymbol(filename);
         currentLine = 1;
         push(p, storage.makeCons(currentFile,  storage.makeNumber(currentLine)));
@@ -801,6 +791,7 @@ void Engine::panic(String error) {
         pos = pop(p);
     }
     buffer << std::endl;
+
     buffer << "Registers:" << std::endl;
     buffer << "--------------------------------------------" << std::endl;
     buffer << "S: " << toString(s) << std::endl;
@@ -904,7 +895,11 @@ String Engine::toString(Atom atom) {
     std::wstringstream sb;
     switch(type) {
     case TAG_TYPE_NUMBER:
+    case TAG_TYPE_LARGE_NUMBER:
         sb << storage.getNumber(atom);
+        return sb.str();
+    case TAG_TYPE_DECIMAL_NUMBER:
+        sb << storage.getDecimal(atom);
         return sb.str();
     case TAG_TYPE_BIF:
         return  std::wstring(L"$") + getBIFName(atom);

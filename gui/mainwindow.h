@@ -4,6 +4,8 @@
 #include <QMainWindow>
 #include <QSplitter>
 #include <QElapsedTimer>
+#include <QProgressBar>
+#include <QLabel>
 
 #include "highlighter.h"
 #include "vm/env.h"
@@ -34,6 +36,7 @@ public slots:
     void onLog(QString str);
     void onComputationStarted();
     void onComputationStopped();
+    void onReport(EngineStatus status);
 
 private:
     void setupEditor();
@@ -45,9 +48,10 @@ private:
     QTextEdit *editor;
     QTextEdit* console;
     QSplitter *splitter;
+    QLabel* status;
+
     Highlighter *highlighter;
     QEngine* engine;
-    QElapsedTimer timer;
 };
 //! [0]
 

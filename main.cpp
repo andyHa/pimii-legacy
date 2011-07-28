@@ -23,7 +23,7 @@ int main(int argc, char *argv[])
     window = new MainWindow();
     //e.kickstart(String(L"test.pi"));
 
-    window->show();
+    window->showMaximized();
 
 
     return a.exec();
