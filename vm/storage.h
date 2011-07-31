@@ -27,10 +27,6 @@
 #include "lookuptable.h"
 #include "valuetable.h"
 
-#include <set>
-
-#include <QReadWriteLock>
-
 /**
   Represents the central unit of memory management. All data
   sturctures are made of of cells which contain two atoms.
@@ -90,7 +86,7 @@ class Storage
     void initializeSymbols();
 
     /**
-      Maps strings to unique symbol indices
+      Maps Strings to unique symbol indices
       */
     LookupTable <String, String, Word> symbolTable;
 

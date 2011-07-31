@@ -1,278 +1,281 @@
 #include "tokenizer.h"
 
-Tokenizer::Tokenizer(std::wistream& inputStream) : input(inputStream)
+Tokenizer::Tokenizer(const QString& source, bool ignoreComments) :
+    input(source),
+    ignoreComments(ignoreComments),
+    ch(input[0])
 {
-    absolutePos = 0;
+    absolutePos = -1;
     pos = 1;
     line = 1;
     current.type = TT_EMPTY;
 
     //Move to first non space character...
     nextChar();
-    while(std::isspace(ch) && !input.eof()) {
-        nextChar();
-    }
+    skipWhitespace();
 }
 
-wchar_t Tokenizer::nextChar() {
-    input.get(ch);
-    absolutePos++;
-    pos++;
-    if (ch == '\n') {
-        line++;
-        pos = 1;
+QChar Tokenizer::nextChar() {
+    if (absolutePos < input.length()) {
+        absolutePos++;
+        pos++;
+        ch = input[absolutePos];
+        if (ch == '\n') {
+            line++;
+            pos = 1;
+        }
     }
     return ch;
 }
 
-/**
-  Fetches the next token from the given stream. This method
-  also updates the current position in the file and skips
-  comments and whitespaces...
+void Tokenizer::skipWhitespace() {
+    while(ch.isSpace() && more()) {
+        nextChar();
+    }
+}
 
-  As one can see in the beginning, it uses two gotos while
-  parsing comments. This can propbably refactored with an
-  extra method+loop.
+bool Tokenizer::more() {
+    return absolutePos < input.length();
+}
 
-  After that, the next chracter is read and it is decieded
-  which token is to be generated.
-  */
+
+bool Tokenizer::hasPreview() {
+    return absolutePos < input.length() - 1;
+}
+
+QChar Tokenizer::preview()  {
+    return input[absolutePos+1];
+}
+
+
 InputToken Tokenizer::fetchToken()  {
-begin: // <---------------------------------------------+
-    while(std::isspace(ch) && !input.eof()) {        // |
-        nextChar();                                  // |
-    }                                                // |
-    if (ch == '/') {                                 // |
-        nextChar();                                  // |
-        if (ch == '*') {                             // |
-            // We have a commend, read over it...       |
-            nextChar();                              // |
-skip: // <-----------------------------------------+    |
-            while(ch != '*' && !input.eof()) {  // |    |
-                nextChar();                     // |    |
-            }                                   // |    |
-            if (!input.eof()) {                 // |    |
-                nextChar();                     // |    |
-                if (ch != '/') {                // |    |
-                    // There was a * in the        |    |
-                    // comment. Ignore and repeat. |    |
-                    goto skip; // -----------------+    |
-                }                                    // |
-                // We the end of the comment.           |
-                // Skip / and restart "fetchToken".     |
-                nextChar();                          // |
-            }                                        // |
-            goto begin; //------------------------------+
+    skipWhitespace();
+
+    InputToken result;
+    result.absolutePos = absolutePos;
+    result.pos = pos;
+    result.line = line;
+
+    if (!more()) {
+        result.length = 0;
+        result.type = TT_EOF;
+        return result;
+    } else if (ch.isLetter()) {
+        return parseName();
+    } else if (ch == '#' && hasPreview() && preview().isLetter()) {
+        return parseSymbol();
+    } else if(ch.isDigit() ||
+              (ch == '-' && hasPreview() && preview().isDigit())
+              )
+    {
+        return parseNumber();
+    } else if (ch == '"') {
+        return parseString();
+    } else if (ch == '\'') {
+        return parseComment();
+    } else if (ch == '/'
+               && hasPreview()
+               && preview() == '*') {
+        if (ignoreComments) {
+            parseComment();
+            return fetchToken();
         } else {
-            // We have a division operator...
-            InputToken result;
-            result.absolutePos = absolutePos - 1;
-            result.pos = pos - 1;
-            result.line = line;
-            result.tokenString = String(L"/");
-            result.type = TT_DIV;
-            return result;
+            return parseComment();
         }
     }
+
+    return parseOperator();
+}
+
+InputToken Tokenizer::parseName() {
     InputToken result;
-    result.absolutePos = absolutePos - 1;
-    result.pos = pos - 1;
+    result.absolutePos = absolutePos;
+    result.pos = pos;
     result.line = line;
-    result.type = TT_EOF;
-    if (input.eof()) {
-        result.type = TT_EOF;
-    } else if (std::isalpha(ch)) {
-        result.tokenString = String();
-        result.tokenString += ch;
-        result.type = TT_NAME;
+    result.length = 1;
+    result.type = TT_NAME;
+    nextChar();
+    while((ch.isLetterOrNumber()
+           || ch == ':'
+           || ch == '_')
+          && more())
+    {
+        result.length++;
         nextChar();
-        while((std::isalpha(ch)
-               || std::isdigit(ch)
-               || ch == ':'
-               || ch == '_')
-              && !input.eof())
-        {
-            result.tokenString += ch;
-            nextChar();
-        }
-    } else if (ch == ';') {
-        result.tokenString = String(L";");
-        nextChar();
-        result.type = TT_SEMICOLON;
-    } else if (ch == '-') {
-        nextChar();
-        if (ch == '>') {
-            nextChar();
-            result.tokenString = String(L"->");
-            result.type = TT_ARROW;
-        } else if (std::isdigit(ch)) {
-            result.tokenString = String(L"-");
-            result.tokenString += ch;
-            nextChar();
-            while(std::isdigit(ch) && !input.eof()) {
-                result.tokenString += ch;
-                nextChar();
-            }
-            std::wstringstream buffer;
-            buffer << result.tokenString;
-            buffer >> result.tokenInteger;
-            result.type = TT_NUMBER;
-        } else {
-            result.tokenString = String(L"-");
-            result.type = TT_MINUS;
-        }
-    } else if (ch == ':') {
-        nextChar();
-        if (ch == '=') {
-            nextChar();
-            result.tokenString = String(L":=");
-            result.type = TT_ASSIGNMENT;
-        } else if (ch == ':') {
-            nextChar();
-            if (ch == '=') {
-               nextChar();
-            }
-            result.tokenString = String(L"::=");
-            result.type = TT_GLOBAL_ASSIGNMENT;
-        } else {
-            result.tokenString = String(L":");
-            result.type = TT_COLON;
-        }
-    } else if (ch == '(') {
-        result.tokenString = String(L"(");
-        nextChar();
-        result.type = TT_L_BRACE;
-    } else if (ch == ')') {
-        result.tokenString = String(L")");
-        nextChar();
-        result.type = TT_R_BRACE;
-    } else if (ch == '{') {
-        result.tokenString = String(L"{");
-        nextChar();
-        result.type = TT_L_CURLY;
-    } else if (ch == '}') {
-        result.tokenString = String(L"}");
-        nextChar();
-        result.type = TT_R_CURLY;
-    } else if (ch == '[') {
-        result.tokenString = String(L"[");
-        nextChar();
-        result.type = TT_L_BRACKET;
-    } else if (ch == ']') {
-        result.tokenString = String(L"]");
-        nextChar();
-        result.type = TT_R_BRACKET;
-    } else if (ch == ',') {
-        result.tokenString = String(L",");
-        nextChar();
-        result.type = TT_KOMMA;
-    } else if (ch == '.') {
-        result.tokenString = String(L".");
-        nextChar();
-        result.type = TT_DOT;
-    } else if (ch == '=') {
-        result.tokenString = String(L"=");
-        nextChar();
-        result.type = TT_EQ;
-    } else if (ch == '+') {
-        result.tokenString = String(L"+");
-        nextChar();
-        result.type = TT_PLUS;
-    } else if (ch == '&') {
-        result.tokenString = String(L"&");
-        nextChar();
-        result.type = TT_AND;
-    } else if (ch == '|') {
-        result.tokenString = String(L"&");
-        nextChar();
-        result.type = TT_OR;
-    } else if (ch == '%') {
-        result.tokenString = String(L"%");
-        nextChar();
-        result.type = TT_MOD;
-    } else if (ch == '*') {
-        result.tokenString = String(L"*");
-        nextChar();
-        result.type = TT_MUL;
-    } else if (ch == '!') {
-        nextChar();
-        if (ch == '=') {
-            nextChar();
-            result.tokenString = String(L"!=");
-            result.type = TT_NE;
-        } else {
-            result.tokenString = String(L"!");
-            result.type = TT_NOT;
-        }
-    } else if (ch == '<') {
-        nextChar();
-        if (ch == '<') {
-            nextChar();
-            result.tokenString = String(L"<<");
-            result.type = TT_ASM_BEGIN;
-        } else if (ch == '='){
-            nextChar();
-            result.tokenString = String(L"<=");
-            result.type = TT_LTEQ;
-        } else {
-            result.tokenString = String(L"<");
-            result.type = TT_LT;
-        }
-    } else if (ch == '>') {
-        nextChar();
-        if (ch == '>') {
-            nextChar();
-            result.tokenString = String(L">>");
-            result.type = TT_ASM_END;
-        } else if (ch == '='){
-            nextChar();
-            result.tokenString = String(L">=");
-            result.type = TT_GTEQ;
-        } else {
-            result.tokenString = String(L">");
-            result.type = TT_GT;
-        }
-    } else if (ch == '#') {
-        nextChar();
-        if (ch == '(') {
-            nextChar();
-            result.tokenString = String(L"#(");
-            result.type = TT_LIST_START;
-        } else {
-            result.tokenString = String();
-            while(std::isalnum(ch) && !input.eof()) {
-                result.tokenString += ch;
-                nextChar();
-            }
-            result.type = TT_SYMBOL;
-        }
-    } else if (std::isdigit(ch)) {
-        result.tokenString = String();
-        result.tokenString += ch;
-        nextChar();
-        while(std::isdigit(ch) && !input.eof()) {
-            result.tokenString += ch;
-            nextChar();
-        }
-        std::wstringstream buffer;
-        buffer << result.tokenString;
-        buffer >> result.tokenInteger;
-        result.type = TT_NUMBER;
-    } else if (ch == '\'') {
-        result.tokenString = String();
-        nextChar();
-        while(ch != '\'' && !input.eof()) {
-            if (ch == '\\') {
-                nextChar();
-            }
-            result.tokenString += ch;
-            nextChar();
-        }
-        nextChar(); // Read over last "
-        result.type = TT_STRING;
     }
     return result;
 }
+
+InputToken Tokenizer::parseSymbol() {
+    InputToken result;
+    result.absolutePos = absolutePos;
+    result.pos = pos;
+    result.line = line;
+    result.length = 1;
+    result.type = TT_SYMBOL;
+    nextChar();
+    while((ch.isLetterOrNumber()
+           || ch == '_')
+          && more())
+    {
+        result.length++;
+        nextChar();
+    }
+    return result;
+}
+
+InputToken Tokenizer::parseNumber() {
+    InputToken result;
+    bool decimalSeparatorSeen = false;
+    result.absolutePos = absolutePos;
+    result.pos = pos;
+    result.line = line;
+    result.length = 1;
+    result.type = TT_NUMBER;
+    nextChar();
+    while((ch.isDigit() || (!decimalSeparatorSeen && ch == '.')) && more())
+    {
+        if (ch == '.') {
+            decimalSeparatorSeen = true;
+            result.type = TT_DECIMAL;
+        }
+        result.length++;
+        nextChar();
+    }
+    return result;
+}
+
+InputToken Tokenizer::parseString() {
+    InputToken result;
+    result.absolutePos = absolutePos;
+    result.pos = pos;
+    result.line = line;
+    result.length = 1;
+    result.type = TT_STRING;
+    nextChar();
+    while(ch != '"' && more())
+    {
+        result.length++;
+        nextChar();
+    }
+    result.length++;
+    nextChar();
+    return result;
+}
+
+InputToken Tokenizer::parseComment() {
+    InputToken result;
+    result.absolutePos = absolutePos;
+    result.pos = pos;
+    result.line = line;
+    result.length = 1;
+    result.type = TT_COMMENT;
+    while(ch != '\n' && more()) {
+        result.length++;
+        nextChar();
+    }
+    return result;
+}
+
+InputToken Tokenizer::parseOperator() {
+    InputToken result;
+    result.absolutePos = absolutePos;
+    result.pos = pos;
+    result.line = line;
+    result.length = 1;
+    result.type = TT_UNKNOWN;
+
+    if (ch == '(') {
+        result.type = TT_L_BRACE;
+    } else if (ch == ')') {
+        result.type = TT_R_BRACE;
+    } else if (ch == '{') {
+        result.type = TT_L_CURLY;
+    } else if (ch == '}') {
+        result.type = TT_R_CURLY;
+    } else if (ch == '[') {
+        result.type = TT_L_BRACKET;
+    } else if (ch == ']') {
+        result.type = TT_R_BRACKET;
+    } else if (ch == ':') {
+        result.type = TT_COLON;
+    } else if (ch == ';') {
+        result.type = TT_SEMICOLON;
+    } else if (ch == ',') {
+        result.type = TT_KOMMA;
+    } else if (ch == '.') {
+        result.type = TT_DOT;
+    } else if (ch == '=') {
+        result.type = TT_EQ;
+    } else if (ch == '+') {
+        result.type = TT_PLUS;
+    } else if (ch == '&') {
+        result.type = TT_AND;
+    } else if (ch == '|') {
+        result.type = TT_OR;
+    } else if (ch == '%') {
+        result.type = TT_MOD;
+    } else if (ch == '*') {
+        result.type = TT_MUL;
+    } else if (ch == ':') {
+        if (hasPreview() && preview() == '='){
+            nextChar();
+            result.length = 2;
+            result.type = TT_ASSIGNMENT;
+        } else if (hasPreview() && preview() == ':') {
+            if (absolutePos < input.length() - 2 &&
+                    input[absolutePos+2] == '='
+                ) {
+                nextChar();
+                nextChar();
+                result.length = 3;
+                result.type = TT_GLOBAL_ASSIGNMENT;
+            }
+        }
+    } else if (ch == '#') {
+        if (hasPreview() && preview() == '('){
+            nextChar();
+            result.length = 2;
+            result.type = TT_LIST_START;
+        }
+    } else if (ch == '-') {
+        if (hasPreview() && preview() == '>'){
+            nextChar();
+            result.length = 2;
+            result.type = TT_ARROW;
+        } else {
+            result.type = TT_MINUS;
+        }
+    } else if (ch == '!') {
+        if (hasPreview() && preview() == '='){
+            nextChar();
+            result.length = 2;
+            result.type = TT_NE;
+        } else {
+            result.type = TT_NOT;
+        }
+    } else if (ch == '<') {
+        if (hasPreview() && preview() == '='){
+            nextChar();
+            result.length = 2;
+            result.type = TT_LTEQ;
+        } else {
+            result.type = TT_LT;
+        }
+    } else if (ch == '>') {
+        if (hasPreview() && preview() == '='){
+            nextChar();
+            result.length = 2;
+            result.type = TT_GTEQ;
+        } else {
+            result.type = TT_GT;
+        }
+    }
+
+    nextChar();
+    return result;
+}
+
 
 InputToken Tokenizer::fetch() {
     if (current.type == TT_EMPTY) {
@@ -306,4 +309,8 @@ InputToken Tokenizer::getLookahead2() {
         fetch();
     }
     return lookahead2;
+}
+
+QString Tokenizer::getString(InputToken token) {
+    return input.mid(token.absolutePos, token.length);
 }

@@ -10,9 +10,7 @@ class Interceptor
 public:
     Interceptor() {}
 
-    virtual void println(String std) {
-        std::wcout << std << std::endl;
-    }
+    virtual void println(String std) {}
 
     virtual void reportStatus(EngineStatus status) {}
 };

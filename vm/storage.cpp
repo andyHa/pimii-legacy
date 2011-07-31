@@ -160,7 +160,7 @@ void Storage::incValueTable(Atom atom, Word idx) {
     }
 }
 
-void Storage::mark() {
+void Storage::mark() {  
     Word index = 0;
     while(index < cells.size()) {
         if (cells[index].state == REFERENCED) {
@@ -168,18 +168,26 @@ void Storage::mark() {
             Cons cell = cells[index].cell;
             Word carIdx = untagIndex(cell->car);
             Word cdrIdx = untagIndex(cell->cdr);
-            incValueTable(cell->car, carIdx);
-            incValueTable(cell->cdr, cdrIdx);
+            index++;
             if (isCons(cell->car) && cells[carIdx].state != CHECKED) {
                  cells[carIdx].state = REFERENCED;
-                 index = std::min(index, carIdx - 1);
+                 if (carIdx < index) {
+                     index = carIdx;
+                 }
+            } else {
+                incValueTable(cell->car, carIdx);
             }
             if (isCons(cell->cdr) && cells[cdrIdx].state != CHECKED) {
                  cells[cdrIdx].state = REFERENCED;
-                 index = std::min(index, cdrIdx - 1);
+                 if (cdrIdx < index) {
+                     index = cdrIdx;
+                 }
+            } else {
+                incValueTable(cell->cdr, cdrIdx);
             }
+        } else {
+            index++;
         }
-        index++;
     }
 }
 

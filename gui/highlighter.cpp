@@ -56,38 +56,51 @@ Highlighter::Highlighter(QTextDocument *parent)
     symbolFormat.setForeground(Qt::darkYellow);
     symbolFormat.setFontWeight(QFont::Bold);
     numberFormat.setForeground(Qt::darkGreen);
+    decimalFormat.setForeground(Qt::darkGreen);
+    decimalFormat.setFontItalic(true);
     stringFormat.setForeground(Qt::darkCyan);
     stringFormat.setFontItalic(true);
+    commentFormat.setForeground(Qt::darkRed);
+    commentFormat.setFontItalic(true);
+    unknownFormat.setUnderlineStyle(QTextCharFormat::SpellCheckUnderline);
+    unknownFormat.setUnderlineColor(Qt::red);
     colonCallFormat.setForeground(Qt::blue);
-    colonCallFormat.setFontWeight(QFont::Bold);
+    colonCallFormat.setFontWeight(QFont::Bold);    
 }
 
 void Highlighter::highlightBlock(const QString &text)
 {
-    std::wstringstream stream;
-    stream << text.toStdWString();
-    Tokenizer tokenizer(stream);
+    Tokenizer tokenizer(text, false);
     InputToken t = tokenizer.fetch();
     while (t.type != TT_EOF) {
         switch(t.type) {
         case TT_NAME:
-            if (t.tokenString[t.tokenString.length()-1] == ':') {
-                setFormat(t.absolutePos, t.tokenString.length(), colonCallFormat);
+            if (tokenizer.getString(t).endsWith(":")) {
+                setFormat(t.absolutePos, t.length, colonCallFormat);
             } else {
-                setFormat(t.absolutePos, t.tokenString.length(), variableFormat);
+                setFormat(t.absolutePos, t.length, variableFormat);
             }
            break;
         case TT_SYMBOL:
-           setFormat(t.absolutePos, t.tokenString.length() + 1, symbolFormat);
+           setFormat(t.absolutePos, t.length, symbolFormat);
            break;
         case TT_STRING:
-           setFormat(t.absolutePos, t.tokenString.length() + 2, stringFormat);
+           setFormat(t.absolutePos, t.length, stringFormat);
+           break;
+        case TT_COMMENT:
+           setFormat(t.absolutePos, t.length, commentFormat);
+           break;
+        case TT_UNKNOWN:
+           setFormat(t.absolutePos, t.length, unknownFormat);
            break;
         case TT_NUMBER:
-           setFormat(t.absolutePos, t.tokenString.length(), numberFormat);
+           setFormat(t.absolutePos, t.length, numberFormat);
+           break;
+        case TT_DECIMAL:
+           setFormat(t.absolutePos, t.length, decimalFormat);
            break;
         default:
-           setFormat(t.absolutePos, t.tokenString.length(), specialCharFormat);
+           setFormat(t.absolutePos, t.length, specialCharFormat);
         }
         t = tokenizer.fetch();
     }

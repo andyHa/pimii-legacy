@@ -20,11 +20,6 @@ public:
     void evaluate(QString source, QString filename);
 
     /**
-      Determines if the computation is currently interrupted.
-      */
-    bool isInterrupted();
-
-    /**
       Determines if the computation is running.
       */
     bool isRunnung();

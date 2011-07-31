@@ -31,11 +31,11 @@ HEADERS += \
     gui/highlighter.h \
     parser/tokenizer.h \
     vm/qengine.h \
-    vm/interceptor.h
+    vm/interceptor.h \
+    parser/ast.h
 
 OTHER_FILES += \
     example.pi \
     kernel.pi \
     test.pi \
     playground.pi
-

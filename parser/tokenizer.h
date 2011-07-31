@@ -39,6 +39,10 @@ enum InputTokenType {
     TT_EMPTY,
     // Marks the end of input
     TT_EOF,
+    // Represents an unknown token.
+    TT_UNKNOWN,
+    // Represents a comment. This is used by the syntax highlighter.
+    TT_COMMENT,
     // Represents a name
     TT_NAME,
     // Represents a symbol starting with #
@@ -47,6 +51,8 @@ enum InputTokenType {
     TT_STRING,
     // Represents a numeric constant
     TT_NUMBER,
+    // Represents a decimal constant
+    TT_DECIMAL,
     // ;
     TT_SEMICOLON,
     // :=
@@ -99,10 +105,6 @@ enum InputTokenType {
     TT_L_CURLY,
     // }
     TT_R_CURLY,
-    // <<
-    TT_ASM_BEGIN,
-    // >>
-    TT_ASM_END,
     // ->
     TT_ARROW,
     // #(
@@ -123,12 +125,8 @@ struct InputToken {
     // used for syntax highlighting etc.
     int absolutePos;
 
-    // Contains the textual representation of the token.
-    String tokenString;
-
-    // If the token type is TT_NUMNER, this cointains the
-    // numeric representation of the token.
-    int tokenInteger;
+    // Contains the length of the token.
+    int length;
 };
 
 /**
@@ -136,6 +134,11 @@ struct InputToken {
   */
 class Tokenizer
 {
+
+    /**
+      Determines if comments are ignored.
+      */
+    bool ignoreComments;
 
     /**
       Contains the current line
@@ -153,13 +156,14 @@ class Tokenizer
     int absolutePos;
 
     /**
-      Contains the current char.
-      */
-    wchar_t ch;
-    /**
       Contains the inputstream which provides the source code.
       */
-    std::wistream& input;
+    QString input;
+
+    /**
+      Contains the current character.
+      */
+    QChar ch;
 
     /**
       Contains the current token.
@@ -175,15 +179,66 @@ class Tokenizer
       Contains the current +2 lookahead. (Next after lookahead).
       */
     InputToken lookahead2;
+
     /**
       Fetches the next char.
       */
-    wchar_t nextChar();
+    QChar nextChar();
+
+    /**
+      Checks if we already reached the end of the input.
+      */
+    bool more();
+
+    /**
+      Checks if there is another character available after the current one.
+      */
+    bool hasPreview();
+
+    /**
+      Returns a preview for the next character.
+      */
+    QChar preview();
 
     /**
       Computes the next token.
       */
     InputToken fetchToken();
+
+    /**
+      Fetches a name-token.
+      */
+    InputToken parseName();
+
+    /**
+      Fetches a symbol-token.
+      */
+    InputToken parseSymbol();
+
+    /**
+      Fetches a numeric-token.
+      */
+    InputToken parseNumber();
+
+    /**
+      Fetches a string-token.
+      */
+    InputToken parseString();
+
+    /**
+      Fetches a operator-token.
+      */
+    InputToken parseOperator();
+
+    /**
+      Fetches a comment-token.
+      */
+    InputToken parseComment();
+
+    /**
+      Skips blanks, tabs and new-lines.
+      */
+    void skipWhitespace();
 public:
     /**
       Returns the current token.
@@ -207,9 +262,14 @@ public:
     InputToken getLookahead2();
 
     /**
+      Returns the string representation of the given token.
+      */
+    QString getString(InputToken token);
+
+    /**
       Initializes the tokenizer with a given stream.
       */
-    Tokenizer(std::wistream& inputStream);
+    Tokenizer(const QString& input, bool ignoreComments);
 };
 
 #endif // TOKENIZER_H

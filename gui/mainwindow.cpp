@@ -52,6 +52,7 @@ void MainWindow::onLog(QString str) {
 }
 
 void MainWindow::onComputationStarted() {
+    console->clear();
     status->setText(" RUNNING ");
 }
 
@@ -134,7 +135,7 @@ void MainWindow::saveFileAs(const QString &path) {
 }
 
 void MainWindow::runFile() {
-    engine->evaluate(editor->document()->toPlainText(),QString("test"));
+    engine->evaluate(editor->document()->toPlainText(), currentFile);
 }
 
 void MainWindow::setupEditor()

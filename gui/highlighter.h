@@ -66,7 +66,10 @@ private:
     QTextCharFormat variableFormat;
     QTextCharFormat symbolFormat;
     QTextCharFormat numberFormat;
+    QTextCharFormat decimalFormat;
     QTextCharFormat stringFormat;
+    QTextCharFormat commentFormat;
+    QTextCharFormat unknownFormat;
     QTextCharFormat colonCallFormat;
 };
 //! [0]

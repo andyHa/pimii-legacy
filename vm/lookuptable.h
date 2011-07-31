@@ -35,7 +35,7 @@ class LookupTable
     std::map<K, I> mapping;
     std::vector< std::pair<K,V> > table;
 public:
-    LookupTable() {};
+    LookupTable() {}
 
     void clear(){
         mapping.clear();

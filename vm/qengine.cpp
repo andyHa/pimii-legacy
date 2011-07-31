@@ -12,7 +12,6 @@ void QEngine::println(String std) {
 
 void QEngine::reportStatus(EngineStatus s) {
     emit status(s);
-    std::wcout << s.instructionsExecuted << " " << s.gcRuns << " " << s.timeElapsed << std::endl;
 }
 
 void QEngine::interrupt() {
@@ -34,23 +33,13 @@ void QEngine::Executor::run() {
 
 void QEngine::evaluate(QString source, QString filename) {
     if (!executor.isRunning()) {
-        QElapsedTimer timer;
-        timer.start();
         engine.prepareEval(source.toStdWString(), filename.toStdWString());
-        std::wostringstream buf;
-        buf << L"Compilation took: " << timer.elapsed() << "ms";
-        println(buf.str());
         executor.start();
     }
 }
 
 Engine& QEngine::getEngine() {
     return engine;
-}
-
-bool QEngine::isInterrupted() {
-    //return engine.is
-    return false;
 }
 
 bool QEngine::isRunnung() {
