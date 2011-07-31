@@ -282,14 +282,9 @@ class Engine
     void opCONS();
 
     /**
-      Replaces the CAR value of the stack top.
+      Splits a given cons cell.
       */
-    void opRPLACAR();
-
-    /**
-      Replaces the CDR value of the stack top.
-      */
-    void opRPLACDR();
+    void opSPLIT();
 
     /**
       Pops a list and a value from the stack,

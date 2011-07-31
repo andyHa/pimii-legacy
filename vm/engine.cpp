@@ -141,7 +141,9 @@ void Engine::opLDC() {
 }
 
 void Engine::opST() {
-   store(pop(c), pop(s));
+   Atom val = pop(s);
+   store(pop(c), val);
+   push(s, val);
 }
 
 void Engine::opLDG() {
@@ -155,11 +157,13 @@ void Engine::opLDG() {
 
 void Engine::opSTG() {
     Atom gobal = pop(c);
+    Atom val = pop(s);
     expect(isGlobal(gobal),
            "#STG: code top was not a global",
            __FILE__,
            __LINE__);
-    storage.writeGlobal(gobal, pop(s));
+    storage.writeGlobal(gobal, val);
+    push(s, val);
 }
 
 void Engine::opBT() {
@@ -265,28 +269,26 @@ void Engine::opCONS() {
     push(s, storage.makeCons(a,b));
 }
 
-void Engine::opRPLACAR() {
+void Engine::opSPLIT() {
     Atom element = pop(s);
-    Atom cell = pop(s);
-    expect(isCons(cell),
-           "#RPLACAR: stack top was not a cons!",
-           __FILE__,
-           __LINE__);
-    Cons c = storage.getCons(cell);
-    c->car = element;
-    push(s, cell);
-}
-
-void Engine::opRPLACDR() {
-    Atom element = pop(s);
-    Atom cell = pop(s);
-    expect(isCons(cell),
-           "#RPLACDR: stack top was not a cons!",
-           __FILE__,
-           __LINE__);
-    Cons c = storage.getCons(cell);
-    c->cdr = element;
-    push(s, cell);
+    Atom l1 = pop(c);
+    Atom l2 = pop(c);
+    if (isCons(element)) {
+        Cons c = storage.getCons(element);
+        if (isGlobal(l1)) {
+            storage.writeGlobal(l1, c->car);
+        } else if (isCons(l1)) {
+            store(l1, c->car);
+        }
+        if (isGlobal(l2)) {
+            storage.writeGlobal(l2, c->cdr);
+        } else if (isCons(l2)) {
+            store(l2, c->cdr);
+        }
+        push(s, SYMBOL_TRUE);
+    } else {
+        push(s, SYMBOL_FALSE);
+    }
 }
 
 void Engine::opCHAIN() {
@@ -400,6 +402,23 @@ void Engine::opGTQ() {
 void Engine::opADD() {
     Atom b = pop(s);
     Atom a = pop(s);
+    if (isCons(a)) {
+        Cons cell = storage.getCons(a);
+        while(isCons(cell->cdr)) {
+            cell = storage.getCons(cell->cdr);
+        }
+        if (isCons(b)) {
+            cell->cdr = b;
+        } else {
+            cell->cdr = storage.makeCons(b, NIL);
+        }
+        push(s, a);
+        return;
+    }
+    if (isCons(b)) {
+        push(s, storage.makeCons(a, b));
+        return;
+    }
     if (isNumber(b) && isNumber(a)) {
         push(s, storage.makeNumber(storage.getNumber(a) + storage.getNumber(b)));
         return;
@@ -673,11 +692,10 @@ void Engine::dispatch(Atom opcode) {
     case SYMBOL_OP_CONS:
         opCONS();
         return;
-    case SYMBOL_OP_RPLACAR:
-        opRPLACAR();
+    case SYMBOL_OP_SPLIT:
+        opSPLIT();
         return;
-    case SYMBOL_OP_RPLACDR:
-        opRPLACDR();
+    case SYMBOL_OP_NOP:
         return;
     case SYMBOL_OP_CHAIN:
         opCHAIN();
