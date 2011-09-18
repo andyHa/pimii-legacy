@@ -192,9 +192,13 @@ skip: // <-----------------------------------------+    |
         nextChar();
         result.type = TT_AND;
     } else if (ch == '|') {
-        result.tokenString = String(L"&");
+        result.tokenString = String(L"|");
         nextChar();
-        result.type = TT_OR;
+        result.type = TT_PIPE;
+    } else if (ch == '?') {
+        result.tokenString = String(L"?");
+        nextChar();
+        result.type = TT_QUESTIONMARK;
     } else if (ch == '%') {
         result.tokenString = String(L"%");
         nextChar();
@@ -358,9 +362,54 @@ void Compiler::statement() {
         } else if (lookahead.type == TT_GLOBAL_ASSIGNMENT) {
             globalAssignment();
             return;
+        } else if (lookahead.type == TT_KOMMA) {
+            splitAssignment();
+            return;
         }
     }
     expression();
+}
+
+void Compiler::splitAssignment() {
+    if (symbolTable.size() == 0) {
+        addError(current.line, current.pos, String(L"Split-Assignments not allowed on top-level"));
+        fetch(); // name
+        fetch(); // |
+        fetch(); // name
+        expect(TT_ASSIGNMENT, String(L":="));
+        return;
+    }
+    String headName = current.tokenString;
+    fetch(); // name
+    fetch(); // |
+    String tailName = current.tokenString;
+    fetch(); // name
+    expect(TT_ASSIGNMENT, String(L":="));
+    std::vector<String>* symbols = symbolTable[0];
+    Word headMinorIndex = 1;
+    while (headMinorIndex <= symbols->size()) {
+        if (symbols->at(headMinorIndex - 1) == headName) {
+            break;
+        }
+        headMinorIndex++;
+    }
+    if (headMinorIndex > symbols->size()) {
+        symbols->push_back(headName);
+    }
+    Word tailMinorIndex = 1;
+    while (tailMinorIndex <= symbols->size()) {
+        if (symbols->at(tailMinorIndex - 1) == tailName) {
+            break;
+        }
+        tailMinorIndex++;
+    }
+    if (tailMinorIndex > symbols->size()) {
+        symbols->push_back(tailName);
+    }
+    expression();
+    addCode(SYMBOL_OP_SPLIT);
+    addCode(engine->storage.makeCons(engine->storage.makeNumber(1), engine->storage.makeNumber(headMinorIndex)));
+    addCode(engine->storage.makeCons(engine->storage.makeNumber(1), engine->storage.makeNumber(tailMinorIndex)));
 }
 
 void Compiler::localAssignment() {
@@ -653,7 +702,7 @@ void Compiler::basicExp() {
             fetch();
             logExp();
             addCode(SYMBOL_OP_AND);
-        } else if (current.type == TT_OR) {
+        } else if (current.type == TT_QUESTIONMARK) {
             fetch();
             logExp();
             addCode(SYMBOL_OP_OR);
@@ -718,6 +767,8 @@ void Compiler::factorExp() {
     } else {
         if (current.type == TT_SYMBOL || current.type == TT_STRING || current.type == TT_NUMBER) {
             literal();
+        } else if (current.type == TT_NAME  && lookahead.type == TT_PIPE) {
+            splitAssignment();
         } else if (current.type == TT_LIST_START) {
             inlineList();
         } else if (current.type == TT_NAME) {
@@ -735,6 +786,7 @@ void Compiler::factorExp() {
             }
         } else {
             addError(current.line, current.pos, String(L"Unexpected token: "+current.tokenString));
+            fetch();
         }
     }
 }

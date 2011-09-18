@@ -365,14 +365,24 @@ const Atom SYMBOL_OP_CHAIN = SYMBOL(33);
 const Atom SYMBOL_OP_CHAIN_END = SYMBOL(34);
 
 /**
+  Op code: Pops a value from the stack. If it is a cons (not nil)
+  the head is stored in a local variable, specified by the first pair
+  and the tail is stored in a local variable, specified by the second pair.
+  Then #TRUE is pushed on the stack. Otherwise #FALSE will be pushed on the
+  stack. This is the OP-CODE which represents the split-assignment:
+  h,t := list, which is intended to be used in guarded blocks.
+  */
+const Atom SYMBOL_OP_SPLIT = SYMBOL(35);
+
+/**
   Op code: Used to tell the VM the currently active file.
   */
-const Atom SYMBOL_OP_FILE = SYMBOL(35);
+const Atom SYMBOL_OP_FILE = SYMBOL(36);
 
 /**
   Op code: Used to tell the VM the currently active line.
   */
-const Atom SYMBOL_OP_LINE = SYMBOL(36);
+const Atom SYMBOL_OP_LINE = SYMBOL(37);
 
 /**
   Reads the tag of a given atom.

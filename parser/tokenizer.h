@@ -251,7 +251,7 @@ public:
     InputToken fetch();
 
     /**
-      Returns the next token, without idscarding the current.
+      Returns the next token, without discarding the current.
       */
     InputToken getLookahead();
 

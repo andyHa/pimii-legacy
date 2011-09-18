@@ -318,6 +318,20 @@ void Engine::opCHAINEND() {
     }
 }
 
+void Engine::opSPLIT() {
+    Atom cell = pop(s);
+    Atom head = pop(c);
+    Atom tail = pop(c);
+    if (isCons(cell)) {
+        Cons c = storage.getCons(cell);
+        store(head, c->car);
+        store(tail, c->cdr);
+        push(s, SYMBOL_TRUE);
+    } else {
+        push(s, SYMBOL_FALSE);
+    }
+}
+
 
 void Engine::opEQ() {
     Atom b = pop(s);
@@ -685,6 +699,9 @@ void Engine::dispatch(Atom opcode) {
     case SYMBOL_OP_CHAIN_END:
         opCHAINEND();
         return;
+    case SYMBOL_OP_SPLIT:
+        opSPLIT();
+        return;
     case SYMBOL_OP_FILE:
         opFile();
         return;
@@ -709,6 +726,7 @@ void Engine::prepareEval(String source, String filename) {
     currentLine = 1;
     push(p, storage.makeCons(currentFile, storage.makeNumber(currentLine)));
     Atom code = compileSource(filename, source, true);
+    std::wcout << toString(code) << std::endl;
     c = code;
     p = NIL;
     if (c != NIL) {
@@ -839,6 +857,7 @@ Atom Engine::compileStream(String file, std::wistream& inputStream, bool insertS
             CompilationError e = *i;
             buf << e.line << ":" << e.pos << ": " << e.error << std::endl;
         }
+        std::wcout << buf.str() << std::endl;
         println(buf.str());
         return NIL;
     }

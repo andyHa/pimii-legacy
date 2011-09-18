@@ -303,6 +303,11 @@ class Engine
       */
     void opCHAINEND();
 
+    /**
+      Executes the SPLIT-Assignment.
+      */
+    void opSPLIT();
+
     void opEQ();
     void opNE();
     void opLT();

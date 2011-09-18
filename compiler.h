@@ -158,7 +158,8 @@ enum TokenType {
     TT_MOD,
     TT_DIV,
     TT_AND,
-    TT_OR,
+    TT_PIPE,
+    TT_QUESTIONMARK,
     TT_EQ,
     TT_NOT,
     TT_NE,
@@ -217,6 +218,7 @@ class Compiler
     void block();
     void statement();
     void localAssignment();
+    void splitAssignment();
     void globalAssignment();
     void expression();
     void includeAsm();

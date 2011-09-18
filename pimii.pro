@@ -17,7 +17,8 @@ SOURCES += main.cpp \
     gui/mainwindow.cpp \
     gui/highlighter.cpp \
     parser/tokenizer.cpp \
-    vm/qengine.cpp
+    vm/qengine.cpp # \
+   # parser/parser.cpp
 
 HEADERS += \
     vm/engine.h \
@@ -32,7 +33,8 @@ HEADERS += \
     parser/tokenizer.h \
     vm/qengine.h \
     vm/interceptor.h \
-    parser/ast.h
+    parser/ast.h # \
+ #   parser/parser.h
 
 OTHER_FILES += \
     example.pi \

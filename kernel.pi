@@ -1,24 +1,36 @@
-/**
- * Evaluates the given function "cond". If the result is true, "tb" is
- * evaluated. Otherwise "fb" is evaluated.
- **/
-if:then:else: :=
-    (cond, tb, fb) ->
-<<#NIL #LD (1.1) #AP #SEL (#NIL #LD (1.2) #AP #JOIN) (#NIL #LD (1.3) #AP #JOIN) #RTN>>;
+each:do: ::= (list, block) -> {
+    [h,t := list : block(h); each: t do: block]
+};
 
-/**
- * Evaluates the given function "cond". If the result is true, tb is
- * evaluated. Otherwise NIL is returned.
- **/
-if:then: :=
-    (cond, tb) ->
-<<#NIL #LD (1.1) #AP #SEL (#NIL #LD (1.2) #AP #JOIN) (#LDC #NIL #JOIN) #RTN>>;
+fold:with:start: ::= (list, block, sum) -> {
+    [h,t := list : fold: t with: block start: block(h, sum)]
+    [            : sum ]
+};
 
-while:do: := (cond, loop) ->
-    if: cond then: [
-        loop();
-        while: cond do: loop
-    ];
+length ::= (list) -> [
+    fold: list with: [e,sum -> sum + 1] start: 0
+];
 
+reverse ::= list -> [
+    fold: list with: [ e,l -> e + l ] start: #()
+];
 
+collect:with: ::= (list, filter) -> [
+    result := fold: list
+              with: (e,l) -> {
+                        [filter(e) : e + l]
+                        [          : l]
+                    }
+              start: #();
 
+    reverse(result);
+];
+
+reject:with ::= (list, filter) -> [
+    collect: list with: [ e -> !filter(e)]
+];
+
+project:with: ::= (list, mapping) -> [
+    result := fold: list with: [e,l -> mapping(e) + l] start: #();
+    reverse(result);
+];

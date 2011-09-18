@@ -1,8 +1,8 @@
 #include "tokenizer.h"
 
 Tokenizer::Tokenizer(const QString& source, bool ignoreComments) :
-    input(source),
     ignoreComments(ignoreComments),
+    input(source),
     ch(input[0])
 {
     absolutePos = -1;

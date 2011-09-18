@@ -36,3 +36,11 @@ if:then:else: -> (cond, tf, ff) -> {
     [cond() : tf() ]
     [ _ : ff() ]
 }
+
+a := #(1 2 3 4);
+
+each:do: := (list, predicate) -> {
+        [h,t := list : predicate(h); each: l do: predicate ]
+};
+
+each: a do: [x -> println(x) ]
