@@ -46,8 +46,8 @@ void Storage::initializeSymbols() {
     declaredFixedSymbol(SYMBOL_OP_AND, L"AND");
     declaredFixedSymbol(SYMBOL_OP_OR, L"OR");
     declaredFixedSymbol(SYMBOL_OP_STOP, L"STOP");
-    declaredFixedSymbol(SYMBOL_OP_RPLACAR, L"RPLACAR");
-    declaredFixedSymbol(SYMBOL_OP_RPLACDR, L"RPLACDR");
+    declaredFixedSymbol(SYMBOL_OP_SPLIT, L"SPLIT");
+    declaredFixedSymbol(SYMBOL_OP_NOP, L"NOP");
     declaredFixedSymbol(SYMBOL_OP_CHAIN, L"CHAIN");
     declaredFixedSymbol(SYMBOL_OP_CHAIN_END, L"CHAINEND");
     declaredFixedSymbol(SYMBOL_OP_SPLIT, L"SPLIT");

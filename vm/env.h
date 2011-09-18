@@ -341,16 +341,17 @@ const Atom SYMBOL_OP_OR = SYMBOL(29);
 const Atom SYMBOL_OP_STOP = SYMBOL(30);
 
 /**
-  Op code: Pops a cons and a new value from the stack, replaces
-  the car of the cons cell with the second value and pushes the
-  modified cell on the stack.
+  Op code: Pops a value and two locations of the stack. If the
+  value is a cons, the first location will receive the car and
+  the second location will receive the cdr, then #TRUE will be
+  pushed on the stack. Otherwise, #FALSE will be pushed.
   */
-const Atom SYMBOL_OP_RPLACAR = SYMBOL(31);
+const Atom SYMBOL_OP_SPLIT = SYMBOL(31);
 
 /**
-  Op code: Same as RPLACAR, but replaces the CDR of the cell.
+  Op code: currently not in use.
   */
-const Atom SYMBOL_OP_RPLACDR = SYMBOL(32);
+const Atom SYMBOL_OP_NOP = SYMBOL(32);
 
 /**
   Op code: Appends a value to a list. Short form of:
