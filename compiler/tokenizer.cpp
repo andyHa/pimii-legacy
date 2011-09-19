@@ -65,8 +65,7 @@ InputToken Tokenizer::fetchToken()  {
     } else if (ch == '#' && hasPreview() && preview().isLetter()) {
         return parseSymbol();
     } else if(ch.isDigit() ||
-              (ch == '-' && hasPreview() && preview().isDigit())
-              )
+              (ch == '-' && hasPreview() && preview().isDigit()))
     {
         return parseNumber();
     } else if (ch == '"') {
@@ -197,8 +196,6 @@ InputToken Tokenizer::parseOperator() {
         result.type = TT_L_BRACKET;
     } else if (ch == ']') {
         result.type = TT_R_BRACKET;
-    } else if (ch == ':') {
-        result.type = TT_COLON;
     } else if (ch == ';') {
         result.type = TT_SEMICOLON;
     } else if (ch == ',') {
@@ -230,19 +227,21 @@ InputToken Tokenizer::parseOperator() {
     } else if (ch == '*') {
         result.type = TT_MUL;
     } else if (ch == ':') {
-        if (hasPreview() && preview() == '='){
+        if (hasPreview() && preview() == '=') {
             nextChar();
             result.length = 2;
             result.type = TT_ASSIGNMENT;
         } else if (hasPreview() && preview() == ':') {
             if (absolutePos < input.length() - 2 &&
-                    input[absolutePos+2] == '='
-                ) {
+                    input[absolutePos+2] == '=')
+            {
                 nextChar();
                 nextChar();
                 result.length = 3;
                 result.type = TT_GLOBAL_ASSIGNMENT;
             }
+        } else {
+            result.type = TT_COLON;
         }
     } else if (ch == '#') {
         if (hasPreview() && preview() == '('){
