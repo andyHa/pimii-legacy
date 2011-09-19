@@ -873,11 +873,9 @@ Atom Engine::compileStream(const QString& file, const QString& input, bool inser
 }
 
 Atom Engine::compileSource(String file, String source, bool insertStop) {
-    QString f;
-    f.fromStdWString(file);
-    QString s;
-    s.fromStdWString(source);
-    return compileStream(f, s, insertStop);
+    return compileStream(QString::fromStdWString(file),
+                         QString::fromStdWString(source),
+                         insertStop);
 }
 
 
