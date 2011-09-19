@@ -44,8 +44,8 @@
 #include <string>
 #include <iostream>
 
-#include "highlighter.h"
-#include "parser/tokenizer.h"
+#include "gui/highlighter.h"
+#include "compiler/tokenizer.h"
 
 Highlighter::Highlighter(QTextDocument *parent)
     : QSyntaxHighlighter(parent)

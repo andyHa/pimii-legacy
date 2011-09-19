@@ -8,9 +8,6 @@
 #include <cassert>
 #include <cstdlib>
 
-#include "vm/env.h"
-#include "vm/engine.h"
-#include "compiler.h"
 #include "gui/mainwindow.h"
 
 #include <QApplication>
@@ -21,8 +18,6 @@ int main(int argc, char *argv[])
 {    
     QApplication a(argc, argv);
     window = new MainWindow();
-    //e.kickstart(String(L"test.pi"));
-
     window->showMaximized();
 
 

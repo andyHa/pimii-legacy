@@ -21,8 +21,7 @@
  */
 
 #include "engine.h"
-#include "tools.h"
-#include "compiler.h"
+#include "compiler/compiler.h"
 
 
 #include <QElapsedTimer>
@@ -320,21 +319,6 @@ void Engine::opCHAINEND() {
     }
 }
 
-void Engine::opSPLIT() {
-    Atom cell = pop(s);
-    Atom head = pop(c);
-    Atom tail = pop(c);
-    if (isCons(cell)) {
-        Cons c = storage.getCons(cell);
-        store(head, c->car);
-        store(tail, c->cdr);
-        push(s, SYMBOL_TRUE);
-    } else {
-        push(s, SYMBOL_FALSE);
-    }
-}
-
-
 void Engine::opEQ() {
     Atom b = pop(s);
     Atom a = pop(s);
@@ -431,6 +415,14 @@ void Engine::opADD() {
     }
     if (isCons(b)) {
         push(s, storage.makeCons(a, b));
+        return;
+    }
+    if (isNil(a)) {
+        push(s, storage.makeCons(b, NIL));
+        return;
+    }
+    if (isNil(b)) {
+        push(s, storage.makeCons(a, NIL));
         return;
     }
     if (isNumber(b) && isNumber(a)) {
@@ -717,9 +709,6 @@ void Engine::dispatch(Atom opcode) {
     case SYMBOL_OP_CHAIN_END:
         opCHAINEND();
         return;
-    case SYMBOL_OP_SPLIT:
-        opSPLIT();
-        return;
     case SYMBOL_OP_FILE:
         opFile();
         return;
@@ -862,18 +851,19 @@ Atom Engine::compileFile(String file, bool insertStop) {
         panic(String(L"Cannot compile: ") + file + String(L". File was not found!"));
         return NIL;
     }
-    return compileStream(file, stream, insertStop);
+    return NIL; //TODO compileStream(file, stream, insertStop);
 }
 
-Atom Engine::compileStream(String file, std::wistream& inputStream, bool insertStop) {
-    Compiler compiler(file, inputStream, this);
+Atom Engine::compileStream(const QString& file, const QString& input, bool insertStop) {
+
+    Compiler compiler(file, input, this);
     std::pair<Atom, std::vector<CompilationError> > result = compiler.compile(insertStop);
     if (!result.second.empty()) {
         std::wstringstream buf;
-        buf << "Compilation error(s) in: " << file << std::endl;
+        buf << "Compilation error(s) in: " << file.toStdWString() << std::endl;
         for(std::vector<CompilationError>::iterator i = result.second.begin(); i != result.second.end(); i++) {
             CompilationError e = *i;
-            buf << e.line << ":" << e.pos << ": " << e.error << std::endl;
+            buf << e.line << ":" << e.pos << ": " << e.error.toStdWString() << std::endl;
         }
         std::wcout << buf.str() << std::endl;
         println(buf.str());
@@ -883,9 +873,11 @@ Atom Engine::compileStream(String file, std::wistream& inputStream, bool insertS
 }
 
 Atom Engine::compileSource(String file, String source, bool insertStop) {
-    std::wstringstream stream;
-    stream << source;
-    return compileStream(file, stream, insertStop);
+    QString f;
+    f.fromStdWString(file);
+    QString s;
+    s.fromStdWString(source);
+    return compileStream(f, s, insertStop);
 }
 
 

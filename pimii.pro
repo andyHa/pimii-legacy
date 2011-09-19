@@ -13,12 +13,11 @@ SOURCES += main.cpp \
     vm/engine.cpp \
     vm/bif.cpp \
     vm/storage.cpp \
-    compiler.cpp \
+    compiler/tokenizer.cpp \
+    compiler/compiler.cpp \
     gui/mainwindow.cpp \
     gui/highlighter.cpp \
-    parser/tokenizer.cpp \
-    vm/qengine.cpp # \
-   # parser/parser.cpp
+    gui/qengine.cpp
 
 HEADERS += \
     vm/engine.h \
@@ -26,15 +25,12 @@ HEADERS += \
     vm/valuetable.h \
     vm/storage.h \
     vm/env.h \
-    tools.h \
-    compiler.h \
+    vm/interceptor.h \
+    compiler/tokenizer.h \
+    compiler/compiler.h \
     gui/mainwindow.h \
     gui/highlighter.h \
-    parser/tokenizer.h \
-    vm/qengine.h \
-    vm/interceptor.h \
-    parser/ast.h # \
- #   parser/parser.h
+    gui/qengine.h
 
 OTHER_FILES += \
     example.pi \

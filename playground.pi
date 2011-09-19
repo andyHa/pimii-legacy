@@ -37,10 +37,15 @@ if:then:else: -> (cond, tf, ff) -> {
     [ _ : ff() ]
 }
 
-a := #(1 2 3 4);
 
-each:do: := (list, predicate) -> {
-        [h,t := list : predicate(h); each: l do: predicate ]
+
+fold:with:start: ::= (list, block, sum) -> {
+    [h|t := list : fold: t with: block start: block(h, sum)]
+    [            : sum ]
 };
 
-each: a do: [x -> println(x) ]
+reverse ::= list -> [
+    fold: list with: [ e,l -> e + l ] start: #()
+];
+
+println(reverse(#(1 2 3 4 5)));

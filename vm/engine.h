@@ -29,6 +29,7 @@
 #include "storage.h"
 #include "interceptor.h"
 
+#include <QString>
 #include <QElapsedTimer>
 
 /**
@@ -298,11 +299,6 @@ class Engine
       */
     void opCHAINEND();
 
-    /**
-      Executes the SPLIT-Assignment.
-      */
-    void opSPLIT();
-
     void opEQ();
     void opNE();
     void opLT();
@@ -331,7 +327,7 @@ class Engine
     /**
       Compiles the given stream and handles all errors.
       */
-    Atom compileStream(String file, std::wistream& inputStream, bool insertStop);
+    Atom compileStream(const QString& file, const QString& input, bool insertStop);
 
 
 public:

@@ -7,9 +7,9 @@
 #include <QProgressBar>
 #include <QLabel>
 
-#include "highlighter.h"
 #include "vm/env.h"
-#include "vm/qengine.h"
+#include "gui/qengine.h"
+#include "gui/highlighter.h"
 
 QT_BEGIN_NAMESPACE
 class QTextEdit;
