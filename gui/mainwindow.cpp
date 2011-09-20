@@ -34,25 +34,24 @@ MainWindow::MainWindow(QWidget *parent)
     connect(engine,SIGNAL(status(EngineStatus)), this, SLOT(onReport(EngineStatus)));
     connect(engine,SIGNAL(computationStarted()), this, SLOT(onComputationStarted()));
     connect(engine,SIGNAL(computationStopped()), this, SLOT(onComputationStopped()));
-    engine->getEngine().println(String(L"pimii v1.0 (c) 2011 Andreas Haufler"));
-    std::string path;
+    engine->getEngine().println(QString("pimii v1.0 (c) 2011 Andreas Haufler"));
+    QString path;
     char* pimiiHome = getenv("PIMII_HOME");
     if (pimiiHome != NULL) {
-        path = std::string(pimiiHome) + QDir::separator().toAscii();
+        path = QString(pimiiHome) + QDir::separator();
     } else {
-       path = (QCoreApplication::applicationDirPath() + QDir::separator()).toStdString();
+       path = (QCoreApplication::applicationDirPath() + QDir::separator());
     }
-    engine->getEngine().addSourcePath(asString(path));
-    engine->getEngine().println(String(L"Library-Path: ")+asString(path));
+    engine->getEngine().addSourcePath(path);
+    engine->getEngine().println(QString("Library-Path: ")+path);
 
 }
 
-void MainWindow::onLog(QString str) {
+void MainWindow::onLog(const QString& str) {
     console->append(str);
 }
 
 void MainWindow::onComputationStarted() {
-    console->clear();
     status->setText(" RUNNING ");
 }
 
@@ -60,7 +59,7 @@ void MainWindow::onComputationStopped() {
     status->setText(" STOPPED ");
 }
 
-void MainWindow::onReport(EngineStatus status) {
+void MainWindow::onReport(const EngineStatus& status) {
     statusBar()->showMessage(
                 QString("INSTS: %1 (%9/ms), GCs: %2, Symbols: %3, Globals: %4, Cells: %5, Strings: %6, Numbers: %7, Decimals: %8")
                 .arg(QString::number(status.instructionsExecuted),
@@ -135,6 +134,7 @@ void MainWindow::saveFileAs(const QString &path) {
 }
 
 void MainWindow::runFile() {
+    console->clear();
     engine->evaluate(editor->document()->toPlainText(), currentFile);
 }
 

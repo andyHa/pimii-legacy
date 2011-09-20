@@ -26,8 +26,6 @@
 #include <vector>
 #include <map>
 #include <utility>
-#include <iostream>
-
 
 template<typename K, typename V, typename I>
 class LookupTable

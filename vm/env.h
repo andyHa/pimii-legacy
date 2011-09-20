@@ -25,9 +25,9 @@
 #define ENV_H
 
 #include <cassert>
-#include <string>
 #include <sstream>
 
+#include <QString>
 #include <QMetaType>
 
 /**
@@ -43,29 +43,6 @@ typedef unsigned int Word;
   This tag defines the meaning of the atom.
   */
 typedef Word Atom;
-
-/**
-  Give the string class a simpler and shorter name (bad, I know).
-  */
-typedef std::wstring String;
-
-/**
-  Converts std::string to String
-  */
-inline String asString(std::string str) {
-    String result;
-    result.assign(str.begin(), str.end());
-    return result;
-}
-
-/**
-  Converts String to std::String
-  */
-inline std::string asStdString(String str) {
-    std::string result;
-    result.assign(str.begin(), str.end());
-    return result;
-}
 
 /**
   Used to extract the tag from an atom.
@@ -349,9 +326,9 @@ const Atom SYMBOL_OP_STOP = SYMBOL(30);
 const Atom SYMBOL_OP_SPLIT = SYMBOL(31);
 
 /**
-  Op code: currently not in use.
+  Op code: Concats two strings or two lists
   */
-const Atom SYMBOL_OP_NOP = SYMBOL(32);
+const Atom SYMBOL_OP_CONCAT = SYMBOL(32);
 
 /**
   Op code: Appends a value to a list. Short form of:
@@ -494,5 +471,14 @@ struct EngineStatus {
     StorageStatus storageStats;
 };
 Q_DECLARE_METATYPE(EngineStatus)
+
+/**
+  Converts an int to a QString
+  */
+inline QString intToString(int value) {
+    std::stringstream ss;
+    ss << value;
+    return QString::fromStdString(ss.str());
+}
 
 #endif // ENV_H

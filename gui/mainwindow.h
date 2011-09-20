@@ -23,20 +23,20 @@ class MainWindow : public QMainWindow
 public:
     MainWindow(QWidget *parent = 0);
 
-    void println(String str);
+    void println(const QString& str);
 
 public slots:
     void about();
     void newFile();
-    void openFile(const QString &path = QString());
+    void openFile(const QString& path = QString());
     void saveFile();
-    void saveFileAs(const QString &path = QString());
+    void saveFileAs(const QString& path = QString());
     void runFile();
 
-    void onLog(QString str);
+    void onLog(const QString& str);
     void onComputationStarted();
     void onComputationStopped();
-    void onReport(EngineStatus status);
+    void onReport(const EngineStatus& status);
 
 private:
     void setupEditor();

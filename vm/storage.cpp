@@ -8,59 +8,59 @@ Storage::Storage()
     initializeSymbols();
 }
 
-void Storage::declaredFixedSymbol(Word expected, String name) {
+void Storage::declaredFixedSymbol(Word expected, const char* name) {
     Atom value = makeSymbol(name);
     assert(value == expected);
 }
 
 void Storage::initializeSymbols() {
-    declaredFixedSymbol(SYMBOL_TRUE, L"TRUE");
-    declaredFixedSymbol(SYMBOL_FALSE, L"FALSE");
-    declaredFixedSymbol(SYMBOL_OP_NIL, L"NIL");
-    declaredFixedSymbol(SYMBOL_OP_LD, L"LD");
-    declaredFixedSymbol(SYMBOL_OP_LDC, L"LDC");
-    declaredFixedSymbol(SYMBOL_OP_LDF, L"LDF");
-    declaredFixedSymbol(SYMBOL_OP_AP, L"AP");
-    declaredFixedSymbol(SYMBOL_OP_RTN, L"RTN");
-    declaredFixedSymbol(SYMBOL_OP_BT, L"BT");
-    declaredFixedSymbol(SYMBOL_OP_AP0, L"AP0");
-    declaredFixedSymbol(SYMBOL_OP_ST, L"ST");
-    declaredFixedSymbol(SYMBOL_OP_LDG, L"LDG");
-    declaredFixedSymbol(SYMBOL_OP_STG, L"STG");
-    declaredFixedSymbol(SYMBOL_OP_CAR, L"CAR");
-    declaredFixedSymbol(SYMBOL_OP_CDR, L"CDR");
-    declaredFixedSymbol(SYMBOL_OP_CONS, L"CONS");
-    declaredFixedSymbol(SYMBOL_OP_EQ, L"EQ");
-    declaredFixedSymbol(SYMBOL_OP_NE, L"NE");
-    declaredFixedSymbol(SYMBOL_OP_LT, L"LT");
-    declaredFixedSymbol(SYMBOL_OP_GT, L"GT");
-    declaredFixedSymbol(SYMBOL_OP_LTQ, L"LTQ");
-    declaredFixedSymbol(SYMBOL_OP_GTQ, L"GTQ");
-    declaredFixedSymbol(SYMBOL_OP_ADD, L"ADD");
-    declaredFixedSymbol(SYMBOL_OP_SUB, L"SUB");
-    declaredFixedSymbol(SYMBOL_OP_MUL, L"MUL");
-    declaredFixedSymbol(SYMBOL_OP_DIV, L"DIV");
-    declaredFixedSymbol(SYMBOL_OP_REM, L"REM");
-    declaredFixedSymbol(SYMBOL_OP_NOT, L"NOT");
-    declaredFixedSymbol(SYMBOL_OP_AND, L"AND");
-    declaredFixedSymbol(SYMBOL_OP_OR, L"OR");
-    declaredFixedSymbol(SYMBOL_OP_STOP, L"STOP");
-    declaredFixedSymbol(SYMBOL_OP_SPLIT, L"SPLIT");
-    declaredFixedSymbol(SYMBOL_OP_NOP, L"NOP");
-    declaredFixedSymbol(SYMBOL_OP_CHAIN, L"CHAIN");
-    declaredFixedSymbol(SYMBOL_OP_CHAIN_END, L"CHAINEND");
-    declaredFixedSymbol(SYMBOL_OP_FILE, L"FILE");
-    declaredFixedSymbol(SYMBOL_OP_LINE, L"LINE");
+    declaredFixedSymbol(SYMBOL_TRUE, "TRUE");
+    declaredFixedSymbol(SYMBOL_FALSE, "FALSE");
+    declaredFixedSymbol(SYMBOL_OP_NIL, "NIL");
+    declaredFixedSymbol(SYMBOL_OP_LD, "LD");
+    declaredFixedSymbol(SYMBOL_OP_LDC, "LDC");
+    declaredFixedSymbol(SYMBOL_OP_LDF, "LDF");
+    declaredFixedSymbol(SYMBOL_OP_AP, "AP");
+    declaredFixedSymbol(SYMBOL_OP_RTN, "RTN");
+    declaredFixedSymbol(SYMBOL_OP_BT, "BT");
+    declaredFixedSymbol(SYMBOL_OP_AP0, "AP0");
+    declaredFixedSymbol(SYMBOL_OP_ST, "ST");
+    declaredFixedSymbol(SYMBOL_OP_LDG, "LDG");
+    declaredFixedSymbol(SYMBOL_OP_STG, "STG");
+    declaredFixedSymbol(SYMBOL_OP_CAR, "CAR");
+    declaredFixedSymbol(SYMBOL_OP_CDR, "CDR");
+    declaredFixedSymbol(SYMBOL_OP_CONS, "CONS");
+    declaredFixedSymbol(SYMBOL_OP_EQ, "EQ");
+    declaredFixedSymbol(SYMBOL_OP_NE, "NE");
+    declaredFixedSymbol(SYMBOL_OP_LT, "LT");
+    declaredFixedSymbol(SYMBOL_OP_GT, "GT");
+    declaredFixedSymbol(SYMBOL_OP_LTQ, "LTQ");
+    declaredFixedSymbol(SYMBOL_OP_GTQ, "GTQ");
+    declaredFixedSymbol(SYMBOL_OP_ADD, "ADD");
+    declaredFixedSymbol(SYMBOL_OP_SUB, "SUB");
+    declaredFixedSymbol(SYMBOL_OP_MUL, "MUL");
+    declaredFixedSymbol(SYMBOL_OP_DIV, "DIV");
+    declaredFixedSymbol(SYMBOL_OP_REM, "REM");
+    declaredFixedSymbol(SYMBOL_OP_NOT, "NOT");
+    declaredFixedSymbol(SYMBOL_OP_AND, "AND");
+    declaredFixedSymbol(SYMBOL_OP_OR, "OR");
+    declaredFixedSymbol(SYMBOL_OP_STOP, "STOP");
+    declaredFixedSymbol(SYMBOL_OP_SPLIT, "SPLIT");
+    declaredFixedSymbol(SYMBOL_OP_CONCAT, "CONCAT");
+    declaredFixedSymbol(SYMBOL_OP_CHAIN, "CHAIN");
+    declaredFixedSymbol(SYMBOL_OP_CHAIN_END, "CHAINEND");
+    declaredFixedSymbol(SYMBOL_OP_FILE, "FILE");
+    declaredFixedSymbol(SYMBOL_OP_LINE, "LINE");
 }
 
 
-Atom Storage::makeSymbol(String name) {
+Atom Storage::makeSymbol(const QString& name) {
     Word result = symbolTable.add(name, name);
     assert(result < MAX_INDEX_SIZE);
     return tagIndex(result, TAG_TYPE_SYMBOL);
 }
 
-String Storage::getSymbolName(Atom symbol) {
+QString Storage::getSymbolName(Atom symbol) {
     assert(isSymbol(symbol));
     return symbolTable.getKey(untagIndex(symbol));
 }
@@ -214,7 +214,7 @@ Atom Storage::findGlobal(Atom nameSymbol) {
     return tagIndex(result, TAG_TYPE_GLOBAL);
 }
 
-String Storage::getGlobalName(Atom atom) {
+QString Storage::getGlobalName(Atom atom) {
     assert(isGlobal(atom));
     return getSymbolName(globalsTable.getKey(untagIndex(atom)));
 }
@@ -229,7 +229,7 @@ void Storage::writeGlobal(Atom atom, Atom value) {
     globalsTable.setValue(untagIndex(atom), value);
 }
 
-Atom Storage::makeString(String string) {
+Atom Storage::makeString(const QString& string) {
     Word index = stringTable.allocate(string);
     assert(index < MAX_INDEX_SIZE);
     return tagIndex(index, TAG_TYPE_STRING);
@@ -246,7 +246,7 @@ Atom Storage::makeDecimal(double value) {
     return tagIndex(index, TAG_TYPE_DECIMAL_NUMBER);
 }
 
-String Storage::getString(Atom atom) {
+QString Storage::getString(Atom atom) {
     assert(isString(atom));
     Word index = untagIndex(atom);
     return stringTable.get(index);

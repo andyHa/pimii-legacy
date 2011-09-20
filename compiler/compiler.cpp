@@ -6,7 +6,7 @@ Compiler::Compiler(const QString& fileName,
     engine(engine),
     tokenizer(new Tokenizer(input, true))
 {
-    file = engine->storage.makeSymbol(fileName.toStdWString());
+    file = engine->storage.makeSymbol(fileName);
 }
 
 
@@ -277,7 +277,6 @@ void Compiler::relExp() {
             Atom code = lastSubexpression;
             Atom stop = tail;
             while(isCons(code) && code != stop) {
-                std::wcout << engine->toString(code) << std::endl;
                 Cons cell = engine->storage.getCons(code);
                 addCode(cell->car);
                 code = cell->cdr;
@@ -319,6 +318,10 @@ void Compiler::logExp() {
             tokenizer->fetch();
             relExp();
             addCode(SYMBOL_OP_ADD);
+        } else if (tokenizer->isCurrent(TT_CONCAT)) {
+            tokenizer->fetch();
+            relExp();
+            addCode(SYMBOL_OP_CONCAT);
         } else if (tokenizer->isCurrent(TT_MINUS)) {
             tokenizer->fetch();
             relExp();
@@ -351,7 +354,7 @@ void Compiler::termExp() {
         } else if (tokenizer->isCurrent(TT_MOD)) {
             tokenizer->fetch();
             factorExp();
-            addCode(SYMBOL_OP_DIV); // TODO
+            addCode(SYMBOL_OP_REM);
         } else {
             return;
         }
@@ -370,6 +373,7 @@ void Compiler::factorExp() {
     } else {
         if (tokenizer->isCurrent(TT_SYMBOL) ||
                 tokenizer->isCurrent(TT_STRING) ||
+                tokenizer->isCurrent(TT_DECIMAL) ||
                 tokenizer->isCurrent(TT_NUMBER))
         {
             literal();
@@ -428,11 +432,13 @@ void Compiler::inlineList() {
 Atom Compiler::compileLiteral() {
     Atom result = NIL;
     if (tokenizer->isCurrent(TT_SYMBOL)) {
-         result = engine->storage.makeSymbol(tokenizer->getCurrentString().toStdWString());
+         result = engine->storage.makeSymbol(tokenizer->getCurrentString().left(1));
     } else if (tokenizer->isCurrent(TT_STRING)) {
-        result = engine->storage.makeString(tokenizer->getCurrentString().toStdWString());
+        result = engine->storage.makeString(tokenizer->getCurrentString().mid(1, tokenizer->getCurrent().length - 2));
     } else if (tokenizer->isCurrent(TT_NUMBER)) {
         result = engine->storage.makeNumber(tokenizer->getCurrentString().toInt());
+    } else if (tokenizer->isCurrent(TT_DECIMAL)) {
+        result = engine->storage.makeDecimal(tokenizer->getCurrentString().toDouble());
     } else {
         addError(tokenizer->getCurrent(), "Unexpected token! Expected a literal");
     }
@@ -457,7 +463,7 @@ void Compiler::load(QString variable) {
         addCode(SYMBOL_OP_LD);
         addCode(engine->storage.makeCons(engine->storage.makeNumber(pair.first), engine->storage.makeNumber(pair.second)));
     } else {
-        Atom symbol = engine->storage.makeSymbol(variable.toStdWString());
+        Atom symbol = engine->storage.makeSymbol(variable);
         Atom bif = engine->findBuiltInFunction(symbol);
         if (bif != NIL){
             addCode(SYMBOL_OP_LDC);
@@ -598,6 +604,6 @@ void Compiler::globalAssignment() {
                     engine->storage.makeNumber(pair.second)));
     } else {
         addCode(SYMBOL_OP_STG);
-        addCode(engine->storage.findGlobal(engine->storage.makeSymbol(name.toStdWString())));
+        addCode(engine->storage.findGlobal(engine->storage.makeSymbol(name)));
     }
 }

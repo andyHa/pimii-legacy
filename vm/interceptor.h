@@ -1,8 +1,6 @@
 #ifndef INTERCEPTOR_H
 #define INTERCEPTOR_H
 
-#include <iostream>
-
 #include "vm/env.h"
 
 class Interceptor
@@ -10,9 +8,9 @@ class Interceptor
 public:
     Interceptor() {}
 
-    virtual void println(String std) {}
+    virtual void println(const QString& std) {}
 
-    virtual void reportStatus(EngineStatus status) {}
+    virtual void reportStatus(const EngineStatus& status) {}
 };
 
 #endif // INTERCEPTOR_H

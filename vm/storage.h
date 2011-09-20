@@ -78,7 +78,7 @@ class Storage
     /**
       Declares a fixed symbol and makes sure it has the expected constant value.
       */
-    void declaredFixedSymbol(Word expected, String name);
+    void declaredFixedSymbol(Word expected, const char* name);
 
     /**
       Registers symbols which have fixed and expected index values.
@@ -88,7 +88,7 @@ class Storage
     /**
       Maps Strings to unique symbol indices
       */
-    LookupTable <String, String, Word> symbolTable;
+    LookupTable <QString, QString, Word> symbolTable;
 
     /**
       Maps symbols to global variables.
@@ -98,7 +98,7 @@ class Storage
     /**
       Contains the table of used strings.
       */
-    ValueTable <Word, String> stringTable;
+    ValueTable <Word, QString> stringTable;
 
     /**
       Contains the table of large numbers.
@@ -141,12 +141,12 @@ public:
     /**
       Creates or looks up the symbol for the given string.
       */
-    Atom makeSymbol(String name);
+    Atom makeSymbol(const QString& name);
 
     /**
       Returns the name of the given symbol.
       */
-    String getSymbolName(Atom symbol);
+    QString getSymbolName(Atom symbol);
 
     /**
       Runs the GC with the given root nodes.
@@ -184,7 +184,7 @@ public:
     /**
       Returns the name of the given global
       */
-    String getGlobalName(Atom atom);
+    QString getGlobalName(Atom atom);
 
     /**
       Reads the given global.
@@ -199,12 +199,12 @@ public:
     /**
       Returns the string value to which the given atom points.
       */
-    String getString(Atom atom);
+    QString getString(Atom atom);
 
     /**
       Generates a a value atom, pointing to the given string.
       */
-    Atom makeString(String string);
+    Atom makeString(const QString& string);
 
     /**
       Returns the number value to which the given atom points.

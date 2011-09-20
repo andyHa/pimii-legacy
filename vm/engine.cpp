@@ -23,11 +23,10 @@
 #include "engine.h"
 #include "compiler/compiler.h"
 
-
 #include <QElapsedTimer>
+#include <QFile>
 
-#include <cassert>
-#include <fstream>
+#include <sstream>
 #include <exception>
 
 void Engine::push(Atom& reg, Atom atom) {
@@ -82,7 +81,7 @@ BIF Engine::getBuiltInFunction(Atom atom) {
     return bifTable.getValue(untagIndex(atom));
 }
 
-String Engine::getBIFName(Atom atom) {
+QString Engine::getBIFName(Atom atom) {
     expect(isBIF(atom),
            "given atom is not a built in function",
            __FILE__,
@@ -205,7 +204,7 @@ void Engine::opAP(bool hasArguments) {
     }
     if (isBIF(fun)) {
         BIF bif = getBuiltInFunction(fun);
-        push(s, bif(this, storage, v));
+        push(s, bif(this, &storage, v));
     } else {
         expect(isCons(fun),
                "#AP: code top was neither a built in function or a closure!",
@@ -397,7 +396,7 @@ void Engine::opGTQ() {
     }
 }
 
-void Engine::opADD() {
+void Engine::opCONCAT() {
     Atom b = pop(s);
     Atom a = pop(s);
     if (isCons(a)) {
@@ -425,35 +424,15 @@ void Engine::opADD() {
         push(s, storage.makeCons(a, NIL));
         return;
     }
-    if (isNumber(b) && isNumber(a)) {
-        push(s, storage.makeNumber(storage.getNumber(a) + storage.getNumber(b)));
-        return;
-    }
     if (isString(a) || isString(b)) {
         push(s, storage.makeString(toSimpleString(a) + toSimpleString(b)));
         return;
     }
-    panic(String(L"Invalid operands for addition: '")
+    panic(QString("Invalid operands for concat: '")
           + toSimpleString(a)
-          + String(L"' and '")
+          + QString("' and '")
           + toSimpleString(b)
-          + String(L"'"));
-}
-
-void Engine::opSUB(int a, int b) {
-    push(s, storage.makeNumber(a - b));
-}
-
-void Engine::opMUL(int a, int b) {
-    push(s, storage.makeNumber(a * b));
-}
-
-void Engine::opDIV(int a, int b) {
-    push(s, storage.makeNumber(a / b));
-}
-
-void Engine::opREM(int a, int b) {
-    push(s, storage.makeNumber(a % b));
+          + QString("'"));
 }
 
 void Engine::opAND() {
@@ -475,30 +454,68 @@ void Engine::opNOT() {
 
 void Engine::dispatchArithmetic(Atom opcode) {
     Atom atomb = pop(s);
-    expect(isNumber(atomb),
+    expect(isNumeric(atomb),
            "Arithmetic: 1st stack top was not a number!",
            __FILE__,
            __LINE__);
     Atom atoma = pop(s);
-    expect(isNumber(atoma),
+    expect(isNumeric(atoma),
            "Arithmetic: 2nd stack top was not a number!",
            __FILE__,
            __LINE__);
-    int b = storage.getNumber(atomb);
-    int a = storage.getNumber(atoma);
-    switch(opcode) {
-    case SYMBOL_OP_MUL:
-        opMUL(a, b);
-        return;
-    case SYMBOL_OP_DIV:
-        opDIV(a, b);
-        return;
-    case SYMBOL_OP_REM:
-        opREM(a, b);
-        return;
-    case SYMBOL_OP_SUB:
-        opSUB(a, b);
-        return;
+    if (isNumber(atomb) && isNumber(atoma)) {
+        int b = storage.getNumber(atomb);
+        int a = storage.getNumber(atoma);
+        switch(opcode) {
+        case SYMBOL_OP_ADD:
+            push(s, storage.makeNumber(a + b));
+            return;
+        case SYMBOL_OP_MUL:
+            push(s, storage.makeNumber(a * b));
+            return;
+        case SYMBOL_OP_DIV:
+            push(s, storage.makeNumber(a / b));
+            return;
+        case SYMBOL_OP_REM:
+            push(s, storage.makeNumber(a % b));
+            return;
+        case SYMBOL_OP_SUB:
+            push(s, storage.makeNumber(a - b));
+            return;
+        }
+    } else {
+        double b = 0.0;
+        double a = 0.0;
+        if (isDecimalNumber(atomb)) {
+            b = storage.getDecimal(atomb);
+        } else {
+            b = static_cast<double>(storage.getNumber(atomb));
+        }
+        if (isDecimalNumber(atoma)) {
+            a = storage.getDecimal(atoma);
+        } else {
+            a = static_cast<double>(storage.getNumber(atoma));
+        }
+        switch(opcode) {
+        case SYMBOL_OP_ADD:
+            push(s, storage.makeDecimal(a + b));
+            return;
+        case SYMBOL_OP_MUL:
+            push(s, storage.makeDecimal(a * b));
+            return;
+        case SYMBOL_OP_DIV:
+            push(s, storage.makeDecimal(a / b));
+            return;
+        case SYMBOL_OP_REM:
+            panic(QString("Cannot compute modulo of decimal values: ") +
+                  toSimpleString(atoma) +
+                  " and " +
+                  toSimpleString(atomb));
+            return;
+        case SYMBOL_OP_SUB:
+            push(s, storage.makeDecimal(a - b));
+            return;
+        }
     }
 }
 
@@ -671,9 +688,10 @@ void Engine::dispatch(Atom opcode) {
     case SYMBOL_OP_GTQ:
         opGTQ();
         return;
-    case SYMBOL_OP_ADD:
-        opADD();
+    case SYMBOL_OP_CONCAT:
+        opCONCAT();
         return;
+    case SYMBOL_OP_ADD:
     case SYMBOL_OP_SUB:
     case SYMBOL_OP_DIV:
     case SYMBOL_OP_MUL:
@@ -701,8 +719,6 @@ void Engine::dispatch(Atom opcode) {
     case SYMBOL_OP_SPLIT:
         opSPLIT();
         return;
-    case SYMBOL_OP_NOP:
-        return;
     case SYMBOL_OP_CHAIN:
         opCHAIN();
         return;
@@ -716,28 +732,26 @@ void Engine::dispatch(Atom opcode) {
         opLine();
         return;
     default:
-        panic(String(L"Invalid op-code: ")+toString(opcode));
+        panic(QString("Invalid op-code: ")+toString(opcode));
         return;
     }
 }
 
 
-void Engine::prepareEval(String source, String filename) {
+void Engine::prepareEval(const QString& source, const QString& filename) {
     s = NIL;
     e = NIL;
     c = NIL;
     d = NIL;
     p = NIL;
 
-    currentFile = storage.makeSymbol(String(L"kickstarter"));
+    currentFile = storage.makeSymbol(QString("kickstarter"));
     currentLine = 1;
     push(p, storage.makeCons(currentFile, storage.makeNumber(currentLine)));
     Atom code = compileSource(filename, source, true);
-    std::wcout << toString(code) << std::endl;
     c = code;
     p = NIL;
     if (c != NIL) {
-        println(toString(c));
         currentFile = storage.makeSymbol(filename);
         currentLine = 1;
         push(p, storage.makeCons(currentFile,  storage.makeNumber(currentLine)));
@@ -783,9 +797,7 @@ void Engine::continueEvaluation() {
             reportStatus();
             return;
         } catch(std::exception* e) {
-            std::wstringstream ss;
-            ss << e->what();
-            panic(ss.str());
+            panic(QString(e->what()));
         }
     } catch(StopEngineException* e) {
         //Error is already handled...
@@ -795,91 +807,91 @@ void Engine::continueEvaluation() {
 
 void Engine::expect(bool expectation, const char* errorMessage, const char* file, int line) {
     if (!expectation) {
-        std::wstringstream str;
-        str << errorMessage << " (" << file << ":" << line << ")";
-        panic(str.str());
+        panic(QString(errorMessage) + QString(" (")+QString(file)+QString(":")+intToString(line));
     }
 }
 
-void Engine::panic(String error) {
-    std::wstringstream buffer;
-    buffer << "Error:" << std::endl;
-    buffer << "--------------------------------------------" << std::endl;
-    buffer << error << std::endl;
-    buffer << "Stacktrace:" << std::endl;
-    buffer << "--------------------------------------------" << std::endl;
-    buffer << toSimpleString(currentFile) << ":" << currentLine << std::endl;
+void Engine::panic(const QString& error) {
+    QString buffer;
+    buffer += QString("Error:\n");
+    buffer += "--------------------------------------------\n";
+    buffer += error + "\n";
+    buffer += "Stacktrace:\n";
+    buffer += "--------------------------------------------\n";
+    buffer += toSimpleString(currentFile) + ":" + intToString(currentLine) + "\n";
     Atom pos = pop(p);
     while(isCons(pos)) {
         Cons location = storage.getCons(pos);
-        buffer << toSimpleString(location->car) << ":" << toSimpleString(location->cdr) << std::endl;
+        buffer += toSimpleString(location->car) + ":" + toSimpleString(location->cdr) + "\n";
         pos = pop(p);
     }
-    buffer << std::endl;
+    buffer += "\n";
 
-    buffer << "Registers:" << std::endl;
-    buffer << "--------------------------------------------" << std::endl;
-    buffer << "S: " << toString(s) << std::endl;
-    buffer << "E: " << toString(e) << std::endl;
-    buffer << "C: " << toString(c) << std::endl;
-    buffer << "D: " << toString(d) << std::endl;
+    buffer += "Registers:\n";
+    buffer += "--------------------------------------------\n";
+    buffer += "S: " + toString(s) + "\n";
+    buffer += "E: " + toString(e) + "\n";
+    buffer += "C: " + toString(c) + "\n";
+    buffer += "D: " + toString(d) + "\n";
 
-    println(buffer.str());
+    println(buffer);
+
     // Stop engine...
     throw new StopEngineException();
 }
 
-String Engine::lookupSource(String fileName) {
-    for(std::vector<String>::iterator i = sourcePaths.begin(); i != sourcePaths.end(); i++) {
-        std::string path = asStdString((*i) + fileName);
-        std::wifstream is(path.c_str(), std::ios::in);
-        if (is) {
+QString Engine::lookupSource(const QString& fileName) {
+    for(std::vector<QString>::iterator
+        i = sourcePaths.begin();
+        i != sourcePaths.end();
+        i++)
+    {
+        QString path = QString((*i) + fileName);
+        QFile file(path);
+        if (file.exists()) {
             return (*i) + fileName;
         }
     }
     return fileName;
 }
 
-void Engine::addSourcePath(String path) {
+void Engine::addSourcePath(const QString& path) {
     sourcePaths.insert(sourcePaths.begin(), path);
 }
 
-Atom Engine::compileFile(String file, bool insertStop) {
-    String path = lookupSource(file);
-    std::wifstream stream(asStdString(path).c_str(), std::ios::in);
-    if (!stream) {
-        panic(String(L"Cannot compile: ") + file + String(L". File was not found!"));
+Atom Engine::compileFile(const QString& file, bool insertStop) {
+    QString path = lookupSource(file);
+    QFile f(file);
+    if (f.open(QFile::ReadOnly | QFile::Text)) {
+        return compileStream(path, f.readAll(), insertStop);
+    } else {
+        panic(QString("Cannot compile: ") + file + QString(". File was not found!"));
         return NIL;
     }
-    return NIL; //TODO compileStream(file, stream, insertStop);
 }
 
 Atom Engine::compileStream(const QString& file, const QString& input, bool insertStop) {
-
     Compiler compiler(file, input, this);
     std::pair<Atom, std::vector<CompilationError> > result = compiler.compile(insertStop);
     if (!result.second.empty()) {
-        std::wstringstream buf;
-        buf << "Compilation error(s) in: " << file.toStdWString() << std::endl;
+        QString buf;
+        buf += "Compilation error(s) in: " + file + "\n";
         for(std::vector<CompilationError>::iterator i = result.second.begin(); i != result.second.end(); i++) {
             CompilationError e = *i;
-            buf << e.line << ":" << e.pos << ": " << e.error.toStdWString() << std::endl;
+            buf += intToString(e.line) + ":" + intToString(e.pos) + ": " + e.error + "\n";
         }
-        std::wcout << buf.str() << std::endl;
-        println(buf.str());
+        println(buf);
         return NIL;
     }
     return result.first;
 }
 
-Atom Engine::compileSource(String file, String source, bool insertStop) {
-    return compileStream(QString::fromStdWString(file),
-                         QString::fromStdWString(source),
-                         insertStop);
+Atom Engine::compileSource(const QString& file, const QString& source, bool insertStop) {
+    return compileStream(file, source, insertStop);
 }
 
 
-void Engine::println(String string) {
+void Engine::println(const QString& string) {
     interceptor->println(string);
 }
 
@@ -893,70 +905,70 @@ void Engine::reportStatus() {
     lastStatusReport = instructionCounter;
 }
 
-String Engine::printList(Atom atom) {
-    std::wstringstream sb;
+QString Engine::printList(Atom atom) {
+    QString sb("");
     Cons cons = storage.getCons(atom);
-    sb << "(" << toString(cons->car);
+    sb += QString("(") + toString(cons->car);
     if (isCons(cons->cdr) || isNil(cons->cdr)) {
         Atom val = cons->cdr;
         while (isCons(val)) {
             cons = storage.getCons(val);
-            sb << " " << toString(cons->car);
+            sb += " " + toString(cons->car);
             val = cons->cdr;
         }
         if (!isCons(val) && !isNil(val)) {
-            sb << " " << toString(val);
+            sb += " " + toString(val);
         }
     } else {
-        sb << "." << toString(cons->cdr);
+        sb += "." + toString(cons->cdr);
     }
-    sb << ")";
-    return sb.str();
+    sb += ")";
+    return sb;
 }
 
-String Engine::toString(Atom atom) {
+QString Engine::toString(Atom atom) {
     if (isNil(atom)) {
-        return std::wstring(L"NIL");
+        return QString("NIL");
     }
     Word type = getType(atom);
-    std::wstringstream sb;
+    std::stringstream sb;
     switch(type) {
     case TAG_TYPE_NUMBER:
     case TAG_TYPE_LARGE_NUMBER:
         sb << storage.getNumber(atom);
-        return sb.str();
+        return QString::fromStdString(sb.str());
     case TAG_TYPE_DECIMAL_NUMBER:
         sb << storage.getDecimal(atom);
-        return sb.str();
+        return QString::fromStdString(sb.str());
     case TAG_TYPE_BIF:
-        return  std::wstring(L"$") + getBIFName(atom);
+        return QString("$") + getBIFName(atom);
     case TAG_TYPE_GLOBAL:
-        return  std::wstring(L"@") + storage.getGlobalName(atom);
+        return QString("@") + storage.getGlobalName(atom);
     case TAG_TYPE_STRING:
-        return std::wstring(L"'") + storage.getString(atom) + std::wstring(L"'");
+        return QString("'") + storage.getString(atom) + QString("'");
     case TAG_TYPE_SYMBOL:
-        return std::wstring(L"#") + storage.getSymbolName(atom);
+        return QString("#") + storage.getSymbolName(atom);
     case TAG_TYPE_CONS:
         return printList(atom);
     default:
-        return std::wstring(L"UNKNOWN");
+        return QString("UNKNOWN");
     }
 }
 
-String Engine::toSimpleString(Atom atom) {
+QString Engine::toSimpleString(Atom atom) {
     if (isNil(atom)) {
-        return std::wstring(L"");
+        return QString("");
     }
     Word type = getType(atom);
-    std::wstringstream sb;
+    std::stringstream sb;
     switch(type) {
     case TAG_TYPE_NUMBER :
     case TAG_TYPE_LARGE_NUMBER:
         sb << storage.getNumber(atom);
-        return sb.str();
+        return QString::fromStdString(sb.str());
     case TAG_TYPE_DECIMAL_NUMBER:
         sb << storage.getDecimal(atom);
-        return sb.str();
+        return QString::fromStdString(sb.str());
     case TAG_TYPE_BIF:
         return getBIFName(atom);
     case TAG_TYPE_GLOBAL:
@@ -968,6 +980,6 @@ String Engine::toSimpleString(Atom atom) {
     case TAG_TYPE_CONS:
         return printList(atom);
     default:
-        return std::wstring(L"");
+        return QString("");
     }
 }

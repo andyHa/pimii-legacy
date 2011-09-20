@@ -339,8 +339,11 @@ QString Tokenizer::getString(InputToken token) {
 }
 
 QString Tokenizer::getCurrentString() {
-    if (current.type != TT_EMPTY) {
-        return getString(current);
+    if (current.type == TT_EOF) {
+        return QString("(End of Input)");
     }
-    return QString("");
+    if (current.type == TT_EMPTY) {
+        return QString("No Input!");
+    }
+    return getString(current);
 }

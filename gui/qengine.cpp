@@ -6,11 +6,11 @@ QEngine::QEngine(QObject *parent) :
 {
 }
 
-void QEngine::println(String std) {
-    emit log(QString::fromStdWString(std));
+void QEngine::println(const QString& std) {
+    emit log(std);
 }
 
-void QEngine::reportStatus(EngineStatus s) {
+void QEngine::reportStatus(const EngineStatus& s) {
     emit status(s);
 }
 
@@ -33,7 +33,7 @@ void QEngine::Executor::run() {
 
 void QEngine::evaluate(QString source, QString filename) {
     if (!executor.isRunning()) {
-        engine.prepareEval(source.toStdWString(), filename.toStdWString());
+        engine.prepareEval(source, filename);
         executor.start();
     }
 }

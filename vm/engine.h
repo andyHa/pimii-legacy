@@ -43,7 +43,7 @@ class Engine;
   result as list (may again be a list, or NIL to indicate that
   there is no result).
   */
-typedef Atom (*BIF)(Engine* engine, Storage& storage, Atom param);
+typedef Atom (*BIF)(Engine* engine, Storage* storage, Atom param);
 
 /**
   An Engine operates on the given Storage and performs the actual exection of
@@ -190,7 +190,7 @@ class Engine
     /**
       Contains a list of paths which will be used to search source files.
       */
-    std::vector<String> sourcePaths;
+    std::vector<QString> sourcePaths;
 
     /**
       Registers essential built in functions.
@@ -299,30 +299,64 @@ class Engine
       */
     void opCHAINEND();
 
+    /**
+      Implements the equals operation for numbers, strings, symbols
+      and cons-cells. This does not work with complete lists (yet)!
+      */
     void opEQ();
+
+    /**
+      Opposite of EQ
+      */
     void opNE();
+
+    /**
+      Compares two given elements with natural order
+      (everything except lists)
+      */
     void opLT();
     void opGT();
     void opLTQ();
     void opGTQ();
-    void opADD();
-    void opSUB(int a, int b);
-    void opMUL(int a, int b);
-    void opDIV(int a, int b);
-    void opREM(int a, int b);
+
+    /**
+      Concatenates lists or strings. Therefore at least on argument
+      must bei either a string or a list. If both, a list and a string
+      is given, a list concatenation is performed.
+      */
+    void opCONCAT();
+
+    /**
+      Perform the given boolean logic operations.
+      */
     void opNOT();
     void opAND();
     void opOR();
+
+    /**
+      Sets the file info of the interpreter.
+      */
     void opFile();
+
+    /**
+      Sets the line info of the interpreter.
+      */
     void opLine();
 
+    /**
+      Determines if a GC should be executed.
+      */
     bool shouldGC();
+
+    /**
+      Executes a GC cycle
+      */
     void gc();
 
     /**
       Converts the given list into a string.
       */
-    String printList(Atom atom);
+    QString printList(Atom atom);
 
     /**
       Compiles the given stream and handles all errors.
@@ -342,37 +376,39 @@ public:
       Stops the execution, writes the contents of all registers and a
       stacktrace to the standard output.
       */
-    void panic(String error);
+    void panic(const QString& error);
 
     /**
       Adds the given directory as source lookup path.
       */
-    void addSourcePath(String path);
+    void addSourcePath(const QString& path);
 
     /**
       Finds an absolute path for the given fileName by checking all source
       directories.
       */
-    String lookupSource(String fileName);
+    QString lookupSource(const QString& fileName);
 
     /**
       Compiles the given file and returns the given bytecode. If an error
       occures during compilation an appropriate message is shown and the
       engine is stopped.
       */
-    Atom compileFile(String file, bool insertStop);
+    Atom compileFile(const QString& file, bool insertStop);
 
     /**
-      Compiles the given source code and returns the given bytecode. If an error
-      occures during compilation an appropriate message is shown and the
-      engine is stopped.
+      Compiles the given source code and returns the given bytecode. If an
+      error occures during compilation an appropriate message is shown and
+      the engine is stopped.
       */
-    Atom compileSource(String filename, String source, bool insertStop);
+    Atom compileSource(const QString& filename,
+                       const QString& source,
+                       bool insertStop);
 
     /**
       Prints the given string.
       */
-    void println(String string);
+    void println(const QString& string);
 
     /**
       Reports the engine status to the current interceptor.
@@ -387,7 +423,7 @@ public:
     /**
       Registers a built in function.
       */
-    Atom makeBuiltInFunction(String name, BIF value);
+    Atom makeBuiltInFunction(const QString& name, BIF value);
 
     /**
       Looks up a bif.
@@ -402,23 +438,23 @@ public:
     /**
      Returns the name of the given built in function
      */
-    String getBIFName(Atom atom);
+    QString getBIFName(Atom atom);
 
     /**
       Generates a re-parseable representation of the given atom.
       */
-    String toString(Atom atom);
+    QString toString(Atom atom);
 
     /**
       Generates a simple an readable representation of the given atom.
       */
-    String toSimpleString(Atom atom);
+    QString toSimpleString(Atom atom);
 
     /**
       Compiles and loads the given source. With the next call to continue,
       the code will be evaluated.
       */
-    void prepareEval(String source, String filename);
+    void prepareEval(const QString& source, const QString& filename);
 
     /**
       Interrupts the current execution.
@@ -430,6 +466,9 @@ public:
       */
     void continueEvaluation();
 
+    /**
+      Creates a new engine with the given interceptor.
+      */
     Engine(Interceptor* interceptor);
     ~Engine();
 
