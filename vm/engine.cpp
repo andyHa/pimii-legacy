@@ -66,8 +66,8 @@ Atom Engine::findBuiltInFunction(Atom nameSymbol) {
            "nameSymbol is not a symbol",
            __FILE__,
            __LINE__);
-    Word index;
-    if (!bifTable.find(nameSymbol, index)) {
+    Word index = 0;
+    if (!bifTable.find(nameSymbol, &index)) {
         return NIL;
     }
     return tagIndex(index, TAG_TYPE_BIF);
@@ -92,30 +92,10 @@ QString Engine::getBIFName(Atom atom) {
 bool Engine::shouldGC() {
     // Check is enough time elapsed...
     Word elapsed = instructionCounter - lastGC;
-    if (elapsed < GC_MIN_WAIT) {
+    if (elapsed < GC_FREQUENCY) {
         return false;
     }
-    Word inUse = storage.getUsedCells();
-    // We wait till the heap grows a certain amount before we to anything.
-    if (inUse < MIN_HEAP_SIZE) {
-        return false;
-    }
-
-    Word total = storage.getTotalCells();
-    // Check if heap is at least half full...
-    if (inUse > (total >> 1)) {
-        if (elapsed > GC_WAIT) {
-            // If enough time elapsed, run GC
-            return true;
-        }
-        // If heap is 75% full...
-        if ((total - inUse) < (total >> 2)) {
-            // Check if the heap has a certain size before we enter
-            // "heavy duty" mode. This is, GC in very shot intervalö
-            return (total > MIN_HEAVY_GC_SIZE);
-        }
-    }
-    return false;
+    return true;
 }
 
 void Engine::gc() {

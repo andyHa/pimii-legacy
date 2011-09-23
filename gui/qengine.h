@@ -29,9 +29,9 @@ public:
       */
     Engine &getEngine();
 
-    virtual void println(String std);
+    virtual void println(const QString& std);
 
-    virtual void reportStatus(EngineStatus status);
+    virtual void reportStatus(const EngineStatus& status);
 
 signals:
     /**

@@ -98,33 +98,16 @@ class Engine
     Word lastGC;
 
     /**
-      Min number of cells allocated, before GC becomes active.
-      */
-    static const Word MIN_HEAP_SIZE = 4096;
-
-    /**
-      If the heap grows above this limit, we perform GCs in ver short
-      intervals. This is the "heavy duty" mode.
-      */
-    static const Word MIN_HEAVY_GC_SIZE = 4096 * 4096;
-
-    /**
       Determines the minimal interval as number of instructions before a
-      new GC is executed in heavy duty mode.
+      new GC is executed.
       */
-    static const Word GC_MIN_WAIT = 100;
+    static const Word GC_FREQUENCY = 5000;
 
-    /**
-      Determines the interval as number of instructions before a new GC
-      is executed in normal mode (heap is between 50% and 75% full).
-      */
-    static const Word GC_WAIT = 10000;
-
-    /**
-      Determines the interval of milliseconds in which status updates
+     /**
+      Determines the interval of instructions in which status updates
       are generted.
       */
-    static const Word REPORT_INTERVAL = 100000;
+    static const Word REPORT_INTERVAL = 5000000;
 
     /**
       Represents the stack register on which most of the computations are
