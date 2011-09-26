@@ -24,49 +24,57 @@
 
 #include <vector>
 
-#include <QReadWriteLock>
-
 template<typename I,typename V>
 class ValueTable
 {
 
-    union Entry {
+    struct Entry {
         I refCount;
-        I freePointer;
-        V* data;
+        bool inUse;
+        union {
+            I freePointer;
+            V* data;
+        };
     };
 
     I freeList;
     I usedCells;
-    std::vector<Entry> table;    
-    QReadWriteLock* lock;
-
+    std::vector<Entry*> table;
 public:
-    ValueTable() : lock(new QReadWriteLock()) {
+    ValueTable() {
         clear();
     }
+
     ~ValueTable() {
-        delete lock;
+        clear();
     }
 
     void clear() {
-        QWriteLocker locker(lock);
         freeList = 0;
         usedCells = 0;
+
+        for(typename std::vector<Entry*>::iterator
+            i = table.begin();
+            i != table.end();
+            ++i)
+        {
+            delete *i;
+        }
         table.clear();
     }
 
-    I allocate(V initialValue) {
-        QWriteLocker locker(lock);
+    I allocate(const V& initialValue) {
         usedCells++;
         if (freeList > 0) {
             I result = freeList - 1;
-            freeList = table[result].freePointer;
-            table[result].data = new V(initialValue);
+            freeList = table[result]->freePointer;
+            table[result]->data = new V(initialValue);
+            table[result]->inUse = true;
             return result;
         } else {
-            Entry e;
-            e.data = new V(initialValue);
+            Entry* e = new Entry();
+            e->data = new V(initialValue);
+            e->inUse = true;
             I result = table.size();
             table.push_back(e);
             return result;
@@ -74,39 +82,34 @@ public:
     }
 
     V get(I index) {
-        QReadLocker locker(lock);
-        return *table[index].data;
+        return *table[index]->data;
     }
 
     I getNumberOfUsedCells() {
-        QReadLocker locker(lock);
         return usedCells;
     }
 
     I getTotalCells() {
-        QReadLocker locker(lock);
         return table.size();
     }
 
     void resetRefCount() {
-        //QWriteLocker locker(lock);
         for(I i = 0; i < size(); i++) {
-            table[i].refCount = 0;
+            table[i]->refCount = 0;
         }
     }
 
     void inc(I index) {
-        QReadLocker locker(lock);
-        table[index].refCount++;
+        table[index]->refCount++;
     }
 
     void gc() {
-        //QWriteLocker locker(lock);
         for(I i = 0; i < size(); i++) {
-            Entry e = table[i];
-            if (e.refCount == 0) {
-                delete(e.data);
-                e.freePointer = freeList;
+            Entry* e = table[i];
+            if (e->refCount == 0 && e->inUse) {
+                delete e->data;
+                e->freePointer = freeList;
+                e->inUse = false;
                 freeList = i + 1;
                 usedCells--;
             }
@@ -114,7 +117,6 @@ public:
     }
 
     I size() {
-        QReadLocker locker(lock);
         return table.size();
     }
 

@@ -1,11 +1,7 @@
-while:do: := (cond, block) -> {
-$
-    [cond() : block(); while: cond do: block ]
+fold:with:start: ::= (list, block, sum) -> {
+    [h|t := list : fold: t with: block start: block(h, sum)]
+    [            : sum ]
 };
 
-x := 1;
-
-while: [ x < 100] do: [
-    println(x);
-    x ::= x + 1;
-]
+x := fold: #(1) with: [(e,l) -> 1] start: 0;
+println(x);

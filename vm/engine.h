@@ -382,11 +382,19 @@ public:
     /**
       Compiles the given source code and returns the given bytecode. If an
       error occures during compilation an appropriate message is shown and
-      the engine is stopped.
+      the engine is stopped (unless slient is true, then nothing happens and
+      NIL is returned).
       */
     Atom compileSource(const QString& filename,
                        const QString& source,
-                       bool insertStop);
+                       bool insertStop,
+                       bool silent);
+
+    /**
+      Makes the interpreter jump into the given list for execution. This
+      is more or less like a call without parameters.
+      */
+    void call(Atom list);
 
     /**
       Prints the given string.

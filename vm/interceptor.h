@@ -8,9 +8,9 @@ class Interceptor
 public:
     Interceptor() {}
 
-    virtual void println(const QString& std) {}
+    virtual void println(const QString& std) = 0;
 
-    virtual void reportStatus(const EngineStatus& status) {}
+    virtual void reportStatus(const EngineStatus& status) = 0;
 };
 
 #endif // INTERCEPTOR_H

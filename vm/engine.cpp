@@ -728,14 +728,8 @@ void Engine::prepareEval(const QString& source, const QString& filename) {
     currentFile = storage.makeSymbol(QString("kickstarter"));
     currentLine = 1;
     push(p, storage.makeCons(currentFile, storage.makeNumber(currentLine)));
-    Atom code = compileSource(filename, source, true);
+    Atom code = compileSource(filename, source, true, false);
     c = code;
-    p = NIL;
-    if (c != NIL) {
-        currentFile = storage.makeSymbol(filename);
-        currentLine = 1;
-        push(p, storage.makeCons(currentFile,  storage.makeNumber(currentLine)));
-    }
 }
 
 void Engine::interrupt() {
@@ -785,9 +779,17 @@ void Engine::continueEvaluation() {
     reportStatus();
 }
 
-void Engine::expect(bool expectation, const char* errorMessage, const char* file, int line) {
+void Engine::expect(bool expectation,
+                    const char* errorMessage,
+                    const char* file,
+                    int line) {
     if (!expectation) {
-        panic(QString(errorMessage) + QString(" (")+QString(file)+QString(":")+intToString(line));
+        panic(QString(errorMessage) +
+              QString(" (") +
+              QString(file) +
+              QString(":") +
+              intToString(line) +
+              QString(")"));
     }
 }
 
@@ -798,11 +800,17 @@ void Engine::panic(const QString& error) {
     buffer += error + "\n";
     buffer += "Stacktrace:\n";
     buffer += "--------------------------------------------\n";
-    buffer += toSimpleString(currentFile) + ":" + intToString(currentLine) + "\n";
+    buffer += toSimpleString(currentFile) +
+              ":" +
+              intToString(currentLine) +
+              "\n";
     Atom pos = pop(p);
     while(isCons(pos)) {
         Cons location = storage.getCons(pos);
-        buffer += toSimpleString(location->car) + ":" + toSimpleString(location->cdr) + "\n";
+        buffer += toSimpleString(location->car) +
+                  ":" +
+                  toSimpleString(location->cdr) +
+                  "\n";
         pos = pop(p);
     }
     buffer += "\n";
@@ -843,31 +851,74 @@ Atom Engine::compileFile(const QString& file, bool insertStop) {
     QString path = lookupSource(file);
     QFile f(file);
     if (f.open(QFile::ReadOnly | QFile::Text)) {
-        return compileStream(path, f.readAll(), insertStop);
+        return compileSource(path, f.readAll(), insertStop, false);
     } else {
-        panic(QString("Cannot compile: ") + file + QString(". File was not found!"));
+        panic(QString("Cannot compile: ") +
+              file +
+              QString(". File was not found!"));
         return NIL;
     }
 }
 
-Atom Engine::compileStream(const QString& file, const QString& input, bool insertStop) {
-    Compiler compiler(file, input, this);
-    std::pair<Atom, std::vector<CompilationError> > result = compiler.compile(insertStop);
+Atom Engine::compileSource(const QString& file,
+                           const QString& source,
+                           bool insertStop,
+                           bool silent)
+{
+    Compiler compiler(file, source, this);
+    std::pair<Atom, std::vector<CompilationError> >
+            result = compiler.compile(insertStop);
     if (!result.second.empty()) {
-        QString buf;
-        buf += "Compilation error(s) in: " + file + "\n";
-        for(std::vector<CompilationError>::iterator i = result.second.begin(); i != result.second.end(); i++) {
-            CompilationError e = *i;
-            buf += intToString(e.line) + ":" + intToString(e.pos) + ": " + e.error + "\n";
+        if (!silent) {
+            QString buf;
+            buf += "Compilation error(s) in: " + file + "\n";
+            for(std::vector<CompilationError>::iterator
+                i = result.second.begin();
+                i != result.second.end();
+                i++)
+            {
+                CompilationError e = *i;
+                buf += intToString(e.line)
+                       + ":"
+                       + intToString(e.pos)
+                       + ": "
+                       + e.error
+                       + "\n";
+            }
+            println(buf);
         }
-        println(buf);
         return NIL;
     }
     return result.first;
 }
 
-Atom Engine::compileSource(const QString& file, const QString& source, bool insertStop) {
-    return compileStream(file, source, insertStop);
+void Engine::call(Atom list) {
+    if (!isCons(list)) {
+        return;
+    }
+    push(d, e);
+    push(d, s);
+    push(d, c);
+    s = NIL;
+    //Check if code ends with an RTN statement...
+    Atom tmp = list;
+    Cons cell = storage.getCons(tmp);
+    while(true) {
+        if (isCons(cell->cdr)) {
+            tmp = cell->cdr;
+            cell = storage.getCons(tmp);
+        } else {
+            break;
+        }
+    }
+    //If not, append an RTN.
+    if (cell->car != SYMBOL_OP_RTN) {
+        cell->cdr = storage.makeCons(SYMBOL_OP_RTN, NIL);
+    }
+    c = list;
+    push(d, c);
+    e = NIL;
+    push(p, storage.makeCons(currentFile, storage.makeNumber(currentLine)));
 }
 
 

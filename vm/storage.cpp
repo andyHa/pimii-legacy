@@ -3,12 +3,8 @@
 #include <iomanip>
 #include <algorithm>
 
-Storage::Storage() : lock(new QReadWriteLock()) {
+Storage::Storage() {
     initializeSymbols();
-}
-
-Storage::~Storage() {
-    delete lock;
 }
 
 void Storage::declaredFixedSymbol(Word expected, const char* name) {
@@ -69,7 +65,7 @@ QString Storage::getSymbolName(Atom symbol) {
 }
 
 Atom Storage::makeCons(Atom car, Atom cdr) {
-    QWriteLocker locker(lock);
+    //QWriteLocker locker(lock);
     if (!freeList.empty()) {
         Word index = freeList.back();
         freeList.pop_back();
@@ -94,13 +90,11 @@ Atom Storage::makeCons(Atom car, Atom cdr) {
 }
 
 Cons Storage::getCons(Atom atom) {
-    QReadLocker locker(lock);
     assert(isCons(atom));
     return cells[untagIndex(atom)].cell;
 }
 
 StorageStatus Storage::getStatus() {
-    QReadLocker locker(lock);
     StorageStatus status;
     status.cellsUsed = (Word)cells.size() - (Word)freeList.size();
     status.totalCells = cells.size();
@@ -116,7 +110,6 @@ StorageStatus Storage::getStatus() {
 }
 
 void Storage::gc(Atom root1, Atom root2, Atom root3, Atom root4, Atom root5) {
-    QWriteLocker locker(lock);
     if (isCons(root1)) {
         cells[untagIndex(root1)].state = REFERENCED;
     }

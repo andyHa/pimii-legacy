@@ -27,28 +27,19 @@
 #include <map>
 #include <utility>
 
-#include <QReadWriteLock>
-
 template<typename K, typename V, typename I>
 class LookupTable
 {
     std::map<K, I> mapping;
     std::vector< std::pair<K,V> > table;
-    QReadWriteLock* lock;
 public:
-    LookupTable() : lock(new QReadWriteLock()) {}
-    ~LookupTable() {
-        delete lock;
-    }
 
     void clear(){
-        QWriteLocker locker(lock);
         mapping.clear();
         table.clear();
     }
 
-    I add(K key, V initialValue){
-        QWriteLocker locker(lock);
+    I add(const K& key, const V& initialValue){
         typename std::map<K,I>::iterator it = mapping.find(key);
         I result = 0;
         if (it == mapping.end()) {
@@ -61,8 +52,7 @@ public:
         return result;
     }
 
-    bool find(K key, I* index){
-        QReadLocker locker(lock);
+    bool find(const K& key, I* index){
         typename std::map<K, I>::iterator iter = mapping.find(key);
         bool result = (iter != mapping.end());
         if (result) {
@@ -72,22 +62,18 @@ public:
     }
 
     K getKey(I index){
-        QReadLocker locker(lock);
         return this->table[index].first;
     }
 
     void setValue(I index, V value){
-        QReadLocker locker(lock);
         this->table[index].second = value;
     }
 
     V getValue(I index){
-        QReadLocker locker(lock);
         return this->table[index].second;
     }
 
     I size() {
-        QReadLocker locker(lock);
         return table.size();
     }
 

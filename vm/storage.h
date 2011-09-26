@@ -121,11 +121,6 @@ class Storage
     std::vector<Word> freeList;
 
     /**
-      Used to serialize access to the cell storage.
-      */
-    QReadWriteLock* lock;
-
-    /**
       Increments the location in the given value table if the given
       atom points to one.
       */
@@ -142,7 +137,6 @@ class Storage
     void sweep();
 public:
     Storage();
-    ~Storage();
 
     /**
       Creates or looks up the symbol for the given string.
