@@ -27,12 +27,17 @@
 #include <map>
 #include <utility>
 
+#include <qglobal.h>
+
 template<typename K, typename V, typename I>
 class LookupTable
 {
     std::map<K, I> mapping;
     std::vector< std::pair<K,V> > table;
+
+    Q_DISABLE_COPY(LookupTable)
 public:
+    LookupTable() {}
 
     void clear(){
         mapping.clear();

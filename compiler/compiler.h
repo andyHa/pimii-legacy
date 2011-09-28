@@ -85,7 +85,7 @@
 
   DEFINITION -> NORMAL_DEFINITION | SHORT_DEFINITION | INLINE_DEFINITION;
 
-  NORMAL_DEFINITION -> '(' $NAME ( ',' $NAME)* ')' '->' ('[' BLOCK ']' | STATEMENT | GUARDED);
+  NORMAL_DEFINITION -> '(' $NAME ( ',' $NAME)+ ')' '->' ('[' BLOCK ']' | STATEMENT | GUARDED);
 
   SHORT_DEFINITION -> $NAME '->' ('[' BLOCK ']' | STATEMENT | GUARDED);
 
@@ -93,7 +93,7 @@
 
   INLINE_DEFINITION -> '[' ( $NAME ( ',' $NAME )* '->' )? BLOCK ']';
 
-  LOG -> REL ( ( '=' | '!=' | '<' | '>' | '<=' | '>=' ) REL )?;
+  LOG -> REL ( ( '=' | '!=' | '<' | '>' | '<=' | '>=' ) REL )*;
 
   REL -> TERM ( ('+' | '-') TERM )*;
 

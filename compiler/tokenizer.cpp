@@ -74,7 +74,7 @@ InputToken Tokenizer::fetchToken()  {
         return parseComment();
     } else if (ch == '/'
                && hasPreview()
-               && preview() == '*') {
+               && preview() == '/') {
         if (ignoreComments) {
             parseComment();
             return fetchToken();

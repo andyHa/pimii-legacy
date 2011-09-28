@@ -27,7 +27,7 @@ public:
     /**
       Provides access to the underlying engine.
       */
-    Engine &getEngine();
+    Engine& getEngine();
 
     virtual void println(const QString& std);
 

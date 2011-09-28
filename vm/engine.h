@@ -347,6 +347,7 @@ class Engine
     Atom compileStream(const QString& file, const QString& input, bool insertStop);
 
 
+    Q_DISABLE_COPY(Engine)
 public:
     /**
       Generates an engine-panic if the given expectation is not true.
@@ -458,10 +459,12 @@ public:
     void continueEvaluation();
 
     /**
-      Creates a new engine with the given interceptor.
+      Creates a new engine.
       */
-    Engine(Interceptor* interceptor);
+    Engine();
     ~Engine();
+
+    void setInterceptor(Interceptor* interceptor);
 
     friend class Compiler;
 };

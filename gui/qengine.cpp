@@ -2,8 +2,9 @@
 #include <QElapsedTimer>
 
 QEngine::QEngine(QObject *parent) :
-    QObject(parent), engine(Engine(this)), executor(this)
+    QObject(parent), executor(this)
 {
+    engine.setInterceptor(this);
 }
 
 void QEngine::println(const QString& std) {

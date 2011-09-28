@@ -36,4 +36,6 @@ OTHER_FILES += \
     example.pi \
     kernel.pi \
     test.pi \
-    playground.pi
+    playground.pi \
+    lib/pimii.pi \
+    lib/files.pi

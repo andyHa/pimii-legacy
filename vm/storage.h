@@ -135,6 +135,8 @@ class Storage
       Implements the sweep-phase of the garbage collector.
       */
     void sweep();
+
+    Q_DISABLE_COPY(Storage)
 public:
     Storage();
 

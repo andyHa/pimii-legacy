@@ -123,7 +123,7 @@ void MainWindow::saveFile() {
 }
 
 void MainWindow::saveFileAs(const QString &path) {
-    QString fileName = QFileDialog::getSaveFileName(this, tr("Save File"), "", "pimii Files (*.pi)");
+    QString fileName = QFileDialog::getSaveFileName(this, tr("Save File"), path, "pimii Files (*.pi)");
     if (!fileName.isEmpty()) {
         currentFile = fileName;
         QFile file(currentFile);

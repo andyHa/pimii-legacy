@@ -43,12 +43,17 @@ Atom Engine::pop(Atom& reg) {
     return result;
 }
 
-Engine::Engine(Interceptor* interceptor) : interceptor(interceptor) {
+Engine::Engine() {
+    this->interceptor = NULL;
     initializeBIF();
 }
 
 Engine::~Engine() {
 
+}
+
+void Engine::setInterceptor(Interceptor* interceptor) {
+    this->interceptor = interceptor;
 }
 
 Atom Engine::makeBuiltInFunction(Atom nameSymbol, BIF value) {
@@ -923,16 +928,20 @@ void Engine::call(Atom list) {
 
 
 void Engine::println(const QString& string) {
-    interceptor->println(string);
+    if (interceptor != NULL) {
+        interceptor->println(string);
+    }
 }
 
 void Engine::reportStatus() {
-    EngineStatus status;
-    status.storageStats = storage.getStatus();
-    status.instructionsExecuted = instructionCounter;
-    status.gcRuns = gcRuns;
-    status.timeElapsed = timer.elapsed();
+    if (interceptor != NULL) {
+        EngineStatus status;
+        status.storageStats = storage.getStatus();
+        status.instructionsExecuted = instructionCounter;
+        status.gcRuns = gcRuns;
+        status.timeElapsed = timer.elapsed();
     interceptor->reportStatus(status);
+}
     lastStatusReport = instructionCounter;
 }
 

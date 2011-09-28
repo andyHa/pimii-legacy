@@ -65,7 +65,6 @@ QString Storage::getSymbolName(Atom symbol) {
 }
 
 Atom Storage::makeCons(Atom car, Atom cdr) {
-    //QWriteLocker locker(lock);
     if (!freeList.empty()) {
         Word index = freeList.back();
         freeList.pop_back();
