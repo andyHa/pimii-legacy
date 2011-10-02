@@ -8,7 +8,7 @@
 #include <QLabel>
 
 #include "vm/env.h"
-#include "gui/qengine.h"
+#include "gui/pimiiwidget.h"
 #include "gui/highlighter.h"
 
 QT_BEGIN_NAMESPACE
@@ -51,7 +51,7 @@ private:
     QLabel* status;
 
     Highlighter *highlighter;
-    QEngine* engine;
+    PimiiWidget* engine;
 };
 //! [0]
 

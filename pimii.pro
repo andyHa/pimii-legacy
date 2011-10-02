@@ -4,7 +4,7 @@
 #
 #-------------------------------------------------
 
-QT       += core gui
+QT       += core gui webkit
 
 TARGET = pimii
 TEMPLATE = app
@@ -17,7 +17,8 @@ SOURCES += main.cpp \
     compiler/compiler.cpp \
     gui/mainwindow.cpp \
     gui/highlighter.cpp \
-    gui/qengine.cpp
+    gui/webwindow.cpp \
+    gui/pimiiwidget.cpp
 
 HEADERS += \
     vm/engine.h \
@@ -30,7 +31,8 @@ HEADERS += \
     compiler/compiler.h \
     gui/mainwindow.h \
     gui/highlighter.h \
-    gui/qengine.h
+    gui/webwindow.h \
+    gui/pimiiwidget.h
 
 OTHER_FILES += \
     example.pi \
@@ -39,3 +41,6 @@ OTHER_FILES += \
     playground.pi \
     lib/pimii.pi \
     lib/files.pi
+
+FORMS += \
+    gui/webwindow.ui

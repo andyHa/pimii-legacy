@@ -168,8 +168,10 @@ class Compiler
     void relExp();
     void termExp();
     void factorExp();
-    void inlineList();
     void literal();
+    void inlineList();
+    void inlineXML();
+    void handleTag();
     Atom compileLiteral();
     void variable();
     void load(QString name);

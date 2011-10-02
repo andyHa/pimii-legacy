@@ -1,80 +1,80 @@
-' ---------------------------------------------------------------------------
-' Library: pimii Standard Library
-'
-' Contains various standard functions for list and string processing.
-' This is most probably included by all programs.
-'
-' Author: Andreas Haufler (andreas@haufler.info)
-' ---------------------------------------------------------------------------
+// ---------------------------------------------------------------------------
+// Library: pimii Standard Library
+//
+// Contains various standard functions for list and string processing.
+// This is most probably included by all programs.
+//
+// Author: Andreas Haufler (andreas@haufler.info)
+// ---------------------------------------------------------------------------
 
-' ---------------------------------------------------------------------------
-' Iterates over the given list and executes the given block for each item.
-'
-' Param: list  - a list which will be iterated
-' Param: block - an unary function which is called for each item of the
-'                given list.
-' ---------------------------------------------------------------------------
+// ---------------------------------------------------------------------------
+// Iterates over the given list and executes the given block for each item.
+//
+// Param: list  - a list which will be iterated
+// Param: block - an unary function which is called for each item of the
+//                given list.
+// ---------------------------------------------------------------------------
 each:do: ::= (list, block) -> {
     [h|t := list : block(h); each: t do: block]
 };
 
-' ---------------------------------------------------------------------------
-' "Folds" the given list from left to right by calling this given block
-' for each item of the list, along with an accumulator. The initial value
-' for this accumulator is given by the sum parameter.
-'
-' Param: list  - a list which will be folded
-' Param: block - a function which accepts two parameters, which is a list
-'                item and the current accumulator. This will be called for
-'                each item of the list.
-' Param: sum   - the initial value of the accumulator.
-' Returns: The value of the last execution of the given block, or the value
-'          of the sum parameter, if the given list was empty.
-' ---------------------------------------------------------------------------
+// ---------------------------------------------------------------------------
+// "Folds" the given list from left to right by calling this given block
+// for each item of the list, along with an accumulator. The initial value
+// for this accumulator is given by the sum parameter.
+//
+// Param: list  - a list which will be folded
+// Param: block - a function which accepts two parameters, which is a list
+//                item and the current accumulator. This will be called for
+//                each item of the list.
+// Param: sum   - the initial value of the accumulator.
+// Returns: The value of the last execution of the given block, or the value
+//          of the sum parameter, if the given list was empty.
+// ---------------------------------------------------------------------------
 fold:with:start: ::= (list, block, sum) -> {
     [h|t := list : fold: t with: block start: block(h, sum)]
     [            : sum ]
 };
  
-' ---------------------------------------------------------------------------
-' Computes the length of a given list. If the given value is not a list,
-' 0 is returned.
-'
-' Param: list - The list which length is to be determined.
-' Returns: The length of the given list, or 0 if the given value was not
-'          a list.
-' ---------------------------------------------------------------------------
+// ---------------------------------------------------------------------------
+// Computes the length of a given list. If the given value is not a list,
+// 0 is returned.
+//
+// Param: list - The list which length is to be determined.
+// Returns: The length of the given list, or 0 if the given value was not
+//          a list.
+// ---------------------------------------------------------------------------
 length ::= list -> [
     fold: list with: [e, sum -> sum + 1] start: 0
 ];
 
-' ---------------------------------------------------------------------------
-' Reverses the order of the items in the given list.
-' This method is important for list processing, because appending items to
-' the front of a list is way faster than appending items to the end of a
-' list. (The complexity is O(1) vs. O(n)). Therefore, when appending several
-' items to a list, it is advisable to append them to the front and to reverse
-' the list afterwards.
-'
-' Param: list - The list which is to be reversed.
-' Returns: A list with the reverse order of the items in the given list.
-'          If the given value was not a list, NIL will be returned.
-' ---------------------------------------------------------------------------
+// ---------------------------------------------------------------------------
+// Reverses the order of the items in the given list.
+// This method is important for list processing, because appending items to
+// the front of a list is way faster than appending items to the end of a
+// list. (The complexity is O(1) vs. O(n)). Therefore, when appending several
+// items to a list, it is advisable to append them to the front and to reverse
+// the list afterwards.
+//
+// Param: list - The list which is to be reversed.
+// Returns: A list with the reverse order of the items in the given list.
+//          If the given value was not a list, NIL will be returned.
+// ---------------------------------------------------------------------------
 reverse ::= list -> [
     fold: list with: [e, l -> e & l ] start: #()
 ];
 
-' ---------------------------------------------------------------------------
-' Takes a list and a filter as arguments. Returns a copy of the given list
-' which only contains elements for which the filter returned #TRUE.
-'
-' Param: list   - The list which will be filtered.
-' Param: filter - An unary function, which is invoked for each element of
-'                 the given list. When it returns #TRUE, the item is
-'                 added to the resulting list.
-' Returns: A copy of the given list, which contains only those elements, for
-'          which the given filter function returned #TRUE.
-' ---------------------------------------------------------------------------
+// ---------------------------------------------------------------------------
+// Takes a list and a filter as arguments. Returns a copy of the given list
+// which only contains elements for which the filter returned #TRUE.
+//
+// Param: list   - The list which will be filtered.
+// Param: filter - An unary function, which is invoked for each element of
+//                 the given list. When it returns #TRUE, the item is
+//                 added to the resulting list.
+// Returns: A copy of the given list, which contains only those elements, for
+//          which the given filter function returned #TRUE.
+// ---------------------------------------------------------------------------
 collect:with: ::= (list, filter) -> [
     result := fold: list
               with: (e,l) -> {
@@ -86,33 +86,33 @@ collect:with: ::= (list, filter) -> [
     reverse(result);
 ];
 
-' ---------------------------------------------------------------------------
-' Takes a list and a filter as arguments. Returns a copy of the given list
-' which only contains elements for which the filter returned not #TRUE.
-'
-' Param: list   - The list which will be filtered.
-' Param: filter - An unary function, which is invoked for each element of
-'                 the given list. When it does not return #TRUE, the item is
-'                 added to the resulting list.
-' Returns: A copy of the given list, which contains only those elements, for
-'          which the given filter function returned anything but #TRUE.
-' ---------------------------------------------------------------------------
+// ---------------------------------------------------------------------------
+// Takes a list and a filter as arguments. Returns a copy of the given list
+// which only contains elements for which the filter returned not #TRUE.
+//
+// Param: list   - The list which will be filtered.
+// Param: filter - An unary function, which is invoked for each element of
+//                 the given list. When it does not return #TRUE, the item is
+//                 added to the resulting list.
+// Returns: A copy of the given list, which contains only those elements, for
+//          which the given filter function returned anything but #TRUE.
+// ---------------------------------------------------------------------------
 reject:with ::= (list, filter) -> [
     collect: list with: [ e -> !filter(e)]
 ];
 
-' ---------------------------------------------------------------------------
-' Takes a list and a mapping function as arguments. Returns a new list which
-' contains the result of the mapping function, invoked on each of the input
-' elements.
-'
-' Param: list    - The list which will be used as input.
-' Param: mapping - An unary function which will be called for each element
-'                  of the given list. The result of this call will be
-'                  appended to the result list.
-' Returns: A list which contains the results of each call of the mapping
-'          function.
-' ---------------------------------------------------------------------------
+// ---------------------------------------------------------------------------
+// Takes a list and a mapping function as arguments. Returns a new list which
+// contains the result of the mapping function, invoked on each of the input
+// elements.
+//
+// Param: list    - The list which will be used as input.
+// Param: mapping - An unary function which will be called for each element
+//                  of the given list. The result of this call will be
+//                  appended to the result list.
+// Returns: A list which contains the results of each call of the mapping
+//          function.
+// ---------------------------------------------------------------------------
 project:with: ::= (list, mapping) -> [
     result := fold: list with: [e,l -> mapping(e) & l] start: #();
     reverse(result);

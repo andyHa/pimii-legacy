@@ -65,7 +65,9 @@ Highlighter::Highlighter(QTextDocument *parent)
     unknownFormat.setUnderlineStyle(QTextCharFormat::SpellCheckUnderline);
     unknownFormat.setUnderlineColor(Qt::red);
     colonCallFormat.setForeground(Qt::blue);
-    colonCallFormat.setFontWeight(QFont::Bold);    
+    colonCallFormat.setFontWeight(QFont::Bold);
+    xmlFormat.setForeground(Qt::gray);
+    xmlFormat.setFontWeight(QFont::Bold);
 }
 
 void Highlighter::highlightBlock(const QString &text)
@@ -98,6 +100,20 @@ void Highlighter::highlightBlock(const QString &text)
            break;
         case TT_DECIMAL:
            setFormat(t.absolutePos, t.length, decimalFormat);
+           break;
+        case TT_TAG_START:
+        case TT_TAG_CLOSE:
+        case TT_TAG_END:
+        case TT_TAG_EQ:
+           setFormat(t.absolutePos, t.length, xmlFormat);
+           break;
+        case TT_TAG_NAME:
+           setFormat(t.absolutePos, t.length, colonCallFormat);
+           break;
+        case TT_TAG_VALUE:
+        case TT_TAG_BLOCK_BEGIN:
+        case TT_TAG_BLOCK_END:
+           setFormat(t.absolutePos, t.length, stringFormat);
            break;
         default:
            setFormat(t.absolutePos, t.length, specialCharFormat);

@@ -15,6 +15,14 @@ void Storage::declaredFixedSymbol(Word expected, const char* name) {
 void Storage::initializeSymbols() {
     declaredFixedSymbol(SYMBOL_TRUE, "TRUE");
     declaredFixedSymbol(SYMBOL_FALSE, "FALSE");
+    declaredFixedSymbol(SYMBOL_TYPE_CONS, "TYPE_CONS");
+    declaredFixedSymbol(SYMBOL_TYPE_NUMBER, "TYPE_NUMBER");
+    declaredFixedSymbol(SYMBOL_TYPE_DECIMAL, "TYPE_DECIMAL");
+    declaredFixedSymbol(SYMBOL_TYPE_STRING, "TYPE_STRING");
+    declaredFixedSymbol(SYMBOL_TYPE_NODE, "TYPE_NODE");
+    declaredFixedSymbol(SYMBOL_TYPE_SYMBOL, "TYPE_SYMBOL");
+    declaredFixedSymbol(SYMBOL_TYPE_BIF, "TYPE_BIF");
+    declaredFixedSymbol(SYMBOL_TYPE_GLOBAL, "TYPE_GLOBAL");
     declaredFixedSymbol(SYMBOL_OP_NIL, "NIL");
     declaredFixedSymbol(SYMBOL_OP_LD, "LD");
     declaredFixedSymbol(SYMBOL_OP_LDC, "LDC");
@@ -133,11 +141,13 @@ void Storage::gc(Atom root1, Atom root2, Atom root3, Atom root4, Atom root5) {
     stringTable.resetRefCount();
     largeNumberTable.resetRefCount();
     decimalNumberTable.resetRefCount();
+    nodeTable.resetRefCount();
     mark();
     sweep();
     stringTable.gc();
     largeNumberTable.gc();
     decimalNumberTable.gc();
+    nodeTable.gc();
 }
 
 void Storage::incValueTable(Atom atom, Word idx) {
@@ -235,6 +245,17 @@ Atom Storage::makeDecimal(double value) {
     Word index = decimalNumberTable.allocate(value);
     assert(index < MAX_INDEX_SIZE);
     return tagIndex(index, TAG_TYPE_DECIMAL_NUMBER);
+}
+
+QSharedPointer<QWebElement> Storage::getNode(Atom atom) {
+    assert(isNode(atom));
+    Word index = untagIndex(atom);
+    return nodeTable.get(index);
+}
+Atom Storage::makeNode(const QSharedPointer<QWebElement>& value) {
+    Word index = nodeTable.allocate(value);
+    assert(index < MAX_INDEX_SIZE);
+    return tagIndex(index, TAG_TYPE_NODE);
 }
 
 QString Storage::getString(Atom atom) {

@@ -71,6 +71,7 @@ private:
     QTextCharFormat commentFormat;
     QTextCharFormat unknownFormat;
     QTextCharFormat colonCallFormat;
+    QTextCharFormat xmlFormat;
 };
 //! [0]
 

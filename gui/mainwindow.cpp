@@ -3,13 +3,12 @@
 
 #include "mainwindow.h"
 
+#include <iostream>
+
 MainWindow::MainWindow(QWidget *parent)
     : QMainWindow(parent)
 {
-    engine = new QEngine(this);
-    setupFileMenu();
-    setupRunMenu();
-    setupHelpMenu();
+
     setupEditor();
     splitter = new QSplitter(Qt::Vertical, parent);
     splitter->addWidget(editor);
@@ -30,11 +29,18 @@ MainWindow::MainWindow(QWidget *parent)
     setCentralWidget(splitter);
     setWindowTitle(tr("pimii 1.0"));
     qRegisterMetaType<EngineStatus>("EngineStatus");
+
+    engine = new PimiiWidget(this);
+
+    setupFileMenu();
+    setupRunMenu();
+    setupHelpMenu();
+
     connect(engine,SIGNAL(log(QString)), this, SLOT(onLog(QString)));
     connect(engine,SIGNAL(status(EngineStatus)), this, SLOT(onReport(EngineStatus)));
     connect(engine,SIGNAL(computationStarted()), this, SLOT(onComputationStarted()));
     connect(engine,SIGNAL(computationStopped()), this, SLOT(onComputationStopped()));
-    engine->getEngine().println(QString("pimii v1.0 (c) 2011 Andreas Haufler"));
+    engine->getEngine()->println(QString("pimii v1.0 (c) 2011 Andreas Haufler"));
     QString path;
     char* pimiiHome = getenv("PIMII_HOME");
     if (pimiiHome != NULL) {
@@ -42,12 +48,13 @@ MainWindow::MainWindow(QWidget *parent)
     } else {
        path = (QCoreApplication::applicationDirPath() + QDir::separator());
     }
-    engine->getEngine().addSourcePath(path);
-    engine->getEngine().println(QString("Library-Path: ")+path);
+    engine->getEngine()->addSourcePath(path);
+    engine->getEngine()->println(QString("Library-Path: ")+path);
 
 }
 
 void MainWindow::onLog(const QString& str) {
+    std::wcout << str.toStdWString() << std::endl;
     console->append(str);
 }
 

@@ -18,6 +18,37 @@ Atom bif_println(Engine* engine, Storage* storage, Atom args) {
 }
 
 /**
+  Determines the type of the given argument and pushes an appropriate
+  symbol on the stack.
+ */
+Atom bif_typeOf(Engine* engine, Storage* storage, Atom args) {
+    if (isCons(args)) {
+        switch(getType(storage->getCons(args)->car)) {
+        case TAG_TYPE_CONS:
+            return SYMBOL_TYPE_CONS;
+        case TAG_TYPE_DECIMAL_NUMBER:
+            return SYMBOL_TYPE_DECIMAL;
+        case TAG_TYPE_LARGE_NUMBER:
+        case TAG_TYPE_NUMBER:
+            return SYMBOL_TYPE_NUMBER;
+        case TAG_TYPE_NODE:
+            return SYMBOL_TYPE_NODE;
+        case TAG_TYPE_STRING:
+            return SYMBOL_TYPE_STRING;
+        case TAG_TYPE_SYMBOL:
+            return SYMBOL_TYPE_SYMBOL;
+        case TAG_TYPE_BIF:
+            return SYMBOL_TYPE_BIF;
+        case TAG_TYPE_GLOBAL:
+            return SYMBOL_TYPE_GLOBAL;
+        default:
+            return NIL;
+        }
+    }
+    return NIL;
+}
+
+/**
   Converts the given argument into a string which will be
   pushed on the stack.
  */
@@ -201,6 +232,7 @@ Atom bif_substr(Engine* engine, Storage* storage, Atom args) {
 }
 
 void Engine::initializeBIF() {
+    makeBuiltInFunction(storage.makeSymbol(QString("typeOf")), bif_typeOf);
     makeBuiltInFunction(storage.makeSymbol(QString("println")), bif_println);
     makeBuiltInFunction(storage.makeSymbol(QString("asString")), bif_asString);
     makeBuiltInFunction(storage.makeSymbol(QString("parse")), bif_parse);

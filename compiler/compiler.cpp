@@ -398,6 +398,8 @@ void Compiler::factorExp() {
             splitAssignment();
         } else if (tokenizer->isCurrent(TT_LIST_START)) {
             inlineList();
+        } else if (tokenizer->isCurrent(TT_TAG_START)) {
+            inlineXML();
         } else if (tokenizer->isCurrent(TT_NAME)) {
             if (tokenizer->isLookahead(TT_L_BRACE)) {
                 call();
@@ -442,6 +444,77 @@ void Compiler::inlineList() {
         addCode(SYMBOL_OP_CHAIN_END);
     }
     expect(TT_R_BRACE, ")");
+}
+
+void Compiler::inlineXML() {
+    if (tokenizer->isLookahead(TT_TAG_CLOSE)) {
+        return;
+    }
+    bool first = true;
+    while(tokenizer->isCurrent(TT_TAG_START)) {
+        if (!first) {
+            addCode(SYMBOL_OP_CONCAT);
+        }
+        first = false;
+        handleTag();
+    }
+}
+
+void Compiler::handleTag() {
+    tokenizer->fetch(); // <
+    QString tag("<");
+    tag += tokenizer->getCurrentString();
+    QString tagName = tokenizer->getCurrentString();
+    tokenizer->fetch(); // tag name
+    if (tokenizer->isCurrent(TT_TAG_CLOSE)) {
+        tokenizer->fetch(); // /
+        expect(TT_TAG_END, ">");
+        tag += " />";
+        addCode(SYMBOL_OP_LDC);
+        addCode(engine->storage.makeString(tag));
+        return;
+    } else if (tokenizer->isCurrent(TT_TAG_END)) {
+        tokenizer->fetch(); // >
+        if (tokenizer->isCurrent(TT_TAG_START) &&
+            tokenizer->isLookahead(TT_TAG_CLOSE)) {
+            tokenizer->fetch(); // <
+            tokenizer->fetch(); // /
+            if (!tokenizer->isCurrent(TT_TAG_NAME) ||
+                tokenizer->getCurrentString() != tagName)
+            {
+                addError(tokenizer->getCurrent(),
+                         (QString("Expected closing tag for: ")+tagName).
+                         toStdString().c_str());
+            }
+            tokenizer->fetch();
+            expect(TT_TAG_END, ">");
+            tag += " />";
+            addCode(SYMBOL_OP_LDC);
+            addCode(engine->storage.makeString(tag));
+            return;
+        } else {
+            tag += ">";
+            addCode(SYMBOL_OP_LDC);
+            addCode(engine->storage.makeString(tag));
+            expression();
+            addCode(SYMBOL_OP_CONCAT);
+            expect(TT_TAG_START, "<");
+            expect(TT_TAG_CLOSE, "/");
+            if (!tokenizer->isCurrent(TT_TAG_NAME) ||
+                tokenizer->getCurrentString() != tagName)
+            {
+                addError(tokenizer->getCurrent(),
+                         (QString("Expected closing tag for: ")+tagName).
+                         toStdString().c_str());
+            }
+            tokenizer->fetch();
+            expect(TT_TAG_END, ">");
+            tag = QString("</")+tagName+">";
+            addCode(SYMBOL_OP_LDC);
+            addCode(engine->storage.makeString(tag));
+            addCode(SYMBOL_OP_CONCAT);
+        }
+    }
 }
 
 Atom Compiler::compileLiteral() {

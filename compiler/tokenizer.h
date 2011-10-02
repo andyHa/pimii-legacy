@@ -112,7 +112,23 @@ enum InputTokenType {
     // ->
     TT_ARROW,
     // #(
-    TT_LIST_START
+    TT_LIST_START,
+    // < (But as XML tag start)
+    TT_TAG_START,
+    // ID within a XML tag.
+    TT_TAG_NAME,
+    // = (But as XML param name/value separator)
+    TT_TAG_EQ,
+    // Value of a XML param
+    TT_TAG_VALUE,
+    // Beginning of a XML param-value block
+    TT_TAG_BLOCK_BEGIN,
+    // End of a XML param-value block
+    TT_TAG_BLOCK_END,
+    // / (But as XML tag close)
+    TT_TAG_CLOSE,
+    //> (But as XML tag end)
+    TT_TAG_END
 };
 
 /**
@@ -170,6 +186,35 @@ class Tokenizer
     QChar ch;
 
     /**
+      Determines if we're currently in a XML node (between < and >).
+      Yes, this is a bit ugly to have the logic within the tokenizer,
+      but it just seems to be the best place for now.
+      */
+    bool inXMLNode;
+
+    /**
+      Used to handle self closing xml tags like <xml />.
+      */
+    bool currentNodeIsClosed;
+
+    /**
+      Used to manage the cData stack. An endnode is a node like </xml>
+      */
+    bool currentNodeIsEndNode;
+
+    /**
+      Determines if we're in a value block of a parameter for a node.
+      */
+    bool inXMLValueBlock;
+
+    /**
+      Used to correctly determine when to expect CDATA and when to expect
+      normal tokens, when tokenizing inline XML. This is placed in the
+      tokenizer to that code highlighting works as expected.
+      */
+    std::vector<bool> cDataStack;
+
+    /**
       Contains the current token.
       */
     InputToken current;
@@ -212,7 +257,7 @@ class Tokenizer
     /**
       Fetches a name-token.
       */
-    InputToken parseName();
+    InputToken parseName(InputTokenType type, bool acceptDashes);
 
     /**
       Fetches a symbol-token.
@@ -228,6 +273,11 @@ class Tokenizer
       Fetches a string-token.
       */
     InputToken parseString();
+
+    /**
+      Fetches a literal XML parameter value.
+      */
+    InputToken parseXMLValue();
 
     /**
       Fetches a operator-token.

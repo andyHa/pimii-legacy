@@ -1,3 +1,9 @@
+c := #(#NODE 'test' #LDC 'val' #ATTR 't' #CNODE);
+println('1');
+println(call(c));
+println('1');
+
+
 f := [
     println(1 < 2 < 3);
     println(2+2);

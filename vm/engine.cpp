@@ -893,6 +893,8 @@ Atom Engine::compileSource(const QString& file,
             println(buf);
         }
         return NIL;
+    } else {
+        println(toString(result.first));
     }
     return result.first;
 }
@@ -990,6 +992,8 @@ QString Engine::toString(Atom atom) {
         return QString("#") + storage.getSymbolName(atom);
     case TAG_TYPE_CONS:
         return printList(atom);
+    case TAG_TYPE_NODE:
+        return storage.getNode(atom)->toInnerXml();
     default:
         return QString("UNKNOWN");
     }
@@ -1019,6 +1023,8 @@ QString Engine::toSimpleString(Atom atom) {
         return storage.getSymbolName(atom);
     case TAG_TYPE_CONS:
         return printList(atom);
+    case TAG_TYPE_NODE:
+        return storage.getNode(atom)->toInnerXml();
     default:
         return QString("");
     }

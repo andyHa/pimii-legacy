@@ -9,6 +9,8 @@ Tokenizer::Tokenizer(const QString& source, bool ignoreComments) :
     pos = 1;
     line = 1;
     current.type = TT_EMPTY;
+    inXMLNode = false;
+    inXMLValueBlock = false;
 
     //Move to first non space character...
     nextChar();
@@ -60,18 +62,102 @@ InputToken Tokenizer::fetchToken()  {
         result.length = 0;
         result.type = TT_EOF;
         return result;
+    }
+
+    if (inXMLValueBlock) {
+        if (ch == ']' && hasPreview() && preview() == '"') {
+            inXMLValueBlock = false;
+            nextChar();
+            nextChar();
+            result.length = 2;
+            result.type = TT_TAG_BLOCK_END;
+            return result;
+         }
+    } else if (inXMLNode) {
+        if (ch == '/') {
+            nextChar();
+            result.length = 1;
+            result.type = TT_TAG_CLOSE;
+            return result;
+        } else if (ch == '>') {
+            inXMLNode = false;
+            nextChar();
+            result.length = 1;
+            result.type = TT_TAG_END;
+            if (cDataStack.size() > 0 && currentNodeIsEndNode) {
+                cDataStack.pop_back();
+            } else if (!currentNodeIsClosed && !currentNodeIsEndNode) {
+                cDataStack.push_back(ch != '[');
+                if (ch == '[') {
+                    nextChar();
+                    result.length = 2;
+                }
+            }
+            return result;
+        } else if (ch == '=') {
+            nextChar();
+            result.length = 1;
+            result.type = TT_TAG_EQ;
+            return result;
+        } else if (ch == '"') {
+            if (hasPreview() && preview() == '[') {
+                inXMLValueBlock = true;
+                nextChar();
+                nextChar();
+                result.length = 2;
+                result.type = TT_TAG_BLOCK_BEGIN;
+                return result;
+            } else {
+                return parseXMLValue();
+            }
+        } else if (ch.isLetter()) {
+            return parseName(TT_TAG_NAME, true);
+        }
+    } else if (!cDataStack.empty() && cDataStack.back() && ch != '<') {
+        result.length = 0;
+        result.type = TT_STRING;
+        while(ch != '<' && more())
+        {
+            result.length++;
+            nextChar();
+        }
+        return result;
+    } else if (!cDataStack.empty() &&
+               !cDataStack.back() &&
+               ch == ']' &&
+               hasPreview() &&
+               preview() =='<')
+    {
+        nextChar();
+        nextChar();
+        inXMLNode = true;
+        currentNodeIsClosed = (ch == '/');
+        currentNodeIsEndNode = (ch == '/');
+        result.length = 2;
+        result.type = TT_TAG_START;
+        return result;
+    } else if (ch == '<' &&
+               hasPreview() &&
+               (preview().isLetter() || preview() == '/') &&
+               !inXMLNode)
+    {
+       nextChar();
+       inXMLNode = true;
+       currentNodeIsClosed = (ch == '/');
+       currentNodeIsEndNode = (ch == '/');
+       result.length = 1;
+       result.type = TT_TAG_START;
+       return result;
     } else if (ch.isLetter()) {
-        return parseName();
+        return parseName(TT_NAME, false);
     } else if (ch == '#' && hasPreview() && preview().isLetter()) {
         return parseSymbol();
     } else if(ch.isDigit() ||
               (ch == '-' && hasPreview() && preview().isDigit()))
     {
         return parseNumber();
-    } else if (ch == '"') {
-        return parseString();
     } else if (ch == '\'') {
-        return parseComment();
+        return parseString();
     } else if (ch == '/'
                && hasPreview()
                && preview() == '/') {
@@ -81,22 +167,23 @@ InputToken Tokenizer::fetchToken()  {
         } else {
             return parseComment();
         }
+    } else {
+        return parseOperator();
     }
-
-    return parseOperator();
 }
 
-InputToken Tokenizer::parseName() {
+InputToken Tokenizer::parseName(InputTokenType type, bool acceptDashes) {
     InputToken result;
     result.absolutePos = absolutePos;
     result.pos = pos;
     result.line = line;
     result.length = 1;
-    result.type = TT_NAME;
+    result.type = type;
     nextChar();
     while((ch.isLetterOrNumber()
            || ch == ':'
-           || ch == '_')
+           || ch == '_'
+           || (ch == '-' && acceptDashes))
           && more())
     {
         result.length++;
@@ -151,6 +238,24 @@ InputToken Tokenizer::parseString() {
     result.line = line;
     result.length = 1;
     result.type = TT_STRING;
+    nextChar();
+    while(ch != '\'' && more())
+    {
+        result.length++;
+        nextChar();
+    }
+    result.length++;
+    nextChar();
+    return result;
+}
+
+InputToken Tokenizer::parseXMLValue() {
+    InputToken result;
+    result.absolutePos = absolutePos;
+    result.pos = pos;
+    result.line = line;
+    result.length = 1;
+    result.type = TT_TAG_VALUE;
     nextChar();
     while(ch != '"' && more())
     {

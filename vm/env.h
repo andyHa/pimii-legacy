@@ -118,6 +118,11 @@ const Word TAG_TYPE_LARGE_NUMBER  = 0b0111;
 const Word TAG_TYPE_DECIMAL_NUMBER  = 0b1000;
 
 /**
+  Declares that the data part of the atom is a pointer into the node table.
+  */
+const Word TAG_TYPE_NODE  = 0b1001;
+
+/**
   Contains the highest table index for symbols, bifs, globals and values.
   */
 const Word MAX_INDEX_SIZE =  1 << EFFECTIVE_BITS;
@@ -159,7 +164,7 @@ const Atom NIL = 0;
   expected values for predefined symbols. This permits fast comparison of
   well known and heavily used symbols, like TRUE, FALSE and op codes.
   */
-#define SYMBOL(x) x << TAG_LENGTH | TAG_TYPE_SYMBOL
+#define SYMBOL(x) ((x) << TAG_LENGTH) | TAG_TYPE_SYMBOL
 
 /**
   Defines the symbol for TRUE
@@ -172,150 +177,195 @@ const Atom SYMBOL_TRUE = SYMBOL(0);
 const Atom SYMBOL_FALSE = SYMBOL(1);
 
 /**
+  Defines the symbol for the type of a cons cell.
+  */
+const Atom SYMBOL_TYPE_CONS = SYMBOL(2);
+
+/**
+  Defines the symbol for the type of a number.
+  */
+const Atom SYMBOL_TYPE_NUMBER = SYMBOL(3);
+
+/**
+  Defines the symbol for the type of a decimal number.
+  */
+const Atom SYMBOL_TYPE_DECIMAL = SYMBOL(4);
+
+/**
+  Defines the symbol for the type of a string.
+  */
+const Atom SYMBOL_TYPE_STRING = SYMBOL(5);
+
+/**
+  Defines the symbol for the type of a node.
+  */
+const Atom SYMBOL_TYPE_NODE = SYMBOL(6);
+
+/**
+  Defines the symbol for the type of a symbol.
+  */
+const Atom SYMBOL_TYPE_SYMBOL = SYMBOL(7);
+
+/**
+  Defines the symbol for the type of a bif.
+  */
+const Atom SYMBOL_TYPE_BIF = SYMBOL(8);
+
+/**
+  Defines the symbol for the type of a global.
+  */
+const Atom SYMBOL_TYPE_GLOBAL = SYMBOL(9);
+
+/**
+  Can be used to easily set the offset for all op-code symbols.
+  */
+const Word OP_CODE_INDEX = 10;
+
+/**
   Op code: Pushes NIL onto the stack.
   */
-const Atom SYMBOL_OP_NIL = SYMBOL(2);
+const Atom SYMBOL_OP_NIL = SYMBOL(OP_CODE_INDEX + 0);
 
 /**
   Op code: Load from the environment
   */
-const Atom SYMBOL_OP_LD = SYMBOL(3);
+const Atom SYMBOL_OP_LD = SYMBOL(OP_CODE_INDEX + 1);
 
 /**
   Op code: Load a constant
   */
-const Atom SYMBOL_OP_LDC = SYMBOL(4);
+const Atom SYMBOL_OP_LDC = SYMBOL(OP_CODE_INDEX + 2);
 
 /**
   Op code: Load a function
   */
-const Atom SYMBOL_OP_LDF = SYMBOL(5);
+const Atom SYMBOL_OP_LDF = SYMBOL(OP_CODE_INDEX + 3);
 
 /**
   Op code: Apply a function
   */
-const Atom SYMBOL_OP_AP = SYMBOL(6);
+const Atom SYMBOL_OP_AP = SYMBOL(OP_CODE_INDEX + 4);
 
 /**
   Op code: Return (restore calling env)
   */
-const Atom SYMBOL_OP_RTN = SYMBOL(7);
+const Atom SYMBOL_OP_RTN = SYMBOL(OP_CODE_INDEX + 5);
 
 /**
   Op code: Branch true: If the stack top is true
   The list beneath it becomes the net code for this function.
   */
-const Atom SYMBOL_OP_BT = SYMBOL(8);
+const Atom SYMBOL_OP_BT = SYMBOL(OP_CODE_INDEX + 6);
 
 /**
   Op code: Same as AP but without any arguments.
   */
-const Atom SYMBOL_OP_AP0 = SYMBOL(9);
+const Atom SYMBOL_OP_AP0 = SYMBOL(OP_CODE_INDEX + 7);
 
 /**
   Op code: Store in env.
   */
-const Atom SYMBOL_OP_ST = SYMBOL(10);
+const Atom SYMBOL_OP_ST = SYMBOL(OP_CODE_INDEX + 8);
 
 /**
   Op code: Load contents of a global
   */
-const Atom SYMBOL_OP_LDG = SYMBOL(11);
+const Atom SYMBOL_OP_LDG = SYMBOL(OP_CODE_INDEX + 9);
 
 /**
   Op code: Store global
   */
-const Atom SYMBOL_OP_STG = SYMBOL(12);
+const Atom SYMBOL_OP_STG = SYMBOL(OP_CODE_INDEX + 10);
 
 /**
   Op code: Pushes the CAR of the stack top
   */
-const Atom SYMBOL_OP_CAR = SYMBOL(13);
+const Atom SYMBOL_OP_CAR = SYMBOL(OP_CODE_INDEX + 11);
 
 /**
   Op code: Pushes the CDR of the stack top
   */
-const Atom SYMBOL_OP_CDR = SYMBOL(14);
+const Atom SYMBOL_OP_CDR = SYMBOL(OP_CODE_INDEX + 12);
 
 /**
   Op code: Pops two values from the stack and pushes a new Cons
   */
-const Atom SYMBOL_OP_CONS = SYMBOL(15);
+const Atom SYMBOL_OP_CONS = SYMBOL(OP_CODE_INDEX + 13);
 
 /**
   Op code: Operator ==
   */
-const Atom SYMBOL_OP_EQ = SYMBOL(16);
+const Atom SYMBOL_OP_EQ = SYMBOL(OP_CODE_INDEX + 14);
 
 /**
   Op code: Operator !=
   */
-const Atom SYMBOL_OP_NE = SYMBOL(17);
+const Atom SYMBOL_OP_NE = SYMBOL(OP_CODE_INDEX + 15);
 
 /**
   Op code: Operator < (only for Numbers)
   */
-const Atom SYMBOL_OP_LT = SYMBOL(18);
+const Atom SYMBOL_OP_LT = SYMBOL(OP_CODE_INDEX + 16);
 
 /**
   Op code: Operator > (only for Numbers)
   */
-const Atom SYMBOL_OP_GT = SYMBOL(19);
+const Atom SYMBOL_OP_GT = SYMBOL(OP_CODE_INDEX + 17);
 
 /**
   Op code: Operator <= (only for Numbers)
   */
-const Atom SYMBOL_OP_LTQ = SYMBOL(20);
+const Atom SYMBOL_OP_LTQ = SYMBOL(OP_CODE_INDEX + 18);
 
 /**
   Op code: Operator >= (only for Numbers)
   */
-const Atom SYMBOL_OP_GTQ = SYMBOL(21);
+const Atom SYMBOL_OP_GTQ = SYMBOL(OP_CODE_INDEX + 19);
 
 /**
   Op code: Operator + (only for Numbers)
   */
-const Atom SYMBOL_OP_ADD = SYMBOL(22);
+const Atom SYMBOL_OP_ADD = SYMBOL(OP_CODE_INDEX + 20);
 
 /**
   Op code: Operator - (only for Numbers)
   */
-const Atom SYMBOL_OP_SUB = SYMBOL(23);
+const Atom SYMBOL_OP_SUB = SYMBOL(OP_CODE_INDEX + 21);
 
 /**
   Op code: Operator * (only for Numbers)
   */
-const Atom SYMBOL_OP_MUL = SYMBOL(24);
+const Atom SYMBOL_OP_MUL = SYMBOL(OP_CODE_INDEX + 22);
 
 /**
   Op code: Operator / (only for Numbers)
   */
-const Atom SYMBOL_OP_DIV = SYMBOL(25);
+const Atom SYMBOL_OP_DIV = SYMBOL(OP_CODE_INDEX + 23);
 
 /**
   Op code: Operator % (only for Numbers)
   */
-const Atom SYMBOL_OP_REM = SYMBOL(26);
+const Atom SYMBOL_OP_REM = SYMBOL(OP_CODE_INDEX + 24);
 
 /**
   Op code: Operator ! (Boolean logic on symbols TRUE and FALSE)
   */
-const Atom SYMBOL_OP_NOT = SYMBOL(27);
+const Atom SYMBOL_OP_NOT = SYMBOL(OP_CODE_INDEX + 25);
 
 /**
   Op code: Operator & (Boolean logic on symbols TRUE and FALSE)
   */
-const Atom SYMBOL_OP_AND = SYMBOL(28);
+const Atom SYMBOL_OP_AND = SYMBOL(OP_CODE_INDEX + 26);
 
 /**
   Op code: Operator | (Boolean logic on symbols TRUE and FALSE)
   */
-const Atom SYMBOL_OP_OR = SYMBOL(29);
+const Atom SYMBOL_OP_OR = SYMBOL(OP_CODE_INDEX + 27);
 
 /**
   Op code: Stops the interpreter of the current function.
   */
-const Atom SYMBOL_OP_STOP = SYMBOL(30);
+const Atom SYMBOL_OP_STOP = SYMBOL(OP_CODE_INDEX + 28);
 
 /**
   Op code: Pops a value and two locations of the stack. If the
@@ -323,34 +373,34 @@ const Atom SYMBOL_OP_STOP = SYMBOL(30);
   the second location will receive the cdr, then #TRUE will be
   pushed on the stack. Otherwise, #FALSE will be pushed.
   */
-const Atom SYMBOL_OP_SPLIT = SYMBOL(31);
+const Atom SYMBOL_OP_SPLIT = SYMBOL(OP_CODE_INDEX + 29);
 
 /**
   Op code: Concats two strings or two lists
   */
-const Atom SYMBOL_OP_CONCAT = SYMBOL(32);
+const Atom SYMBOL_OP_CONCAT = SYMBOL(OP_CODE_INDEX + 30);
 
 /**
   Op code: Appends a value to a list. Short form of:
   #LDC list, #LDC x, #NIL, #CONS #RPLACDR
   */
-const Atom SYMBOL_OP_CHAIN = SYMBOL(33);
+const Atom SYMBOL_OP_CHAIN = SYMBOL(OP_CODE_INDEX + 31);
 
 /**
   Op code: Finishes a sequence of chains and pushes
   the resulting list onto the stack.
   */
-const Atom SYMBOL_OP_CHAIN_END = SYMBOL(34);
+const Atom SYMBOL_OP_CHAIN_END = SYMBOL(OP_CODE_INDEX + 32);
 
 /**
   Op code: Used to tell the VM the currently active file.
   */
-const Atom SYMBOL_OP_FILE = SYMBOL(35);
+const Atom SYMBOL_OP_FILE = SYMBOL(OP_CODE_INDEX + 33);
 
 /**
   Op code: Used to tell the VM the currently active line.
   */
-const Atom SYMBOL_OP_LINE = SYMBOL(36);
+const Atom SYMBOL_OP_LINE = SYMBOL(OP_CODE_INDEX + 34);
 
 /**
   Reads the tag of a given atom.
@@ -407,6 +457,13 @@ inline bool isGlobal(Atom atom) {
   */
 inline bool isString(Atom atom) {
     return getType(atom) == TAG_TYPE_STRING;
+}
+
+/**
+  Checks whether the given atom is a node.
+  */
+inline bool isNode(Atom atom) {
+    return getType(atom) == TAG_TYPE_NODE;
 }
 
 /**

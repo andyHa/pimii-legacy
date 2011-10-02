@@ -27,6 +27,9 @@
 #include "lookuptable.h"
 #include "valuetable.h"
 
+#include <QtWebKit>
+//#include <auto_ptr>
+
 /**
   Represents the central unit of memory management. All data
   sturctures are made of of cells which contain two atoms.
@@ -109,6 +112,11 @@ class Storage
       Contains the table of decimal numbers.
       */
     ValueTable <Word, double> decimalNumberTable;
+
+    /**
+      Contains the table of DOM nodes.
+      */
+    ValueTable < Word, QSharedPointer<QWebElement> > nodeTable;
 
     /**
       Contains the cell storage.
@@ -204,7 +212,7 @@ public:
     QString getString(Atom atom);
 
     /**
-      Generates a a value atom, pointing to the given string.
+      Generates a value atom, pointing to the given string.
       */
     Atom makeString(const QString& string);
 
@@ -214,7 +222,7 @@ public:
     long getNumber(Atom atom);
 
     /**
-      Generates a a value atom, pointing to the given string.
+      Generates a value atom, pointing to the given string.
       */
     Atom makeNumber(long value);
 
@@ -224,9 +232,19 @@ public:
     double getDecimal(Atom atom);
 
     /**
-      Generates a a value atom, pointing to the given double.
+      Generates a value atom, pointing to the given double.
       */
     Atom makeDecimal(double value);
+
+    /**
+      Returns the node to which the given atom points.
+      */
+    QSharedPointer<QWebElement> getNode(Atom atom);
+
+    /**
+      Generates a value atom, pointing to the given node.
+      */
+    Atom makeNode(const QSharedPointer<QWebElement>& value);
 
     /**
       Returns the current status of the storage.

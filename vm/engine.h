@@ -101,13 +101,13 @@ class Engine
       Determines the minimal interval as number of instructions before a
       new GC is executed.
       */
-    static const Word GC_FREQUENCY = 5000;
+    static const Word GC_FREQUENCY = 25000;
 
      /**
       Determines the interval of instructions in which status updates
       are generted.
       */
-    static const Word REPORT_INTERVAL = 5000000;
+    static const Word REPORT_INTERVAL = 1000000;
 
     /**
       Represents the stack register on which most of the computations are
@@ -344,7 +344,9 @@ class Engine
     /**
       Compiles the given stream and handles all errors.
       */
-    Atom compileStream(const QString& file, const QString& input, bool insertStop);
+    Atom compileStream(const QString& file,
+                       const QString& input,
+                       bool insertStop);
 
 
     Q_DISABLE_COPY(Engine)
@@ -354,7 +356,10 @@ public:
       This is almost like "assert" but will output more information in case
       of an error.
       */
-    void expect(bool expectation, const char* errorMessage, const char* file, int line);
+    void expect(bool expectation,
+                const char* errorMessage,
+                const char* file,
+                int line);
 
     /**
       Stops the execution, writes the contents of all registers and a
