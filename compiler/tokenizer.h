@@ -154,7 +154,7 @@ struct InputToken {
   */
 class Tokenizer
 {
-
+private:
     /**
       Determines if comments are ignored.
       */
@@ -210,7 +210,10 @@ class Tokenizer
     /**
       Used to correctly determine when to expect CDATA and when to expect
       normal tokens, when tokenizing inline XML. This is placed in the
-      tokenizer to that code highlighting works as expected.
+      tokenizer to that code highlighting works as expected. If true
+      is pushed on the stack, the current content is uninterpreted CDATA,
+      otherwise we expect normal tokens. If the stack is empt, we're not
+      within an xml node (or better, in the content of an xml-node).
       */
     std::vector<bool> cDataStack;
 
@@ -275,9 +278,38 @@ class Tokenizer
     InputToken parseString();
 
     /**
-      Fetches a literal XML parameter value.
+      Checks if we're near or in inline XML and perform according
+      tokenization. If not, nothing happens and false is returned.
       */
-    InputToken parseXMLValue();
+    bool parseXML(InputToken& token);
+
+    /**
+      Parses the non interpreted content of a xml node like:
+      <xml>Hello</xml>.
+      */
+    bool parseXMLContent(InputToken& token);
+
+    /**
+      Checks if the end of an interpreted XML parameter is reached.
+      */
+    bool handleXMLValueBlockEnd(InputToken& token);
+
+    /**
+      Parses the next token within a XML tag, that is
+      between < and >.
+      */
+    bool parseXMLNode(InputToken& token);
+
+    /**
+      Determines the start of a xml tag, either a new tag
+      or a closing tag.
+      */
+    bool parseXMLNodeStart(InputToken& token);
+
+    /**
+      Fetches a literal XML value.
+      */
+    void parseXMLValue(InputToken& token, char stopChar);
 
     /**
       Fetches a operator-token.

@@ -381,26 +381,33 @@ const Atom SYMBOL_OP_SPLIT = SYMBOL(OP_CODE_INDEX + 29);
 const Atom SYMBOL_OP_CONCAT = SYMBOL(OP_CODE_INDEX + 30);
 
 /**
+  Op code: Concats two strings. If the arguments are not strings,
+  they are converted to strings. This is heavily used by the compiler
+  to translate inline XML expressions.
+  */
+const Atom SYMBOL_OP_SCAT = SYMBOL(OP_CODE_INDEX + 31);
+
+/**
   Op code: Appends a value to a list. Short form of:
   #LDC list, #LDC x, #NIL, #CONS #RPLACDR
   */
-const Atom SYMBOL_OP_CHAIN = SYMBOL(OP_CODE_INDEX + 31);
+const Atom SYMBOL_OP_CHAIN = SYMBOL(OP_CODE_INDEX + 32);
 
 /**
   Op code: Finishes a sequence of chains and pushes
   the resulting list onto the stack.
   */
-const Atom SYMBOL_OP_CHAIN_END = SYMBOL(OP_CODE_INDEX + 32);
+const Atom SYMBOL_OP_CHAIN_END = SYMBOL(OP_CODE_INDEX + 33);
 
 /**
   Op code: Used to tell the VM the currently active file.
   */
-const Atom SYMBOL_OP_FILE = SYMBOL(OP_CODE_INDEX + 33);
+const Atom SYMBOL_OP_FILE = SYMBOL(OP_CODE_INDEX + 34);
 
 /**
   Op code: Used to tell the VM the currently active line.
   */
-const Atom SYMBOL_OP_LINE = SYMBOL(OP_CODE_INDEX + 34);
+const Atom SYMBOL_OP_LINE = SYMBOL(OP_CODE_INDEX + 35);
 
 /**
   Reads the tag of a given atom.

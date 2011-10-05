@@ -398,7 +398,9 @@ void Compiler::factorExp() {
             splitAssignment();
         } else if (tokenizer->isCurrent(TT_LIST_START)) {
             inlineList();
-        } else if (tokenizer->isCurrent(TT_TAG_START)) {
+        } else if (tokenizer->isCurrent(TT_TAG_START) &&
+                   !tokenizer->isLookahead(TT_TAG_CLOSE))
+        {
             inlineXML();
         } else if (tokenizer->isCurrent(TT_NAME)) {
             if (tokenizer->isLookahead(TT_L_BRACE)) {
@@ -414,7 +416,11 @@ void Compiler::factorExp() {
                       && !tokenizer->isLookahead(TT_R_BRACKET)
                       && !tokenizer->isLookahead(TT_KOMMA)
                       && !tokenizer->isLookahead(TT_EOF)
-                      && !tokenizer->isLookahead(TT_SEMICOLON)) {
+                      && !tokenizer->isLookahead(TT_SEMICOLON)
+                      && !tokenizer->isLookahead(TT_TAG_BLOCK_END)
+                      && !(tokenizer->isLookahead(TT_TAG_START) &&
+                           tokenizer->isLookahead2(TT_TAG_CLOSE)))
+            {
                 call();
             } else {
                 variable();
@@ -452,11 +458,11 @@ void Compiler::inlineXML() {
     }
     bool first = true;
     while(tokenizer->isCurrent(TT_TAG_START)) {
+        handleTag();
         if (!first) {
-            addCode(SYMBOL_OP_CONCAT);
+            addCode(SYMBOL_OP_SCAT);
         }
         first = false;
-        handleTag();
     }
 }
 
@@ -466,53 +472,138 @@ void Compiler::handleTag() {
     tag += tokenizer->getCurrentString();
     QString tagName = tokenizer->getCurrentString();
     tokenizer->fetch(); // tag name
-    if (tokenizer->isCurrent(TT_TAG_CLOSE)) {
-        tokenizer->fetch(); // /
-        expect(TT_TAG_END, ">");
-        tag += " />";
-        addCode(SYMBOL_OP_LDC);
-        addCode(engine->storage.makeString(tag));
-        return;
-    } else if (tokenizer->isCurrent(TT_TAG_END)) {
-        tokenizer->fetch(); // >
-        if (tokenizer->isCurrent(TT_TAG_START) &&
-            tokenizer->isLookahead(TT_TAG_CLOSE)) {
-            tokenizer->fetch(); // <
+    while(!tokenizer->isCurrent(TT_EOF)) {
+        if (tokenizer->isCurrent(TT_TAG_CLOSE)) {
+            // Handle self closing tags like <hr />
             tokenizer->fetch(); // /
-            if (!tokenizer->isCurrent(TT_TAG_NAME) ||
-                tokenizer->getCurrentString() != tagName)
-            {
-                addError(tokenizer->getCurrent(),
-                         (QString("Expected closing tag for: ")+tagName).
-                         toStdString().c_str());
-            }
-            tokenizer->fetch();
             expect(TT_TAG_END, ">");
-            tag += " />";
-            addCode(SYMBOL_OP_LDC);
-            addCode(engine->storage.makeString(tag));
+            if (tag == "") {
+                addCode(SYMBOL_OP_LDC);
+                addCode(engine->storage.makeString(" />"));
+                addCode(SYMBOL_OP_SCAT);
+            } else {
+                tag += " />";
+                addCode(SYMBOL_OP_LDC);
+                addCode(engine->storage.makeString(tag));
+            }
             return;
-        } else {
-            tag += ">";
-            addCode(SYMBOL_OP_LDC);
-            addCode(engine->storage.makeString(tag));
-            expression();
-            addCode(SYMBOL_OP_CONCAT);
-            expect(TT_TAG_START, "<");
-            expect(TT_TAG_CLOSE, "/");
-            if (!tokenizer->isCurrent(TT_TAG_NAME) ||
-                tokenizer->getCurrentString() != tagName)
+        } else if (tokenizer->isCurrent(TT_TAG_END)) {
+            tokenizer->fetch(); // >
+            if (tokenizer->isCurrent(TT_TAG_START) &&
+                tokenizer->isLookahead(TT_TAG_CLOSE))
             {
-                addError(tokenizer->getCurrent(),
-                         (QString("Expected closing tag for: ")+tagName).
-                         toStdString().c_str());
+                // Handle empty tags like <div></div>
+                tokenizer->fetch(); // <
+                tokenizer->fetch(); // /
+                if (!tokenizer->isCurrent(TT_TAG_NAME) ||
+                    tokenizer->getCurrentString() != tagName)
+                {
+                    addError(tokenizer->getCurrent(),
+                             (QString("Expected closing tag for: ")+tagName).
+                             toStdString().c_str());
+                }
+                tokenizer->fetch();
+                expect(TT_TAG_END, ">");
+                if (tag == "") {
+                    addCode(SYMBOL_OP_LDC);
+                    addCode(engine->storage.makeString(" />"));
+                    addCode(SYMBOL_OP_SCAT);
+                } else {
+                    tag += " />";
+                    addCode(SYMBOL_OP_LDC);
+                    addCode(engine->storage.makeString(tag));
+                }
+                return;
+            } else {
+                // Handle tag content...
+                if (tag == "") {
+                    addCode(SYMBOL_OP_LDC);
+                    addCode(engine->storage.makeString(">"));
+                    addCode(SYMBOL_OP_SCAT);
+                } else {
+                    tag += ">";
+                    addCode(SYMBOL_OP_LDC);
+                    addCode(engine->storage.makeString(tag));
+                }
+                while(!tokenizer->isCurrent(TT_EOF) &&
+                      !(tokenizer->isCurrent(TT_TAG_START) &&
+                        tokenizer->isLookahead(TT_TAG_CLOSE)))
+                {
+                    if (tokenizer->isCurrent(TT_TAG_VALUE)) {
+                        // Handle textual tag content...
+                        addCode(SYMBOL_OP_LDC);
+                        addCode(engine->storage.makeString(
+                                    tokenizer->getCurrentString()));
+                        tokenizer->fetch();
+                    } else if (tokenizer->isCurrent(TT_TAG_START)) {
+                        //We have another tag, just concat the result...
+                        handleTag();
+                    } else {
+                        // Handle inline code...
+                        expression();
+                    }
+                    addCode(SYMBOL_OP_SCAT);
+                }
+                expect(TT_TAG_START, "<");
+                expect(TT_TAG_CLOSE, "/");
+                if (!tokenizer->isCurrent(TT_TAG_NAME) ||
+                    tokenizer->getCurrentString() != tagName)
+                {
+                    addError(tokenizer->getCurrent(),
+                             (QString("Expected closing tag for: ")+tagName).
+                             toStdString().c_str());
+                }
+                tokenizer->fetch();
+                expect(TT_TAG_END, ">");
+                tag = QString("</")+tagName+">";
+                addCode(SYMBOL_OP_LDC);
+                addCode(engine->storage.makeString(tag));
+                addCode(SYMBOL_OP_SCAT);
+                return;
             }
+        } else if (tokenizer->isCurrent(TT_TAG_NAME)) {
+            // Non-Interpreted parameter -> append at once:
+            QString param = " " + tokenizer->getCurrentString() + "=";
             tokenizer->fetch();
-            expect(TT_TAG_END, ">");
-            tag = QString("</")+tagName+">";
-            addCode(SYMBOL_OP_LDC);
-            addCode(engine->storage.makeString(tag));
-            addCode(SYMBOL_OP_CONCAT);
+            expect(TT_TAG_EQ, "=");
+            if (tokenizer->isCurrent(TT_TAG_VALUE)) {
+                param += tokenizer->getCurrentString();
+                if (tag != "") {
+                    tag += param;
+                } else {
+                    addCode(SYMBOL_OP_LDC);
+                    addCode(engine->storage.makeString(param));
+                    addCode(SYMBOL_OP_SCAT);
+                }
+                tokenizer->fetch();
+            } else {
+                param += "\"";
+                if (tag != "") {
+                    addCode(SYMBOL_OP_LDC);
+                    addCode(engine->storage.makeString(tag + param));
+                    tag = "";
+                } else {
+                    addCode(SYMBOL_OP_LDC);
+                    addCode(engine->storage.makeString(param));
+                    addCode(SYMBOL_OP_SCAT);
+                }
+                expect(TT_TAG_BLOCK_BEGIN,"\"[");
+                while(!tokenizer->isCurrent(TT_EOF) &&
+                      !tokenizer->isCurrent(TT_TAG_BLOCK_END))
+                {
+                    // Handle inline code...
+                    expression();
+                    addCode(SYMBOL_OP_SCAT);
+                }
+                expect(TT_TAG_BLOCK_END,"]\"");
+                addCode(SYMBOL_OP_LDC);
+                addCode(engine->storage.makeString("\""));
+                addCode(SYMBOL_OP_SCAT);
+            }
+        } else {
+            addError(tokenizer->getCurrent(),
+                     "Unexpected Token within XML node!");
+            tokenizer->fetch();
         }
     }
 }
@@ -534,7 +625,8 @@ Atom Compiler::compileLiteral() {
         result = engine->storage.makeDecimal(
                 tokenizer->getCurrentString().toDouble());
     } else {
-        addError(tokenizer->getCurrent(), "Unexpected token! Expected a literal");
+        addError(tokenizer->getCurrent(),
+                 "Unexpected token! Expected a literal");
     }
     tokenizer->fetch();
     return result;
@@ -555,7 +647,9 @@ void Compiler::load(QString variable) {
     std::pair<int, int> pair = findSymbol(variable);
     if (pair.first > 0) {
         addCode(SYMBOL_OP_LD);
-        addCode(engine->storage.makeCons(engine->storage.makeNumber(pair.first), engine->storage.makeNumber(pair.second)));
+        addCode(engine->storage.makeCons(
+                    engine->storage.makeNumber(pair.first),
+                    engine->storage.makeNumber(pair.second)));
     } else {
         Atom symbol = engine->storage.makeSymbol(variable);
         Atom bif = engine->findBuiltInFunction(symbol);
@@ -657,8 +751,12 @@ void Compiler::splitAssignment() {
     }
     expression();
     addCode(SYMBOL_OP_SPLIT);
-    addCode(engine->storage.makeCons(engine->storage.makeNumber(1), engine->storage.makeNumber(headMinorIndex)));
-    addCode(engine->storage.makeCons(engine->storage.makeNumber(1), engine->storage.makeNumber(tailMinorIndex)));
+    addCode(engine->storage.makeCons(
+                engine->storage.makeNumber(1),
+                engine->storage.makeNumber(headMinorIndex)));
+    addCode(engine->storage.makeCons(
+                engine->storage.makeNumber(1),
+                engine->storage.makeNumber(tailMinorIndex)));
 }
 
 void Compiler::localAssignment() {
@@ -682,7 +780,9 @@ void Compiler::localAssignment() {
     }
     expression();
     addCode(SYMBOL_OP_ST);
-    addCode(engine->storage.makeCons(engine->storage.makeNumber(1), engine->storage.makeNumber(minorIndex)));
+    addCode(engine->storage.makeCons(
+                engine->storage.makeNumber(1),
+                engine->storage.makeNumber(minorIndex)));
 }
 
 void Compiler::globalAssignment() {

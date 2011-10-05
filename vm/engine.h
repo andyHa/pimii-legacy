@@ -310,6 +310,13 @@ class Engine
     void opCONCAT();
 
     /**
+      Pops two arguments of the stack. Converts them to a string if neccessary,
+      concatenates them and pushes the result on the stack. This is heavily
+      used by the compiler when translating inline XML.
+      */
+    void opSCAT();
+
+    /**
       Perform the given boolean logic operations.
       */
     void opNOT();
@@ -426,6 +433,11 @@ public:
       Looks up a bif.
       */
     Atom findBuiltInFunction(Atom nameSymbol);
+
+    /**
+      Looks up a bif for a given char*
+      */
+    Atom findBuiltInFunction(const char* name);
 
     /**
       Extracts the function pointer from the given atom.

@@ -49,11 +49,18 @@ QChar Tokenizer::preview()  {
     return input[absolutePos+1];
 }
 
-
 InputToken Tokenizer::fetchToken()  {
+    InputToken result;
+    result.absolutePos = absolutePos;
+    result.pos = pos;
+    result.line = line;
+
+    if (parseXMLContent(result)) {
+        return result;
+    }
+
     skipWhitespace();
 
-    InputToken result;
     result.absolutePos = absolutePos;
     result.pos = pos;
     result.line = line;
@@ -64,97 +71,16 @@ InputToken Tokenizer::fetchToken()  {
         return result;
     }
 
-    if (inXMLValueBlock) {
-        if (ch == ']' && hasPreview() && preview() == '"') {
-            inXMLValueBlock = false;
-            nextChar();
-            nextChar();
-            result.length = 2;
-            result.type = TT_TAG_BLOCK_END;
-            return result;
-         }
-    } else if (inXMLNode) {
-        if (ch == '/') {
-            nextChar();
-            result.length = 1;
-            result.type = TT_TAG_CLOSE;
-            return result;
-        } else if (ch == '>') {
-            inXMLNode = false;
-            nextChar();
-            result.length = 1;
-            result.type = TT_TAG_END;
-            if (cDataStack.size() > 0 && currentNodeIsEndNode) {
-                cDataStack.pop_back();
-            } else if (!currentNodeIsClosed && !currentNodeIsEndNode) {
-                cDataStack.push_back(ch != '[');
-                if (ch == '[') {
-                    nextChar();
-                    result.length = 2;
-                }
-            }
-            return result;
-        } else if (ch == '=') {
-            nextChar();
-            result.length = 1;
-            result.type = TT_TAG_EQ;
-            return result;
-        } else if (ch == '"') {
-            if (hasPreview() && preview() == '[') {
-                inXMLValueBlock = true;
-                nextChar();
-                nextChar();
-                result.length = 2;
-                result.type = TT_TAG_BLOCK_BEGIN;
-                return result;
-            } else {
-                return parseXMLValue();
-            }
-        } else if (ch.isLetter()) {
-            return parseName(TT_TAG_NAME, true);
-        }
-    } else if (!cDataStack.empty() && cDataStack.back() && ch != '<') {
-        result.length = 0;
-        result.type = TT_STRING;
-        while(ch != '<' && more())
-        {
-            result.length++;
-            nextChar();
-        }
+    if (parseXML(result)) {
         return result;
-    } else if (!cDataStack.empty() &&
-               !cDataStack.back() &&
-               ch == ']' &&
-               hasPreview() &&
-               preview() =='<')
-    {
-        nextChar();
-        nextChar();
-        inXMLNode = true;
-        currentNodeIsClosed = (ch == '/');
-        currentNodeIsEndNode = (ch == '/');
-        result.length = 2;
-        result.type = TT_TAG_START;
-        return result;
-    } else if (ch == '<' &&
-               hasPreview() &&
-               (preview().isLetter() || preview() == '/') &&
-               !inXMLNode)
-    {
-       nextChar();
-       inXMLNode = true;
-       currentNodeIsClosed = (ch == '/');
-       currentNodeIsEndNode = (ch == '/');
-       result.length = 1;
-       result.type = TT_TAG_START;
-       return result;
-    } else if (ch.isLetter()) {
+    }
+
+    if (ch.isLetter()) {
         return parseName(TT_NAME, false);
     } else if (ch == '#' && hasPreview() && preview().isLetter()) {
         return parseSymbol();
     } else if(ch.isDigit() ||
-              (ch == '-' && hasPreview() && preview().isDigit()))
-    {
+              (ch == '-' && hasPreview() && preview().isDigit())) {
         return parseNumber();
     } else if (ch == '\'') {
         return parseString();
@@ -170,6 +96,138 @@ InputToken Tokenizer::fetchToken()  {
     } else {
         return parseOperator();
     }
+}
+
+bool Tokenizer::parseXMLContent(InputToken& token) {
+    if (inXMLNode || inXMLValueBlock) {
+        return false;
+    }
+
+    if (more() &&
+        !cDataStack.empty() &&
+        cDataStack.back() &&
+        ch != '<')
+    {
+        parseXMLValue(token, '<');
+        return true;
+    }
+
+    return false;
+}
+
+bool Tokenizer::handleXMLValueBlockEnd(InputToken& token) {
+    //We're in an interpreted XML parameter like <xml x="[3+3]" />
+    //Check if we're at the end ]
+    if (ch == ']' && hasPreview() && preview() == '"') {
+        inXMLValueBlock = false;
+        nextChar();
+        nextChar();
+        token.length = 2;
+        token.type = TT_TAG_BLOCK_END;
+        return true;
+     }
+    return false;
+}
+
+bool Tokenizer::parseXMLNode(InputToken& token) {
+    if (ch == '/') {
+        currentNodeIsClosed = true;
+        nextChar();
+        token.length = 1;
+        token.type = TT_TAG_CLOSE;
+        return true;
+    } else if (ch == '>') {
+        inXMLNode = false;
+        nextChar();
+        token.length = 1;
+        token.type = TT_TAG_END;
+        if (cDataStack.size() > 0 && currentNodeIsEndNode) {
+            cDataStack.pop_back();
+        } else if (!currentNodeIsClosed && !currentNodeIsEndNode) {
+            cDataStack.push_back(ch != '[');
+            if (ch == '[') {
+                nextChar();
+                token.length = 2;
+            }
+        }
+        return true;
+    } else if (ch == '=') {
+        nextChar();
+        token.length = 1;
+        token.type = TT_TAG_EQ;
+        return true;
+    } else if (ch == '"') {
+        if (hasPreview() && preview() == '[') {
+            inXMLValueBlock = true;
+            nextChar();
+            nextChar();
+            token.length = 2;
+            token.type = TT_TAG_BLOCK_BEGIN;
+            return true;
+        } else {
+            nextChar();
+            parseXMLValue(token, '"');
+            nextChar();
+            token.length +=2;
+            return true;
+        }
+    } else if (ch.isLetter()) {
+        token = parseName(TT_TAG_NAME, true);
+        return true;
+    }
+
+    return false;
+}
+
+bool Tokenizer::parseXMLNodeStart(InputToken& token) {
+    if (!cDataStack.empty() &&
+           !cDataStack.back() &&
+           ch == ']' &&
+           hasPreview() &&
+           preview() == '<')
+    {
+        // We're in an interpreted data section and  reached the ]</...>
+        nextChar();
+        nextChar();
+        inXMLNode = true;
+        currentNodeIsClosed = (ch == '/');
+        currentNodeIsEndNode = (ch == '/');
+        token.length = 2;
+        token.type = TT_TAG_START;
+        return true;
+    } else if (ch == '<' &&
+               hasPreview() &&
+               (preview().isLetter() || preview() == '/') &&
+               !inXMLNode)
+    {
+        // We're at the end of an cdata section and reached the </...
+       nextChar();
+       inXMLNode = true;
+       currentNodeIsClosed = (ch == '/');
+       currentNodeIsEndNode = (ch == '/');
+       token.length = 1;
+       token.type = TT_TAG_START;
+       return true;
+    }
+
+    return false;
+}
+
+bool Tokenizer::parseXML(InputToken& token) {
+    if (inXMLValueBlock) {
+        if (handleXMLValueBlockEnd(token)) {
+            return true;
+        }
+    } else if (inXMLNode) {
+        if (parseXMLNode(token)) {
+            return true;
+        }
+    } else {
+        if (parseXMLNodeStart(token)) {
+            return true;
+        }
+    }
+    return false;
 }
 
 InputToken Tokenizer::parseName(InputTokenType type, bool acceptDashes) {
@@ -249,22 +307,14 @@ InputToken Tokenizer::parseString() {
     return result;
 }
 
-InputToken Tokenizer::parseXMLValue() {
-    InputToken result;
-    result.absolutePos = absolutePos;
-    result.pos = pos;
-    result.line = line;
-    result.length = 1;
-    result.type = TT_TAG_VALUE;
-    nextChar();
-    while(ch != '"' && more())
+void Tokenizer::parseXMLValue(InputToken& token, char stopChar) {
+    token.length = 0;
+    token.type = TT_TAG_VALUE;
+    while(ch != stopChar && more())
     {
-        result.length++;
+        token.length++;
         nextChar();
     }
-    result.length++;
-    nextChar();
-    return result;
 }
 
 InputToken Tokenizer::parseComment() {

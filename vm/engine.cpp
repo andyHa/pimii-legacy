@@ -78,6 +78,15 @@ Atom Engine::findBuiltInFunction(Atom nameSymbol) {
     return tagIndex(index, TAG_TYPE_BIF);
 }
 
+Atom Engine::findBuiltInFunction(const char* name) {
+    Atom nameSymbol = storage.makeSymbol(QString(name));
+    Word index = 0;
+    if (!bifTable.find(nameSymbol, &index)) {
+        return NIL;
+    }
+    return tagIndex(index, TAG_TYPE_BIF);
+}
+
 BIF Engine::getBuiltInFunction(Atom atom) {
     expect(isBIF(atom),
            "given atom is not a built in function",
@@ -211,7 +220,8 @@ void Engine::opAP(bool hasArguments) {
             c = funPair->car;
             push(d, c);
             e = storage.makeCons(v, funPair->cdr);
-            push(p, storage.makeCons(currentFile, storage.makeNumber(currentLine)));
+            push(p, storage.makeCons(currentFile,
+                                     storage.makeNumber(currentLine)));
         }
     }
 }
@@ -336,7 +346,8 @@ void Engine::opLT() {
         push(s,storage.getString(a) <
              storage.getString(b) ? SYMBOL_TRUE : SYMBOL_FALSE);
     } else if (isNumber(a) && isNumber(b)) {
-        push(s, storage.getNumber(a) < storage.getNumber(b) ? SYMBOL_TRUE : SYMBOL_FALSE);
+        push(s, storage.getNumber(a) < storage.getNumber(b) ?
+                 SYMBOL_TRUE : SYMBOL_FALSE);
     } else {
         push(s,a < b ? SYMBOL_TRUE : SYMBOL_FALSE);
     }
@@ -349,7 +360,8 @@ void Engine::opLTQ() {
         push(s,storage.getString(a) <=
              storage.getString(b) ? SYMBOL_TRUE : SYMBOL_FALSE);
     } else if (isNumber(a) && isNumber(b)) {
-        push(s,storage.getNumber(a) <= storage.getNumber(b) ? SYMBOL_TRUE : SYMBOL_FALSE);
+        push(s,storage.getNumber(a) <= storage.getNumber(b) ?
+                 SYMBOL_TRUE : SYMBOL_FALSE);
     } else {
         push(s,a <= b ? SYMBOL_TRUE : SYMBOL_FALSE);
     }
@@ -362,7 +374,8 @@ void Engine::opGT() {
         push(s,storage.getString(a) >
              storage.getString(b) ? SYMBOL_TRUE : SYMBOL_FALSE);
     } else if (isNumber(a) && isNumber(b)) {
-        push(s,storage.getNumber(a) > storage.getNumber(b) ? SYMBOL_TRUE : SYMBOL_FALSE);
+        push(s,storage.getNumber(a) > storage.getNumber(b) ?
+                 SYMBOL_TRUE : SYMBOL_FALSE);
     } else {
         push(s,a > b ? SYMBOL_TRUE : SYMBOL_FALSE);
     }
@@ -375,7 +388,8 @@ void Engine::opGTQ() {
         push(s,storage.getString(a) >=
              storage.getString(b) ? SYMBOL_TRUE : SYMBOL_FALSE);
     } else if (isNumber(a) && isNumber(b)) {
-        push(s,storage.getNumber(a) >= storage.getNumber(b) ? SYMBOL_TRUE : SYMBOL_FALSE);
+        push(s,storage.getNumber(a) >= storage.getNumber(b) ?
+                 SYMBOL_TRUE : SYMBOL_FALSE);
     } else {
         push(s,a >= b ? SYMBOL_TRUE : SYMBOL_FALSE);
     }
@@ -420,16 +434,24 @@ void Engine::opCONCAT() {
           + QString("'"));
 }
 
+void Engine::opSCAT() {
+    Atom b = pop(s);
+    Atom a = pop(s);
+    push(s, storage.makeString(toSimpleString(a) + toSimpleString(b)));
+}
+
 void Engine::opAND() {
     Atom atomb = pop(s);
     Atom atoma = pop(s);
-    push(s, atomb == SYMBOL_TRUE && atoma == SYMBOL_TRUE ? SYMBOL_TRUE : SYMBOL_FALSE);
+    push(s, atomb == SYMBOL_TRUE && atoma == SYMBOL_TRUE ?
+             SYMBOL_TRUE : SYMBOL_FALSE);
 }
 
 void Engine::opOR() {
     Atom atomb = pop(s);
     Atom atoma = pop(s);
-    push(s, atomb == SYMBOL_TRUE || atoma == SYMBOL_TRUE ? SYMBOL_TRUE : SYMBOL_FALSE);
+    push(s, atomb == SYMBOL_TRUE || atoma == SYMBOL_TRUE ?
+             SYMBOL_TRUE : SYMBOL_FALSE);
 }
 
 void Engine::opNOT() {
@@ -672,6 +694,9 @@ void Engine::dispatch(Atom opcode) {
         return;
     case SYMBOL_OP_GTQ:
         opGTQ();
+        return;
+    case SYMBOL_OP_SCAT:
+        opSCAT();
         return;
     case SYMBOL_OP_CONCAT:
         opCONCAT();

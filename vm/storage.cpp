@@ -54,6 +54,7 @@ void Storage::initializeSymbols() {
     declaredFixedSymbol(SYMBOL_OP_STOP, "STOP");
     declaredFixedSymbol(SYMBOL_OP_SPLIT, "SPLIT");
     declaredFixedSymbol(SYMBOL_OP_CONCAT, "CONCAT");
+    declaredFixedSymbol(SYMBOL_OP_SCAT, "SCAT");
     declaredFixedSymbol(SYMBOL_OP_CHAIN, "CHAIN");
     declaredFixedSymbol(SYMBOL_OP_CHAIN_END, "CHAINEND");
     declaredFixedSymbol(SYMBOL_OP_FILE, "FILE");
