@@ -23,6 +23,11 @@ void Storage::initializeSymbols() {
     declaredFixedSymbol(SYMBOL_TYPE_SYMBOL, "TYPE_SYMBOL");
     declaredFixedSymbol(SYMBOL_TYPE_BIF, "TYPE_BIF");
     declaredFixedSymbol(SYMBOL_TYPE_GLOBAL, "TYPE_GLOBAL");
+
+    declaredFixedSymbol(SYMBOL_TAG_CLOSE_END, " />");
+    declaredFixedSymbol(SYMBOL_TAG_END, ">");
+    declaredFixedSymbol(SYMBOL_TAG_QUOTE, "\"");
+
     declaredFixedSymbol(SYMBOL_OP_NIL, "NIL");
     declaredFixedSymbol(SYMBOL_OP_LD, "LD");
     declaredFixedSymbol(SYMBOL_OP_LDC, "LDC");

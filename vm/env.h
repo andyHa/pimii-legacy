@@ -217,9 +217,18 @@ const Atom SYMBOL_TYPE_BIF = SYMBOL(8);
 const Atom SYMBOL_TYPE_GLOBAL = SYMBOL(9);
 
 /**
+  Represent several strings which are repeatedly used by the compiler when
+  translating xml literals. Using a symbol instead of a string permits the
+  re-use of a single instance instead of creating a string each time.
+  */
+const Atom SYMBOL_TAG_CLOSE_END = SYMBOL(10); // ' />'
+const Atom SYMBOL_TAG_END = SYMBOL(11); // '>'
+const Atom SYMBOL_TAG_QUOTE = SYMBOL(12); // '"'
+
+/**
   Can be used to easily set the offset for all op-code symbols.
   */
-const Word OP_CODE_INDEX = 10;
+const Word OP_CODE_INDEX = 13;
 
 /**
   Op code: Pushes NIL onto the stack.

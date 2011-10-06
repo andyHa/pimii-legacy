@@ -172,6 +172,14 @@ class Compiler
     void inlineList();
     void inlineXML();
     void handleTag();
+    void handleTagSelfClose(QString& tag);
+    void handleTagEnd(QString& tag, QString& tagName);
+    void handleTagEndEmpty(QString& tag, QString& tagName);
+    void handleTagEndFilled(QString& tag, QString& tagName);
+    void handleTagContent();
+    void handleTagParameter(QString& tag);
+    void handleTagParameterPlain(QString& param, QString& tag);
+    void handleTagParameterInterpreted(QString& param, QString& tag);
     Atom compileLiteral();
     void variable();
     void load(QString name);

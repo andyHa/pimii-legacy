@@ -474,138 +474,182 @@ void Compiler::handleTag() {
     tokenizer->fetch(); // tag name
     while(!tokenizer->isCurrent(TT_EOF)) {
         if (tokenizer->isCurrent(TT_TAG_CLOSE)) {
-            // Handle self closing tags like <hr />
-            tokenizer->fetch(); // /
-            expect(TT_TAG_END, ">");
-            if (tag == "") {
-                addCode(SYMBOL_OP_LDC);
-                addCode(engine->storage.makeString(" />"));
-                addCode(SYMBOL_OP_SCAT);
-            } else {
-                tag += " />";
-                addCode(SYMBOL_OP_LDC);
-                addCode(engine->storage.makeString(tag));
-            }
+            handleTagSelfClose(tag);
             return;
         } else if (tokenizer->isCurrent(TT_TAG_END)) {
-            tokenizer->fetch(); // >
-            if (tokenizer->isCurrent(TT_TAG_START) &&
-                tokenizer->isLookahead(TT_TAG_CLOSE))
-            {
-                // Handle empty tags like <div></div>
-                tokenizer->fetch(); // <
-                tokenizer->fetch(); // /
-                if (!tokenizer->isCurrent(TT_TAG_NAME) ||
-                    tokenizer->getCurrentString() != tagName)
-                {
-                    addError(tokenizer->getCurrent(),
-                             (QString("Expected closing tag for: ")+tagName).
-                             toStdString().c_str());
-                }
-                tokenizer->fetch();
-                expect(TT_TAG_END, ">");
-                if (tag == "") {
-                    addCode(SYMBOL_OP_LDC);
-                    addCode(engine->storage.makeString(" />"));
-                    addCode(SYMBOL_OP_SCAT);
-                } else {
-                    tag += " />";
-                    addCode(SYMBOL_OP_LDC);
-                    addCode(engine->storage.makeString(tag));
-                }
-                return;
-            } else {
-                // Handle tag content...
-                if (tag == "") {
-                    addCode(SYMBOL_OP_LDC);
-                    addCode(engine->storage.makeString(">"));
-                    addCode(SYMBOL_OP_SCAT);
-                } else {
-                    tag += ">";
-                    addCode(SYMBOL_OP_LDC);
-                    addCode(engine->storage.makeString(tag));
-                }
-                while(!tokenizer->isCurrent(TT_EOF) &&
-                      !(tokenizer->isCurrent(TT_TAG_START) &&
-                        tokenizer->isLookahead(TT_TAG_CLOSE)))
-                {
-                    if (tokenizer->isCurrent(TT_TAG_VALUE)) {
-                        // Handle textual tag content...
-                        addCode(SYMBOL_OP_LDC);
-                        addCode(engine->storage.makeString(
-                                    tokenizer->getCurrentString()));
-                        tokenizer->fetch();
-                    } else if (tokenizer->isCurrent(TT_TAG_START)) {
-                        //We have another tag, just concat the result...
-                        handleTag();
-                    } else {
-                        // Handle inline code...
-                        expression();
-                    }
-                    addCode(SYMBOL_OP_SCAT);
-                }
-                expect(TT_TAG_START, "<");
-                expect(TT_TAG_CLOSE, "/");
-                if (!tokenizer->isCurrent(TT_TAG_NAME) ||
-                    tokenizer->getCurrentString() != tagName)
-                {
-                    addError(tokenizer->getCurrent(),
-                             (QString("Expected closing tag for: ")+tagName).
-                             toStdString().c_str());
-                }
-                tokenizer->fetch();
-                expect(TT_TAG_END, ">");
-                tag = QString("</")+tagName+">";
-                addCode(SYMBOL_OP_LDC);
-                addCode(engine->storage.makeString(tag));
-                addCode(SYMBOL_OP_SCAT);
-                return;
-            }
+            handleTagEnd(tag, tagName);
+            return;
         } else if (tokenizer->isCurrent(TT_TAG_NAME)) {
-            // Non-Interpreted parameter -> append at once:
-            QString param = " " + tokenizer->getCurrentString() + "=";
-            tokenizer->fetch();
-            expect(TT_TAG_EQ, "=");
-            if (tokenizer->isCurrent(TT_TAG_VALUE)) {
-                param += tokenizer->getCurrentString();
-                if (tag != "") {
-                    tag += param;
-                } else {
-                    addCode(SYMBOL_OP_LDC);
-                    addCode(engine->storage.makeString(param));
-                    addCode(SYMBOL_OP_SCAT);
-                }
-                tokenizer->fetch();
-            } else {
-                param += "\"";
-                if (tag != "") {
-                    addCode(SYMBOL_OP_LDC);
-                    addCode(engine->storage.makeString(tag + param));
-                    tag = "";
-                } else {
-                    addCode(SYMBOL_OP_LDC);
-                    addCode(engine->storage.makeString(param));
-                    addCode(SYMBOL_OP_SCAT);
-                }
-                expect(TT_TAG_BLOCK_BEGIN,"\"[");
-                while(!tokenizer->isCurrent(TT_EOF) &&
-                      !tokenizer->isCurrent(TT_TAG_BLOCK_END))
-                {
-                    // Handle inline code...
-                    expression();
-                    addCode(SYMBOL_OP_SCAT);
-                }
-                expect(TT_TAG_BLOCK_END,"]\"");
-                addCode(SYMBOL_OP_LDC);
-                addCode(engine->storage.makeString("\""));
-                addCode(SYMBOL_OP_SCAT);
-            }
+            handleTagParameter(tag);
         } else {
             addError(tokenizer->getCurrent(),
                      "Unexpected Token within XML node!");
             tokenizer->fetch();
         }
     }
+}
+
+void Compiler::handleTagSelfClose(QString& tag) {
+    // Handle self closing tags like <hr />
+    tokenizer->fetch(); // /
+    expect(TT_TAG_END, ">");
+    if (tag == "") {
+        addCode(SYMBOL_OP_LDC);
+        addCode(SYMBOL_TAG_CLOSE_END);
+        addCode(SYMBOL_OP_SCAT);
+    } else {
+        tag += " />";
+        addCode(SYMBOL_OP_LDC);
+        addCode(engine->storage.makeString(tag));
+    }
+}
+
+void Compiler::handleTagEnd(QString& tag, QString& tagName) {
+    tokenizer->fetch(); // >
+    if (tokenizer->isCurrent(TT_TAG_START) &&
+        tokenizer->isLookahead(TT_TAG_CLOSE))
+    {
+        // Handle empty tags like <div></div>
+        handleTagEndEmpty(tag, tagName);
+    } else {
+        // Handle tag content...
+        handleTagEndFilled(tag, tagName);
+    }
+}
+
+void Compiler::handleTagEndEmpty(QString& tag, QString& tagName) {
+    tokenizer->fetch(); // <
+    tokenizer->fetch(); // /
+    if (!tokenizer->isCurrent(TT_TAG_NAME) ||
+        tokenizer->getCurrentString() != tagName)
+    {
+        addError(tokenizer->getCurrent(),
+                 (QString("Expected closing tag for: ")+tagName).
+                 toStdString().c_str());
+    }
+    tokenizer->fetch();
+    expect(TT_TAG_END, ">");
+    if (tag == "") {
+        addCode(SYMBOL_OP_LDC);
+        addCode(SYMBOL_TAG_CLOSE_END);
+        addCode(SYMBOL_OP_SCAT);
+    } else {
+        tag += " />";
+        addCode(SYMBOL_OP_LDC);
+        addCode(engine->storage.makeString(tag));
+        tag = "";
+    }
+}
+
+void Compiler::handleTagEndFilled(QString& tag, QString& tagName) {
+    if (tag == "") {
+        addCode(SYMBOL_OP_LDC);
+        addCode(SYMBOL_TAG_END);
+        addCode(SYMBOL_OP_SCAT);
+    } else {
+        tag += ">";
+        addCode(SYMBOL_OP_LDC);
+        addCode(engine->storage.makeString(tag));
+    }
+    handleTagContent();
+    expect(TT_TAG_START, "<");
+    expect(TT_TAG_CLOSE, "/");
+    if (!tokenizer->isCurrent(TT_TAG_NAME) ||
+        tokenizer->getCurrentString() != tagName)
+    {
+        addError(tokenizer->getCurrent(),
+                 (QString("Expected closing tag for: ")+tagName).
+                 toStdString().c_str());
+    }
+    tokenizer->fetch();
+    expect(TT_TAG_END, ">");
+    tag = QString("</")+tagName+">";
+    addCode(SYMBOL_OP_LDC);
+    addCode(engine->storage.makeString(tag));
+    addCode(SYMBOL_OP_SCAT);
+}
+
+
+void Compiler::handleTagContent() {
+    bool first = true;
+    while(!tokenizer->isCurrent(TT_EOF) &&
+          !(tokenizer->isCurrent(TT_TAG_START) &&
+            tokenizer->isLookahead(TT_TAG_CLOSE)))
+    {
+        if (tokenizer->isCurrent(TT_TAG_VALUE)) {
+            // Handle textual tag content...
+            addCode(SYMBOL_OP_LDC);
+            addCode(engine->storage.makeString(
+                        tokenizer->getCurrentString()));
+            tokenizer->fetch();
+        } else if (tokenizer->isCurrent(TT_TAG_START)) {
+            //We have another tag, just concat the result...
+            handleTag();
+        } else {
+            // Handle inline code...
+            if (!first) {
+                expect(TT_SEMICOLON, ";");
+            }
+            expression();
+        }
+        addCode(SYMBOL_OP_SCAT);
+        first = false;
+    }
+}
+
+void Compiler::handleTagParameter(QString& tag) {
+    QString param = " " + tokenizer->getCurrentString() + "=";
+    tokenizer->fetch();
+    expect(TT_TAG_EQ, "=");
+    if (tokenizer->isCurrent(TT_TAG_VALUE)) {
+        handleTagParameterPlain(param, tag);
+    } else {
+        handleTagParameterInterpreted(param, tag);
+    }
+}
+
+void Compiler::handleTagParameterPlain(QString& param, QString& tag) {
+    // Non-Interpreted parameter -> append at once
+    param += tokenizer->getCurrentString();
+    if (tag != "") {
+        tag += param;
+    } else {
+        addCode(SYMBOL_OP_LDC);
+        addCode(engine->storage.makeString(param));
+        addCode(SYMBOL_OP_SCAT);
+    }
+    tokenizer->fetch();
+}
+
+void Compiler::handleTagParameterInterpreted(QString& param, QString& tag) {
+    // Interpreted parameter, parse...
+    param += "\"";
+    if (tag != "") {
+        addCode(SYMBOL_OP_LDC);
+        addCode(engine->storage.makeString(tag + param));
+        tag = "";
+    } else {
+        addCode(SYMBOL_OP_LDC);
+        addCode(engine->storage.makeString(param));
+        addCode(SYMBOL_OP_SCAT);
+    }
+    expect(TT_TAG_BLOCK_BEGIN,"\"[");
+    bool first = true;
+    while(!tokenizer->isCurrent(TT_EOF) &&
+          !tokenizer->isCurrent(TT_TAG_BLOCK_END))
+    {
+        if (!first) {
+            expect(TT_SEMICOLON, ";");
+        }
+        // Handle inline code...
+        expression();
+        addCode(SYMBOL_OP_SCAT);
+        first = false;
+    }
+    expect(TT_TAG_BLOCK_END,"]\"");
+    addCode(SYMBOL_OP_LDC);
+    addCode(SYMBOL_TAG_QUOTE);
+    addCode(SYMBOL_OP_SCAT);
 }
 
 Atom Compiler::compileLiteral() {
