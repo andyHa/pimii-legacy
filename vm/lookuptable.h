@@ -16,10 +16,11 @@
     specific language governing permissions and limitations
     under the License.
  */
-// ---------------------------------------------------------------------------
-// Represents a lookup table used by the storage engine for various tables.
-// ---------------------------------------------------------------------------
-
+/**
+  ---------------------------------------------------------------------------
+  Represents a lookup table used by the storage engine for various tables.
+  ---------------------------------------------------------------------------
+  */
 #ifndef LOOKUPTABLE_H
 #define LOOKUPTABLE_H
 

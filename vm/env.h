@@ -16,10 +16,12 @@
     specific language governing permissions and limitations
     under the License.
  */
-// ---------------------------------------------------------------------------
-// Contains globally available constants and helper functions which are
-// inlined for performance reasons.
-// ---------------------------------------------------------------------------
+/**
+  ---------------------------------------------------------------------------
+  Contains globally available constants and helper functions which are
+  inlined for performance reasons.
+  ---------------------------------------------------------------------------
+  */
 
 #ifndef ENV_H
 #define ENV_H
@@ -118,9 +120,10 @@ const Word TAG_TYPE_LARGE_NUMBER  = 0b0111;
 const Word TAG_TYPE_DECIMAL_NUMBER  = 0b1000;
 
 /**
-  Declares that the data part of the atom is a pointer into the node table.
+  Declares that the data part of the atom is a pointer into the
+  reference table.
   */
-const Word TAG_TYPE_NODE  = 0b1001;
+const Word TAG_TYPE_REFERENCE  = 0b1001;
 
 /**
   Contains the highest table index for symbols, bifs, globals and values.
@@ -197,9 +200,9 @@ const Atom SYMBOL_TYPE_DECIMAL = SYMBOL(4);
 const Atom SYMBOL_TYPE_STRING = SYMBOL(5);
 
 /**
-  Defines the symbol for the type of a node.
+  Defines the symbol for the type of a reference.
   */
-const Atom SYMBOL_TYPE_NODE = SYMBOL(6);
+const Atom SYMBOL_TYPE_REFERENCE = SYMBOL(6);
 
 /**
   Defines the symbol for the type of a symbol.
@@ -476,10 +479,10 @@ inline bool isString(Atom atom) {
 }
 
 /**
-  Checks whether the given atom is a node.
+  Checks whether the given atom is a reference.
   */
-inline bool isNode(Atom atom) {
-    return getType(atom) == TAG_TYPE_NODE;
+inline bool isReference(Atom atom) {
+    return getType(atom) == TAG_TYPE_REFERENCE;
 }
 
 /**

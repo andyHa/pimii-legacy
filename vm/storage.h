@@ -16,9 +16,11 @@
     specific language governing permissions and limitations
     under the License.
  */
-// ---------------------------------------------------------------------------
-// Represents the internal data storage.
-// ---------------------------------------------------------------------------
+/**
+  ---------------------------------------------------------------------------
+  Represents the internal data storage.
+  ---------------------------------------------------------------------------
+  */
 
 #ifndef STORAGE_H
 #define STORAGE_H
@@ -26,9 +28,7 @@
 #include "env.h"
 #include "lookuptable.h"
 #include "valuetable.h"
-
-#include <QtWebKit>
-//#include <auto_ptr>
+#include "reference.h"
 
 /**
   Represents the central unit of memory management. All data
@@ -114,9 +114,9 @@ class Storage
     ValueTable <Word, double> decimalNumberTable;
 
     /**
-      Contains the table of DOM nodes.
+      Contains the table of references
       */
-    ValueTable < Word, QSharedPointer<QWebElement> > nodeTable;
+    ValueTable < Word, Reference*, ReferenceGarbageCollector > referenceTable;
 
     /**
       Contains the cell storage.
@@ -237,14 +237,17 @@ public:
     Atom makeDecimal(double value);
 
     /**
-      Returns the node to which the given atom points.
+      Returns the reference to which the given atom points. Still, the
+      reference is owned by the storage and freed by the GC.
       */
-    QSharedPointer<QWebElement> getNode(Atom atom);
+    Reference* getReference(Atom atom);
 
     /**
-      Generates a value atom, pointing to the given node.
+      Generates a value atom, pointing to the given reference. Once this
+      atom is no longer used and garbage collected, the given reference will
+      be freed. So the storage now "owns" the reference!
       */
-    Atom makeNode(const QSharedPointer<QWebElement>& value);
+    Atom makeReference(Reference* value);
 
     /**
       Returns the current status of the storage.

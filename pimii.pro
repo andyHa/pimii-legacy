@@ -32,7 +32,8 @@ HEADERS += \
     gui/mainwindow.h \
     gui/highlighter.h \
     gui/webwindow.h \
-    gui/pimiiwidget.h
+    gui/pimiiwidget.h \
+    vm/reference.h
 
 OTHER_FILES += \
     example.pi \

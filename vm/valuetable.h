@@ -16,15 +16,23 @@
     specific language governing permissions and limitations
     under the License.
  */
-// ---------------------------------------------------------------------------
-// Represents a value table used by the storage engine for string values etc.
-// ---------------------------------------------------------------------------
+/**
+  ---------------------------------------------------------------------------
+  Represents a value table used by the storage engine for string values etc.
+  ---------------------------------------------------------------------------
+  */
+
 #ifndef VALUETABLE_H
 #define VALUETABLE_H
 
 #include <vector>
 
-template<typename I,typename V>
+template<typename V> class DummyGarbageCollector {
+public:
+    static void reclaimStorage(V& value) {}
+};
+
+template< typename I,typename V, typename C = DummyGarbageCollector<V> >
 class ValueTable
 {
 
@@ -107,6 +115,7 @@ public:
         for(I i = 0; i < size(); i++) {
             Entry* e = table[i];
             if (e->refCount == 0 && e->inUse) {
+                C::reclaimStorage(*e->data);
                 delete e->data;
                 e->freePointer = freeList;
                 e->inUse = false;

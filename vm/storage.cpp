@@ -1,3 +1,22 @@
+/**
+    Licensed to the Apache Software Foundation (ASF) under one
+    or more contributor license agreements.  See the NOTICE file
+    distributed with this work for additional information
+    regarding copyright ownership.  The ASF licenses this file
+    to you under the Apache License, Version 2.0 (the
+    "License"); you may not use this file except in compliance
+    with the License.  You may obtain a copy of the License at
+
+     http://www.apache.org/licenses/LICENSE-2.0
+
+    Unless required by applicable law or agreed to in writing,
+    software distributed under the License is distributed on an
+    "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+    KIND, either express or implied.  See the License for the
+    specific language governing permissions and limitations
+    under the License.
+ */
+
 #include "storage.h"
 
 #include <iomanip>
@@ -19,7 +38,7 @@ void Storage::initializeSymbols() {
     declaredFixedSymbol(SYMBOL_TYPE_NUMBER, "TYPE_NUMBER");
     declaredFixedSymbol(SYMBOL_TYPE_DECIMAL, "TYPE_DECIMAL");
     declaredFixedSymbol(SYMBOL_TYPE_STRING, "TYPE_STRING");
-    declaredFixedSymbol(SYMBOL_TYPE_NODE, "TYPE_NODE");
+    declaredFixedSymbol(SYMBOL_TYPE_REFERENCE, "TYPE_REFERENCE");
     declaredFixedSymbol(SYMBOL_TYPE_SYMBOL, "TYPE_SYMBOL");
     declaredFixedSymbol(SYMBOL_TYPE_BIF, "TYPE_BIF");
     declaredFixedSymbol(SYMBOL_TYPE_GLOBAL, "TYPE_GLOBAL");
@@ -147,13 +166,13 @@ void Storage::gc(Atom root1, Atom root2, Atom root3, Atom root4, Atom root5) {
     stringTable.resetRefCount();
     largeNumberTable.resetRefCount();
     decimalNumberTable.resetRefCount();
-    nodeTable.resetRefCount();
+    referenceTable.resetRefCount();
     mark();
     sweep();
     stringTable.gc();
     largeNumberTable.gc();
     decimalNumberTable.gc();
-    nodeTable.gc();
+    referenceTable.gc();
 }
 
 void Storage::incValueTable(Atom atom, Word idx) {
@@ -253,15 +272,15 @@ Atom Storage::makeDecimal(double value) {
     return tagIndex(index, TAG_TYPE_DECIMAL_NUMBER);
 }
 
-QSharedPointer<QWebElement> Storage::getNode(Atom atom) {
-    assert(isNode(atom));
+Reference* Storage::getReference(Atom atom) {
+    assert(isReference(atom));
     Word index = untagIndex(atom);
-    return nodeTable.get(index);
+    return referenceTable.get(index);
 }
-Atom Storage::makeNode(const QSharedPointer<QWebElement>& value) {
-    Word index = nodeTable.allocate(value);
+Atom Storage::makeReference(Reference* value) {
+    Word index = referenceTable.allocate(value);
     assert(index < MAX_INDEX_SIZE);
-    return tagIndex(index, TAG_TYPE_NODE);
+    return tagIndex(index, TAG_TYPE_REFERENCE);
 }
 
 QString Storage::getString(Atom atom) {

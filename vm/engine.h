@@ -114,21 +114,25 @@ class Engine
       performed.
       */
     Atom s;
+
     /**
       Represents the environment register. Contains the bound environment
       which are parameters and visible local variables.
       */
     Atom e;
+
     /**
       Represents the code register, which contains the bytecode of the
       current function.
       */
     Atom c;
+
     /**
       Represents the dump register, which is used to buffer the other
       registers during invocation of other functions etc.
       */
     Atom d;
+
     /**
       Represents the position register. Contains a pair (file.line) for each
       function application.
