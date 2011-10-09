@@ -28,22 +28,20 @@
 #include "env.h"
 #include "storage.h"
 #include "interceptor.h"
-
 #include <QString>
 #include <QElapsedTimer>
 
 /**
-  Forward reference for the declaration of built in functions.
-  */
-class Engine;
+   Forward reference - see: callcontext.h
+   */
+class CallContext;
 
 /**
-  Defines a built in function. Retrieves the stack stop,
-  several parameters must be passed as list, and returns the
-  result as list (may again be a list, or NIL to indicate that
-  there is no result).
+  Defines a built in function. Parameters and the result are passed via the
+  given CallContext.
   */
-typedef Atom (*BIF)(Engine* engine, Storage* storage, Atom param);
+typedef void (*BIF)(const CallContext& ctx);
+
 
 /**
   An Engine operates on the given Storage and performs the actual exection of
@@ -431,7 +429,7 @@ public:
     /**
       Registers a built in function.
       */
-    Atom makeBuiltInFunction(const QString& name, BIF value);
+    Atom makeBuiltInFunction(const char* name, BIF value);
 
     /**
       Looks up a bif.
@@ -485,7 +483,11 @@ public:
     Engine();
     ~Engine();
 
-    void setInterceptor(Interceptor* interceptor);
+    /**
+      Initializes the engine (loads extensions, etc.) with the given
+      interceptor.
+      */
+    void initialize(Interceptor* interceptor);
 
     friend class Compiler;
 };

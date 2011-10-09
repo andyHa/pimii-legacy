@@ -24,7 +24,7 @@ PimiiWidget::PimiiWidget(QObject *parent) :
     QObject(parent), executor(this)
 {
     engine = new Engine();
-    engine->setInterceptor(this);
+    engine->initialize(this);
     ww = NULL;
 }
 

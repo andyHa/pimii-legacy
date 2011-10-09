@@ -11,14 +11,15 @@ TEMPLATE = app
 
 SOURCES += main.cpp \
     vm/engine.cpp \
-    vm/bif.cpp \
     vm/storage.cpp \
     compiler/tokenizer.cpp \
     compiler/compiler.cpp \
     gui/mainwindow.cpp \
     gui/highlighter.cpp \
     gui/webwindow.cpp \
-    gui/pimiiwidget.cpp
+    gui/pimiiwidget.cpp \
+    bif/coreextension.cpp \
+    bif/filesextension.cpp
 
 HEADERS += \
     vm/engine.h \
@@ -33,7 +34,11 @@ HEADERS += \
     gui/highlighter.h \
     gui/webwindow.h \
     gui/pimiiwidget.h \
-    vm/reference.h
+    vm/reference.h \
+    bif/coreextension.h \
+    bif/filesextension.h \
+    bif/engineextension.h \
+    bif/callcontext.h
 
 OTHER_FILES += \
     example.pi \

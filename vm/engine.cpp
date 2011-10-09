@@ -18,10 +18,15 @@
  */
 
 #include "engine.h"
+#include "bif/callcontext.h"
+#include "bif/engineextension.h"
+#include "bif/coreextension.h"
+#include "bif/filesextension.h"
 #include "compiler/compiler.h"
 
 #include <QElapsedTimer>
 #include <QFile>
+#include <QPluginLoader>
 
 #include <sstream>
 #include <exception>
@@ -42,15 +47,15 @@ Atom Engine::pop(Atom& reg) {
 
 Engine::Engine() {
     this->interceptor = NULL;
-    initializeBIF();
 }
 
 Engine::~Engine() {
 
 }
 
-void Engine::setInterceptor(Interceptor* interceptor) {
+void Engine::initialize(Interceptor* interceptor) {
     this->interceptor = interceptor;
+    this->initializeBIF();
 }
 
 Atom Engine::makeBuiltInFunction(Atom nameSymbol, BIF value) {
@@ -61,6 +66,10 @@ Atom Engine::makeBuiltInFunction(Atom nameSymbol, BIF value) {
     Word result = bifTable.add(nameSymbol, value);
     assert(result < MAX_INDEX_SIZE);
     return tagIndex(result, TAG_TYPE_BIF);
+}
+
+Atom Engine::makeBuiltInFunction(const char *name, BIF value) {
+   return makeBuiltInFunction(storage.makeSymbol(QString(name)), value);
 }
 
 Atom Engine::findBuiltInFunction(Atom nameSymbol) {
@@ -195,7 +204,9 @@ void Engine::opAP(bool hasArguments) {
     }
     if (isBIF(fun)) {
         BIF bif = getBuiltInFunction(fun);
-        push(s, bif(this, &storage, v));
+        CallContext ctx(this, &storage, v);
+        bif(ctx);
+        push(s, ctx.getResult());
     } else {
         expect(isCons(fun),
                "#AP: code top was neither a built in function or a closure!",
@@ -1050,4 +1061,9 @@ QString Engine::toSimpleString(Atom atom) {
     default:
         return QString("");
     }
+}
+
+void Engine::initializeBIF() {
+    CoreExtension::INSTANCE->registerBuiltInFunctions(this);
+    FilesExtension::INSTANCE->registerBuiltInFunctions(this);
 }

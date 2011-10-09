@@ -46,19 +46,6 @@ public:
     virtual QString toString() = 0;
 };
 
-class DummyReference : public Reference {
-    QString data;
-public:
-    DummyReference(QString str) : data(str) {}
-    virtual ~DummyReference() {
-        std::wcout << data.toStdWString() << std::endl;
-    }
-
-    virtual QString toString() {
-        return data;
-    }
-};
-
 /**
   Used by the storage in the referenceTable to really free reference which
   are no longer used.
