@@ -1,5 +1,6 @@
 #include "filesextension.h"
 
+
 FilesExtension* FilesExtension::INSTANCE = new FilesExtension();
 
 QString FilesExtension::name() {
@@ -7,9 +8,7 @@ QString FilesExtension::name() {
 }
 
 void FilesExtension::registerBuiltInFunctions(Engine* engine) {
-    /*
-    engine->makeBuiltInFunction("cwd", bif_cwd);
-    engine->makeBuiltInFunction("absolutePath", bif_absolutePath);
+
     engine->makeBuiltInFunction("getFile", bif_getFile);
     engine->makeBuiltInFunction("getHome", bif_getHome);
     engine->makeBuiltInFunction("getPath", bif_getPath);
@@ -22,90 +21,105 @@ void FilesExtension::registerBuiltInFunctions(Engine* engine) {
     engine->makeBuiltInFunction("mkDir", bif_mkDir);
     engine->makeBuiltInFunction("deleteFile", bif_deleteFile);
     engine->makeBuiltInFunction("moveFile", bif_moveFile);
-    */
+
     // listFiles isFile isDirectory exists file(forString), directory(forString)
     // cdUp read readall readLine eof write write line openFile closeFile
     // fileClosed mkDir
 }
-/*
 
-Atom FilesExtension::bif_getFile(Engine* engine, Storage* storage, Atom args) {
+void FilesExtension::bif_getFile(const CallContext& ctx) {
+    QString name = ctx.fetchString(BIF_INFO);
 
+    ctx.setReferenceResult(FileInfoReference::make(QFileInfo(name)));
 }
 
-Atom FilesExtension::bif_getHome(Engine* engine, Storage* storage, Atom args) {
+void FilesExtension::bif_getHome(const CallContext& ctx) {
+    QFileInfo info(QDir::homePath());
 
+    ctx.setReferenceResult(FileInfoReference::make(info));
 }
 
-Atom FilesExtension::bif_getPath(Engine* engine, Storage* storage, Atom args) {
+void FilesExtension::bif_getPath(const CallContext& ctx) {
+    FileInfoReference* ref = ctx.fetchRef<FileInfoReference>(BIF_INFO);
 
+    ctx.setStringResult(ref->info.absoluteFilePath());
 }
 
-Atom FilesExtension::bif_listFiles(Engine* engine,
-                                   Storage* storage,
-                                   Atom args) {
+void FilesExtension::bif_listFiles(const CallContext& ctx) {
+    FileInfoReference* ref = ctx.fetchRef<FileInfoReference>(BIF_INFO);
 
-}
-
-Atom FilesExtension::bif_isFile(Engine* engine,
-                                Storage* storage,
-                                Atom args) {
-
-}
-
-Atom FilesExtension::bif_isDirectory(Engine* engine,
-                                     Storage* storage,
-                                     Atom args) {
-
-}
-
-Atom FilesExtension::bif_fileExists(Engine* engine,
-                                    Storage* storage,
-                                    Atom args) {
-
-}
-
-Atom FilesExtension::bif_getParentFile(Engine* engine, Storage* storage, Atom args);
-
-Atom FilesExtension::bif_getChildFile(Engine* engine, Storage* storage, Atom args);
-
-Atom FilesExtension::bif_mkDir(Engine* engine, Storage* storage, Atom args);
-
-Atom FilesExtension::bif_deleteFile(Engine* engine, Storage* storage, Atom args);
-
-Atom FilesExtension::bif_moveFile(Engine* engine, Storage* storage, Atom args);
-
-Atom FilesExtension::bif_cwd(Engine* engine, Storage* storage, Atom args) {
-    return storage->makeReference(new DirReference(new QDir()));
-}
-
-Atom FilesExtension::bif_absolutePath(Engine *engine,
-                                      Storage *storage,
-                                      Atom args)
-{
-    engine->expect(isCons(args),
-                   "bif_absolutePath called without parameters!",
-                   __FILE__,
-                   __LINE__);
-    Atom first = storage->getCons(args)->car;
-    engine->expect(isReference(first),
-                   "bif_absolutePath requires a reference as first parameter!",
-                   __FILE__,
-                   __LINE__);
-    Reference* ref = storage->getReference(first);
-    FileReference* file = dynamic_cast<FileReference*>(ref);
-    if (file != NULL) {
-        return storage->makeString("TODO");
+    QDir dir(ref->info.absoluteFilePath());
+    QFileInfoList list = dir.entryInfoList();
+    ListBuilder builder(ctx.storage);
+    foreach (QFileInfo f, list){
+        builder.append(
+                    ctx.storage->makeReference(
+                        FileInfoReference::make(QFileInfo(f))));
     }
-    DirReference* dir = dynamic_cast<DirReference*>(ref);
-    if (dir != NULL) {
-        return storage->makeString(dir->dir->absolutePath());
-    }
-    engine->expect(
-        false,
-        "bif_absolutePath requires a file or directory as first parameter!",
-         __FILE__,
-         __LINE__);
-    return NIL;
+    ctx.setResult(builder.getResult());
 }
-*/
+
+void FilesExtension::bif_isFile(const CallContext& ctx) {
+    FileInfoReference* ref = ctx.fetchRef<FileInfoReference>(BIF_INFO);
+
+    ctx.setResult(ref->info.isFile() ? SYMBOL_TRUE : SYMBOL_FALSE);
+}
+
+void FilesExtension::bif_isDirectory(const CallContext& ctx) {
+    FileInfoReference* ref = ctx.fetchRef<FileInfoReference>(BIF_INFO);
+
+    ctx.setResult(ref->info.isDir() ? SYMBOL_TRUE : SYMBOL_FALSE);
+}
+
+void FilesExtension::bif_fileExists(const CallContext& ctx) {
+    FileInfoReference* ref = ctx.fetchRef<FileInfoReference>(BIF_INFO);
+
+    ctx.setResult(ref->info.exists() ? SYMBOL_TRUE : SYMBOL_FALSE);
+}
+
+void FilesExtension::bif_getParentFile(const CallContext& ctx) {
+    FileInfoReference* ref = ctx.fetchRef<FileInfoReference>(BIF_INFO);
+
+    if (ref->info.isRoot()) {
+        ctx.setResult(NIL);
+        return;
+    }
+    ctx.setReferenceResult(
+                FileInfoReference::make(QFileInfo(ref->info.absolutePath())));
+}
+
+void FilesExtension::bif_getChildFile(const CallContext& ctx) {
+    FileInfoReference* ref = ctx.fetchRef<FileInfoReference>(BIF_INFO);
+
+    QDir dir(ref->info.absoluteFilePath());
+    QString file = ctx.fetchString(BIF_INFO);
+    ctx.setReferenceResult(FileInfoReference::make(QFileInfo(dir, file)));
+}
+
+void FilesExtension::bif_mkDir(const CallContext& ctx) {
+    FileInfoReference* ref = ctx.fetchRef<FileInfoReference>(BIF_INFO);
+
+    QDir dir;
+    bool success = dir.mkpath(ref->info.absoluteFilePath());
+    ctx.setResult(success ? SYMBOL_TRUE : SYMBOL_FALSE);
+}
+
+void FilesExtension::bif_deleteFile(const CallContext& ctx) {
+    FileInfoReference* ref = ctx.fetchRef<FileInfoReference>(BIF_INFO);
+
+    bool success = QFile::remove(ref->info.absoluteFilePath());
+    ctx.setResult(success ? SYMBOL_TRUE : SYMBOL_FALSE);
+}
+
+void FilesExtension::bif_moveFile(const CallContext& ctx) {
+    QSharedPointer<Reference> input;
+    FileInfoReference* src = ctx.fetchRef<FileInfoReference>(BIF_INFO);
+    FileInfoReference* target = ctx.fetchRef<FileInfoReference>(BIF_INFO,
+                                                                &input);
+
+    QDir dir;
+    dir.rename(src->info.absoluteFilePath(),
+               target->info.absoluteFilePath());
+
+    ctx.setReferenceResult(input);
+}

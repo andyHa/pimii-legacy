@@ -30,6 +30,8 @@
 #include "valuetable.h"
 #include "reference.h"
 
+#include <QSharedPointer>
+
 /**
   Represents the central unit of memory management. All data
   sturctures are made of of cells which contain two atoms.
@@ -116,7 +118,7 @@ class Storage
     /**
       Contains the table of references
       */
-    ValueTable < Word, Reference*, ReferenceGarbageCollector > referenceTable;
+    ValueTable < Word, QSharedPointer<Reference> > referenceTable;
 
     /**
       Contains the cell storage.
@@ -164,6 +166,11 @@ public:
     void gc(Atom root1,Atom root2, Atom root3, Atom root4, Atom root5);
 
     /**
+      Generates a new cell, initialized with car and NIL
+      */
+    std::pair<Atom, Cons> cons(Atom car, Atom cdr);
+
+    /**
       Generates a new cell, initialized with the two given atoms.
       */
     Atom makeCons(Atom car, Atom cdr);
@@ -173,13 +180,6 @@ public:
       to the atom representing this cell and also returns this value.
       */
     Atom cons(Cons cons, Atom next);
-
-    /**
-      Creates a new cell with car set to next. Sets the cdr of cell
-      where cons points to the atom representing this cell and also
-      returns this value.
-      */
-    Atom cons(Atom cons, Atom next);
 
     /**
       Returns the cell on which atom points.
@@ -237,17 +237,18 @@ public:
     Atom makeDecimal(double value);
 
     /**
-      Returns the reference to which the given atom points. Still, the
-      reference is owned by the storage and freed by the GC.
+      Returns the reference to which the given atom points. The pointer
+      contained in the result must to be extracted and added to another
+      QSharedPointer! If you want to use the same value, always use
+      makeReference with the result. Otherwise memory corruption will occur
+      and the VM will crash!
       */
-    Reference* getReference(Atom atom);
+    QSharedPointer<Reference> getReference(Atom atom);
 
     /**
-      Generates a value atom, pointing to the given reference. Once this
-      atom is no longer used and garbage collected, the given reference will
-      be freed. So the storage now "owns" the reference!
+      Generates a value atom, pointing to the given reference.
       */
-    Atom makeReference(Reference* value);
+    Atom makeReference(const QSharedPointer<Reference>& value);
 
     /**
       Returns the current status of the storage.

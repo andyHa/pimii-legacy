@@ -19,7 +19,8 @@ SOURCES += main.cpp \
     gui/webwindow.cpp \
     gui/pimiiwidget.cpp \
     bif/coreextension.cpp \
-    bif/filesextension.cpp
+    bif/filesextension.cpp \
+    bif/webextension.cpp
 
 HEADERS += \
     vm/engine.h \
@@ -38,7 +39,8 @@ HEADERS += \
     bif/coreextension.h \
     bif/filesextension.h \
     bif/engineextension.h \
-    bif/callcontext.h
+    bif/callcontext.h \
+    bif/webextension.h
 
 OTHER_FILES += \
     example.pi \

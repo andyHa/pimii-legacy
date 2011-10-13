@@ -22,6 +22,7 @@
 #include "bif/engineextension.h"
 #include "bif/coreextension.h"
 #include "bif/filesextension.h"
+#include "bif/webextension.h"
 #include "compiler/compiler.h"
 
 #include <QElapsedTimer>
@@ -1066,4 +1067,5 @@ QString Engine::toSimpleString(Atom atom) {
 void Engine::initializeBIF() {
     CoreExtension::INSTANCE->registerBuiltInFunctions(this);
     FilesExtension::INSTANCE->registerBuiltInFunctions(this);
+    WebExtension::INSTANCE->registerBuiltInFunctions(this);
 }

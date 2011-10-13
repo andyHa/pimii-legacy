@@ -33,28 +33,22 @@
 /**
   Represents a base class for references to various object, which are managed
   within the pimii memory.
+
+  The constructor is protected since instances of Reference and subclasses
+  should only be created by a static make-factory which returns a pointer
+  as QSharedPointer. This prevents the possibility of creating memory leaks.
   */
 class Reference
 {
-public:
+protected:
     Reference() {}
+public:
     virtual ~Reference() {}
 
     /**
       Returns a string representation of this object.
       */
     virtual QString toString() = 0;
-};
-
-/**
-  Used by the storage in the referenceTable to really free reference which
-  are no longer used.
-  */
-class ReferenceGarbageCollector {
-public:
-    static void reclaimStorage(Reference*& value) {
-        delete value;
-    }
 };
 
 #endif // REFERENCE_H

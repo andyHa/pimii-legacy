@@ -97,14 +97,17 @@ QString Storage::getSymbolName(Atom symbol) {
     return symbolTable.getKey(untagIndex(symbol));
 }
 
-Atom Storage::makeCons(Atom car, Atom cdr) {
+std::pair<Atom, Cons> Storage::cons(Atom car, Atom cdr) {
+
+
     if (!freeList.empty()) {
         Word index = freeList.back();
         freeList.pop_back();
         Cons cons = cells[index].cell;
         cons->car = car;
         cons->cdr = cdr;
-        return tagIndex(index, TAG_TYPE_CONS);
+        std::pair<Atom, Cons> pair(tagIndex(index, TAG_TYPE_CONS), cons);
+        return pair;
     } else {
         Cons cons = new Cell();
         cons->car = car;
@@ -116,9 +119,13 @@ Atom Storage::makeCons(Atom car, Atom cdr) {
         Word result = cells.size();
         assert(result < MAX_INDEX_SIZE);
         cells.push_back(entry);
-
-        return tagIndex(result, TAG_TYPE_CONS);
+        std::pair<Atom, Cons> pair(tagIndex(result, TAG_TYPE_CONS), cons);
+        return pair;
     }
+}
+
+Atom Storage::makeCons(Atom car, Atom cdr) {
+    return cons(car, cdr).first;
 }
 
 Cons Storage::getCons(Atom atom) {
@@ -182,6 +189,8 @@ void Storage::incValueTable(Atom atom, Word idx) {
         decimalNumberTable.inc(idx);
     } else if (isString(atom)) {
         stringTable.inc(idx);
+    } else if (isReference(atom)) {
+        referenceTable.inc(idx);
     }
 }
 
@@ -272,12 +281,12 @@ Atom Storage::makeDecimal(double value) {
     return tagIndex(index, TAG_TYPE_DECIMAL_NUMBER);
 }
 
-Reference* Storage::getReference(Atom atom) {
+QSharedPointer<Reference> Storage::getReference(Atom atom) {
     assert(isReference(atom));
     Word index = untagIndex(atom);
     return referenceTable.get(index);
 }
-Atom Storage::makeReference(Reference* value) {
+Atom Storage::makeReference(const QSharedPointer<Reference>& value) {
     Word index = referenceTable.allocate(value);
     assert(index < MAX_INDEX_SIZE);
     return tagIndex(index, TAG_TYPE_REFERENCE);

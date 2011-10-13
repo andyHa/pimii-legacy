@@ -3,6 +3,75 @@
 
 #include "vm/engine.h"
 
+#include <typeinfo>
+#include <utility>
+
+#ifdef __GNUC__
+    // Utilizes GCCs name demangling stuff
+    #include <cxxabi.h>
+
+    template<typename T> QString demangle() {
+        int status = -1;
+        char* realName = NULL;
+        const std::type_info& ti = typeid(T);
+        realName = abi::__cxa_demangle(ti.name(), 0, 0, &status);
+        if (status == 0) {
+            QString result(realName);
+            free(realName);
+            return result;
+        } else if (realName != NULL) {
+            free(realName);
+        }
+        QString result(ti.name());
+        return result;
+    }
+#else
+    // Rely on the compiler to create sane type names..
+    template<typename T> QString demangle() {
+        const std::type_info& ti = typeid(T);
+        QString result(ti.name());
+        return result;
+    }
+#endif
+
+/**
+  Helper-class to construct lists.
+  */
+class ListBuilder {
+private:
+    Storage* storage;
+    Atom start;
+    Cons current;
+public:
+    ListBuilder(Storage* storage) :
+        storage(storage),
+        start(NIL),
+        current(NULL) {}
+
+    /**
+      Appends a new value to the list.
+      */
+    void append(Atom cell) {
+        if (isNil(start)) {
+            std::pair<Atom, Cons> result = storage->cons(cell, NIL);
+            current = result.second;
+            start = result.first;
+        } else {
+            std::pair<Atom, Cons> result = storage->cons(cell, NIL);
+            current->cdr = result.first;
+            current = result.second;
+        }
+    }
+
+    /**
+      Returns the constructed list.
+      */
+    Atom getResult() {
+        return start;
+    }
+};
+
+
 /**
   Used for calling the fetch argument functions of CallContext. This needs
   to be done in a macro since it calls other macros.
@@ -78,7 +147,7 @@ public:
                         int line) const {
         Atom result = fetchArgument(bifName, file, line);
         if (!isString(result)) {
-            engine->panic(QString("The %2. argument of  %1 must be a string! (%3:%4)").
+            engine->panic(QString("The %2. argument of %1 must be a string! (%3:%4)").
                   arg(QString(bifName),
                       intToString(currentIndex),
                       QString(file),
@@ -95,7 +164,7 @@ public:
                     int line) const {
         Atom result = fetchArgument(bifName, file, line);
         if (!isNumber(result)) {
-            engine->panic(QString("The %2. argument of  %1 must be a number! (%3:%4)").
+            engine->panic(QString("The %2. argument of %1 must be a number! (%3:%4)").
                   arg(QString(bifName),
                       intToString(currentIndex),
                       QString(file),
@@ -117,7 +186,7 @@ public:
         } else if (isDecimalNumber(result)) {
             return storage->getDecimal(result);
         } else {
-            engine->panic(QString("The %2. argument of  %1 must be a number! (%3:%4)").
+            engine->panic(QString("The %2. argument of %1 must be a number! (%3:%4)").
                   arg(QString(bifName),
                       intToString(currentIndex),
                       QString(file),
@@ -128,18 +197,48 @@ public:
     /**
       Fetches a reference argument.
       */
-    Reference* fetchReference(const char* bifName,
+    QSharedPointer<Reference> fetchReference(const char* bifName,
                               const char* file,
                               int line) const {
         Atom result = fetchArgument(bifName, file, line);
         if (!isReference(result)) {
-            engine->panic(QString("The %2. argument of  %1 must be a reference! (%3:%4)").
+            engine->panic(QString("The %2. argument of %1 must be a reference! (%3:%4)").
                   arg(QString(bifName),
                       intToString(currentIndex),
                       QString(file),
                       intToString(line)));
         }
         return storage->getReference(result);
+    }
+
+    /**
+      The method is kind of tricky, since it serves two purposes. First, it is
+      a convenience method to return a pointer for an expected reference.
+      Second it can also return the original QSharedPointer<Reference> which
+      contains the pointer. This can be done by passing a pointer to a local
+      vairable into "ref". This is used to return the same value as it was
+      passed in. We need the QSharedPointer for this, since we must not
+      construct anotherone for the given R* pointer.
+      */
+    template<typename R> R* fetchRef(const char* bifName,
+                                     const char* file,
+                                     int line,
+                                     QSharedPointer<Reference>* ref = NULL)
+    const {
+        QSharedPointer<Reference> tmp;
+        if (ref == NULL) {
+            ref = &tmp;
+        }
+        *ref = fetchReference(bifName, file, line);
+        R* result = dynamic_cast<R*>(ref->data());
+        if (result == NULL) {
+            engine->panic(QString("The %2. argument of %1 must be a '%5'! (%3:%4)").
+                  arg(QString(bifName),
+                      intToString(currentIndex),
+                      QString(file),
+                      intToString(line), demangle<R>()));
+        }
+        return result;
     }
 
     /**
@@ -207,7 +306,7 @@ public:
     /**
       Convenience to return a reference.
       */
-    inline void setReferenceResult(Reference* result) const {
+    inline void setReferenceResult(QSharedPointer<Reference> result) const {
         this->result = storage->makeReference(result);
     }
 

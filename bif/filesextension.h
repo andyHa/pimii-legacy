@@ -3,14 +3,20 @@
 
 #include "engineextension.h"
 #include "vm/reference.h"
+#include "callcontext.h"
 
 #include <QFile>
 #include <QFileInfo>
 
 class FileReference : public Reference {
+private:
     const QFile* file;
-public:
     FileReference(const QFile* f) : file(f) {}
+public:
+
+    static QSharedPointer<Reference> make(QFile* file) {
+        return QSharedPointer<Reference>(new FileReference(file));
+    }
 
     virtual ~FileReference() {
         delete file;
@@ -23,17 +29,18 @@ public:
 };
 
 class FileInfoReference : public Reference {
-    const QFileInfo* info;
+private:
+    const QFileInfo info;
+    FileInfoReference(const QFileInfo& info) : info(info) {}
 public:
-    FileInfoReference(const QFileInfo* info) : info(info) {}
-
-    virtual ~FileInfoReference() {
-        delete info;
+    static QSharedPointer<Reference> make(const QFileInfo& info) {
+        return QSharedPointer<Reference>(new FileInfoReference(info));
     }
 
     virtual QString toString() {
-        return info->fileName();
+        return info.fileName();
     }
+
     friend class FilesExtension;
 };
 
@@ -120,14 +127,14 @@ class FilesExtension : public EngineExtension
     /**
       Ensures, that the given directory exists (creates it if recessary):
 
-        mkDir := (info : FileInfo) -> FileInfo
+        mkDir := (info : FileInfo) -> (TRUE|FALSE)
       */
     static void bif_mkDir(const CallContext& ctx);
 
     /**
       Deletes the given file or directory:
 
-        deleteFile := (info : FileInfo) -> FileInfo
+        deleteFile := (info : FileInfo) -> (TRUE|FALSE)
 
       */
     static void bif_deleteFile(const CallContext& ctx);
@@ -135,7 +142,7 @@ class FilesExtension : public EngineExtension
     /**
       Moves the info to the given destination:
 
-        moveFile := (info : FileInfo, target : FileInfo) -> FileInfo
+        moveFile := (info : FileInfo, target : FileInfo) -> NIL
 
       */
     static void bif_moveFile(const CallContext& ctx);
