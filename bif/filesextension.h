@@ -6,6 +6,7 @@
 #include "callcontext.h"
 
 #include <QFile>
+#include <QDir>
 #include <QFileInfo>
 
 class FileReference : public Reference {

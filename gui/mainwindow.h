@@ -27,8 +27,8 @@
 #include <QLabel>
 
 #include "vm/env.h"
-#include "gui/pimiiwidget.h"
 #include "gui/highlighter.h"
+#include "vm/engine.h"
 
 QT_BEGIN_NAMESPACE
 class QTextEdit;
@@ -40,7 +40,7 @@ class MainWindow : public QMainWindow
     Q_OBJECT
 
 public:
-    MainWindow(QWidget *parent = 0);
+    MainWindow(Engine* engine, QWidget *parent = 0);
 
     void println(const QString& str);
 
@@ -53,9 +53,12 @@ public slots:
     void runFile();
 
     void onLog(const QString& str);
-    void onComputationStarted();
-    void onComputationStopped();
-    void onReport(const EngineStatus& status);
+    void onEngineStarted();
+    void onEngineStopped();
+    void onEnginePanic(Atom file,
+                       Word line,
+                       const QString& error,
+                       const QString& status);
 
 private:
     void setupEditor();
@@ -69,8 +72,8 @@ private:
     QSplitter *splitter;
     QLabel* status;
 
+    Engine* engine;
     Highlighter *highlighter;
-    PimiiWidget* engine;
 };
 //! [0]
 

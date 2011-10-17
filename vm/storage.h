@@ -136,16 +136,6 @@ class Storage
       */
     void incValueTable(Atom atom, Word idx);
 
-    /**
-      Implements the mark-phase of the garbage collector.
-      */
-    void mark();
-
-    /**
-      Implements the sweep-phase of the garbage collector.
-      */
-    void sweep();
-
     Q_DISABLE_COPY(Storage)
 public:
     Storage();
@@ -160,10 +150,6 @@ public:
       */
     QString getSymbolName(Atom symbol);
 
-    /**
-      Runs the GC with the given root nodes.
-      */
-    void gc(Atom root1,Atom root2, Atom root3, Atom root4, Atom root5);
 
     /**
       Generates a new cell, initialized with car and NIL
@@ -255,6 +241,25 @@ public:
       */
     StorageStatus getStatus();
 
+    /**
+      Prepares the garbage collector.
+      */
+    void beginGC();
+
+    /**
+      Marks an atom as GC root.
+      */
+    void markGCRoot(Atom atom);
+
+    /**
+      Implements the mark-phase of the garbage collector.
+      */
+    void mark();
+
+    /**
+      Implements the sweep-phase of the garbage collector.
+      */
+    void sweep();
 };
 
 #endif // STORAGE_H

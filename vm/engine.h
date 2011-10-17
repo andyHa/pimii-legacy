@@ -27,7 +27,10 @@
 
 #include "env.h"
 #include "storage.h"
-#include "interceptor.h"
+
+#include <deque>
+
+#include <QObject>
 #include <QString>
 #include <QElapsedTimer>
 
@@ -42,18 +45,37 @@ class CallContext;
   */
 typedef void (*BIF)(const CallContext& ctx);
 
+/**
+  The engine keeps an internal stack of executions. Each call to eval, pushes
+  another execution on the stack. The engine runs as long as there are
+  executions available.
+  */
+struct Execution {
+    QString filename;
+    Atom fn;
+};
 
 /**
   An Engine operates on the given Storage and performs the actual exection of
   the bytecodes. It is basically a SECD machine with one additional register
   which represents the call-stack for better error messages (stack traces).
   */
-class Engine
+class Engine : public QObject
 {
+private:
+
+    Q_OBJECT
+
     /**
       Used by "panic" to stop the engine.
       */
-    class StopEngineException : public std::exception {};
+    class PanicException : public std::exception {};
+
+    /**
+      Dirty hack! Contains the message of the last call to panic. Is handled
+      within the interpert function!
+      */
+    QString lastError;
 
     /**
       Represents the storage one which the engine operates.
@@ -61,51 +83,19 @@ class Engine
     Storage storage;
 
     /**
-      Used to log output.
-      */
-    Interceptor* interceptor;
-
-    /**
       Used to interrupt the current execution.
       */
     volatile bool running;
 
     /**
+      Keeps items to be executed.
+      */
+    std::deque<Execution> executionStack;
+
+    /**
       Conts the total instructions executed.
       */
     Word instructionCounter;
-
-    /**
-      Counts the total number of garbage collections.
-      */
-    Word gcRuns;
-
-    /**
-      Tracks execution duration.
-      */
-    QElapsedTimer timer;
-
-    /**
-      Contains the state of timer since the last status report.
-      */
-    Word lastStatusReport;
-
-    /**
-      Contains the state of timer sind the last GC.
-      */
-    Word lastGC;
-
-    /**
-      Determines the minimal interval as number of instructions before a
-      new GC is executed.
-      */
-    static const Word GC_FREQUENCY = 25000;
-
-     /**
-      Determines the interval of instructions in which status updates
-      are generted.
-      */
-    static const Word REPORT_INTERVAL = 1000000;
 
     /**
       Represents the stack register on which most of the computations are
@@ -357,8 +347,55 @@ class Engine
                        const QString& input,
                        bool insertStop);
 
+    /**
+      Loads the next execution in the engine and returns TRUE. If no execution
+      is available, FALSE is returned.
+      */
+    bool loadNextExecution();
 
     Q_DISABLE_COPY(Engine)
+
+signals:
+    /**
+      Emitted if the engine hit a hard error and cannot resume.
+      */
+    void onEnginePanic(Atom file,
+                       Word line,
+                       const QString& error,
+                       const QString& status);
+
+    /**
+      Emitted if the engine sends a message.
+      */
+    void onLog(const QString& message);
+
+    /**
+      Emitted if the engine enters a new line, can be used by a debugger.
+      */
+    void onLine(Atom file, Word line);
+
+    /**
+      Emitted if an execution is completely processed.
+      */
+    void onExecutionFinished();
+
+    /**
+      Emitted if the engine started because new work arrived.
+      */
+    void onEngineStarted();
+
+    /**
+      Emitted if the engine has no more work to do.
+      */
+    void onEngineStopped();
+
+public slots:
+    /**
+      Compiles and loads the given source. Will be pushed on the
+      "executionStack".
+      */
+    void eval(const QString& source, const QString& filename);
+
 public:
     /**
       Generates an engine-panic if the given expectation is not true.
@@ -375,6 +412,11 @@ public:
       stacktrace to the standard output.
       */
     void panic(const QString& error);
+
+    /**
+      Prints details of the engine status.
+      */
+    QString stackDump();
 
     /**
       Adds the given directory as source lookup path.
@@ -417,11 +459,6 @@ public:
     void println(const QString& string);
 
     /**
-      Reports the engine status to the current interceptor.
-      */
-    void reportStatus();
-
-    /**
       Registers a built in function.
       */
     Atom makeBuiltInFunction(Atom nameSymbol, BIF value);
@@ -462,32 +499,31 @@ public:
     QString toSimpleString(Atom atom);
 
     /**
-      Compiles and loads the given source. With the next call to continue,
-      the code will be evaluated.
-      */
-    void prepareEval(const QString& source, const QString& filename);
-
-    /**
-      Interrupts the current execution.
-      */
-    void interrupt();
-
-    /**
       Continues the current evaluation.
       */
-    void continueEvaluation();
+    void interpret(Word maxOpCodes);
+
+    /**
+      Returns if the engine has executable work to run.
+      */
+    bool isRunnable();
+
+    /**
+      Flushes the execution stack and stops the engine.
+      */
+    void terminate();
 
     /**
       Creates a new engine.
       */
     Engine();
-    ~Engine();
 
     /**
-      Initializes the engine (loads extensions, etc.) with the given
-      interceptor.
+      Initializes the engine.
       */
-    void initialize(Interceptor* interceptor);
+    void initialize();
+
+    ~Engine();
 
     friend class Compiler;
 };

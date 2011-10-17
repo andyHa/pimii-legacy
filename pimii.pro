@@ -17,7 +17,6 @@ SOURCES += main.cpp \
     gui/mainwindow.cpp \
     gui/highlighter.cpp \
     gui/webwindow.cpp \
-    gui/pimiiwidget.cpp \
     bif/coreextension.cpp \
     bif/filesextension.cpp \
     bif/webextension.cpp
@@ -34,7 +33,6 @@ HEADERS += \
     gui/mainwindow.h \
     gui/highlighter.h \
     gui/webwindow.h \
-    gui/pimiiwidget.h \
     vm/reference.h \
     bif/coreextension.h \
     bif/filesextension.h \

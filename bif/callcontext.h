@@ -2,6 +2,7 @@
 #define CALLCONTEXT_H
 
 #include "vm/engine.h"
+#include <stdlib.h>
 
 #include <typeinfo>
 #include <utility>
@@ -198,9 +199,13 @@ public:
       Fetches a reference argument.
       */
     QSharedPointer<Reference> fetchReference(const char* bifName,
-                              const char* file,
-                              int line) const {
+                                             const char* file,
+                                             int line,
+                                             Atom* atom = NULL) const {
         Atom result = fetchArgument(bifName, file, line);
+        if (atom != NULL) {
+            *atom = result;
+        }
         if (!isReference(result)) {
             engine->panic(QString("The %2. argument of %1 must be a reference! (%3:%4)").
                   arg(QString(bifName),
@@ -214,7 +219,7 @@ public:
     /**
       The method is kind of tricky, since it serves two purposes. First, it is
       a convenience method to return a pointer for an expected reference.
-      Second it can also return the original QSharedPointer<Reference> which
+      Second it can also return the original Atom which
       contains the pointer. This can be done by passing a pointer to a local
       vairable into "ref". This is used to return the same value as it was
       passed in. We need the QSharedPointer for this, since we must not
@@ -223,14 +228,13 @@ public:
     template<typename R> R* fetchRef(const char* bifName,
                                      const char* file,
                                      int line,
-                                     QSharedPointer<Reference>* ref = NULL)
+                                     Atom* atom = NULL)
     const {
-        QSharedPointer<Reference> tmp;
-        if (ref == NULL) {
-            ref = &tmp;
-        }
-        *ref = fetchReference(bifName, file, line);
-        R* result = dynamic_cast<R*>(ref->data());
+        QSharedPointer<Reference> ref = fetchReference(bifName,
+                                                       file,
+                                                       line,
+                                                       atom);
+        R* result = dynamic_cast<R*>(ref.data());
         if (result == NULL) {
             engine->panic(QString("The %2. argument of %1 must be a '%5'! (%3:%4)").
                   arg(QString(bifName),

@@ -747,6 +747,7 @@ void Compiler::colonCall() {
     addCode(SYMBOL_OP_CHAIN_END);
     load(name);
     addCode(SYMBOL_OP_AP);
+    addCode(engine->storage.makeSymbol(name));
 }
 
 void Compiler::standardCall() {
@@ -768,10 +769,13 @@ void Compiler::standardCall() {
         expect(TT_R_BRACE, ")");
         load(name);
         addCode(SYMBOL_OP_AP);
+        addCode(engine->storage.makeSymbol(name));
+
     } else {
         expect(TT_R_BRACE, ")");
         load(name);
         addCode(SYMBOL_OP_AP0);
+        addCode(engine->storage.makeSymbol(name));
     }
 }
 

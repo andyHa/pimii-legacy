@@ -47,15 +47,19 @@ Atom Engine::pop(Atom& reg) {
 }
 
 Engine::Engine() {
-    this->interceptor = NULL;
+    running = false;
+    s = NIL;
+    e = NIL;
+    c = NIL;
+    d = NIL;
+    p = NIL;
 }
 
 Engine::~Engine() {
 
 }
 
-void Engine::initialize(Interceptor* interceptor) {
-    this->interceptor = interceptor;
+void Engine::initialize() {
     this->initializeBIF();
 }
 
@@ -110,21 +114,21 @@ QString Engine::getBIFName(Atom atom) {
     return storage.getSymbolName(bifTable.getKey(untagIndex(atom)));
 }
 
-bool Engine::shouldGC() {
-    // Check is enough time elapsed...
-    Word elapsed = instructionCounter - lastGC;
-    if (elapsed < GC_FREQUENCY) {
-        return false;
-    }
-    return true;
-}
-
 void Engine::gc() {
-    gcRuns++;
-
-    storage.gc(s, e, c, d, p);
-
-    lastGC = instructionCounter;
+    storage.beginGC();
+    storage.markGCRoot(s);
+    storage.markGCRoot(e);
+    storage.markGCRoot(c);
+    storage.markGCRoot(d);
+    storage.markGCRoot(p);
+    for(std::deque<Execution>::const_iterator
+            i = executionStack.begin();
+            i != executionStack.end();
+            ++i) {
+        storage.markGCRoot(i->fn);
+    }
+    storage.mark();
+    storage.sweep();
 }
 
 void Engine::opNIL() {
@@ -198,6 +202,7 @@ Atom Engine::head(Atom list) {
 }
 
 void Engine::opAP(bool hasArguments) {
+    Atom name = pop(c);
     Atom fun = pop(s);
     Atom v = NIL;
     if (hasArguments) {
@@ -209,10 +214,13 @@ void Engine::opAP(bool hasArguments) {
         bif(ctx);
         push(s, ctx.getResult());
     } else {
-        expect(isCons(fun),
-               "#AP: code top was neither a built in function or a closure!",
-               __FILE__,
-               __LINE__);
+        if (!isCons(fun)) {
+         panic(
+           QString("'%1' is neither a closure nor a built in function (%2:%3)")
+                        .arg(storage.getSymbolName(name),
+                             QString(__FILE__),
+                             intToString(__LINE__)));
+        }
         Cons funPair = storage.getCons(fun);
         if ((head(c) == SYMBOL_OP_RTN) && (funPair->car == head(d))) {
             // We have a tail recursion -> don't push useless stuff on the
@@ -757,65 +765,74 @@ void Engine::dispatch(Atom opcode) {
 }
 
 
-void Engine::prepareEval(const QString& source, const QString& filename) {
+bool Engine::loadNextExecution() {
     s = NIL;
     e = NIL;
     c = NIL;
     d = NIL;
     p = NIL;
 
-    currentFile = storage.makeSymbol(QString("kickstarter"));
+    if (executionStack.empty()) {
+        return false;
+    }
+    Execution exe = executionStack.front();
+    executionStack.pop_front();
+
+    c = exe.fn;
+    currentFile = storage.makeSymbol(exe.filename);
     currentLine = 1;
     push(p, storage.makeCons(currentFile, storage.makeNumber(currentLine)));
+
+    return true;
+}
+
+bool Engine::isRunnable() {
+    return running;
+}
+
+void Engine::eval(const QString& source, const QString& filename) {
     Atom code = compileSource(filename, source, true, false);
-    c = code;
-}
+    Execution exe;
+    exe.filename = filename;
+    exe.fn = code;
+    executionStack.push_back(exe);
+    if (!running) {
+        running = true;
+        emit onEngineStarted();
+    }}
 
-void Engine::interrupt() {
-    running = false;
-}
-
-void Engine::continueEvaluation() {
-    instructionCounter = 0;
-    gcRuns = 0;
-    timer.start();
-
-    if (c == NIL) {
+void Engine::interpret(Word maxOpCodes) {
+    if (!running) {
         return;
     }
-    running = true;
-    try {
-        try {
-            while (running) {
-                Atom op = pop(c);
-                if (op == SYMBOL_OP_STOP) {
-                    gc();
-                    reportStatus();
-                    return;
-                } else {
-                    dispatch(op);
-                    if (shouldGC()) {
-                        gc();
-                    }
-                    if (instructionCounter - lastStatusReport >
-                            REPORT_INTERVAL)
-                    {
-                        reportStatus();
-                    }
-                }
-            }
-        } catch(StopEngineException* e) {
-            //Error is already handled...
-            gc();
-            reportStatus();
+    if (c == NIL) {
+        if (!loadNextExecution()) {
+            running = false;
+            emit onEngineStopped();
             return;
-        } catch(std::exception* e) {
-            panic(QString(e->what()));
         }
-    } catch(StopEngineException* e) {
-        //Error is already handled...
     }
-    reportStatus();
+    try {
+        while (running && maxOpCodes > 0) {
+            Atom op = pop(c);
+            if (op == SYMBOL_OP_STOP) {
+                gc();
+                if (!loadNextExecution()) {
+                    running = false;
+                    emit onEngineStopped();
+                    return;
+                }
+            } else {
+                dispatch(op);
+            }
+            maxOpCodes--;
+        }
+    } catch(PanicException* ex) {
+        running = false;
+        emit onEngineStopped();
+        executionStack.clear();
+        emit onEnginePanic(currentFile, currentLine, lastError, stackDump());
+    }
 }
 
 void Engine::expect(bool expectation,
@@ -832,11 +849,10 @@ void Engine::expect(bool expectation,
     }
 }
 
-void Engine::panic(const QString& error) {
+QString Engine::stackDump() {
     QString buffer;
     buffer += QString("Error:\n");
     buffer += "--------------------------------------------\n";
-    buffer += error + "\n";
     buffer += "Stacktrace:\n";
     buffer += "--------------------------------------------\n";
     buffer += toSimpleString(currentFile) +
@@ -861,10 +877,12 @@ void Engine::panic(const QString& error) {
     buffer += "C: " + toString(c) + "\n";
     buffer += "D: " + toString(d) + "\n";
 
-    println(buffer);
+    return buffer;
+}
 
-    // Stop engine...
-    throw new StopEngineException();
+void Engine::panic(const QString& error) {
+    lastError = error;
+    throw new PanicException();
 }
 
 QString Engine::lookupSource(const QString& fileName) {
@@ -964,21 +982,7 @@ void Engine::call(Atom list) {
 
 
 void Engine::println(const QString& string) {
-    if (interceptor != NULL) {
-        interceptor->println(string);
-    }
-}
-
-void Engine::reportStatus() {
-    if (interceptor != NULL) {
-        EngineStatus status;
-        status.storageStats = storage.getStatus();
-        status.instructionsExecuted = instructionCounter;
-        status.gcRuns = gcRuns;
-        status.timeElapsed = timer.elapsed();
-    interceptor->reportStatus(status);
-}
-    lastStatusReport = instructionCounter;
+    emit onLog(string);
 }
 
 QString Engine::printList(Atom atom) {

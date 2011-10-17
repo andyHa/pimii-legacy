@@ -112,7 +112,7 @@ void FilesExtension::bif_deleteFile(const CallContext& ctx) {
 }
 
 void FilesExtension::bif_moveFile(const CallContext& ctx) {
-    QSharedPointer<Reference> input;
+    Atom input;
     FileInfoReference* src = ctx.fetchRef<FileInfoReference>(BIF_INFO);
     FileInfoReference* target = ctx.fetchRef<FileInfoReference>(BIF_INFO,
                                                                 &input);
@@ -121,5 +121,5 @@ void FilesExtension::bif_moveFile(const CallContext& ctx) {
     dir.rename(src->info.absoluteFilePath(),
                target->info.absoluteFilePath());
 
-    ctx.setReferenceResult(input);
+    ctx.setResult(input);
 }

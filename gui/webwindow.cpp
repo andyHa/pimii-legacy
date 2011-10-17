@@ -34,4 +34,5 @@ QWebView* WebWindow::getWebView() {
 WebWindow::~WebWindow()
 {
     delete ui;
+    delete this;
 }

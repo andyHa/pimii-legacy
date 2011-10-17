@@ -148,23 +148,7 @@ StorageStatus Storage::getStatus() {
     return status;
 }
 
-void Storage::gc(Atom root1, Atom root2, Atom root3, Atom root4, Atom root5) {
-    if (isCons(root1)) {
-        cells[untagIndex(root1)].state = REFERENCED;
-    }
-    if (isCons(root2)) {
-        cells[untagIndex(root2)].state = REFERENCED;
-    }
-    if (isCons(root3)) {
-        cells[untagIndex(root3)].state = REFERENCED;
-    }
-    if (isCons(root4)) {
-        cells[untagIndex(root4)].state = REFERENCED;
-    }
-    if (isCons(root5)) {
-        cells[untagIndex(root5)].state = REFERENCED;
-    }
-
+void Storage::beginGC() {
     for(Word i = 0; i < globalsTable.size(); i++) {
         if (isCons(globalsTable.getValue(i))) {
             cells[untagIndex(globalsTable.getValue(i))].state = REFERENCED;
@@ -174,12 +158,12 @@ void Storage::gc(Atom root1, Atom root2, Atom root3, Atom root4, Atom root5) {
     largeNumberTable.resetRefCount();
     decimalNumberTable.resetRefCount();
     referenceTable.resetRefCount();
-    mark();
-    sweep();
-    stringTable.gc();
-    largeNumberTable.gc();
-    decimalNumberTable.gc();
-    referenceTable.gc();
+}
+
+void Storage::markGCRoot(Atom atom) {
+    if (isCons(atom)) {
+        cells[untagIndex(atom)].state = REFERENCED;
+    }
 }
 
 void Storage::incValueTable(Atom atom, Word idx) {
@@ -234,6 +218,10 @@ void Storage::sweep() {
             cells[i].state = UNUSED;
         }
     }
+    stringTable.gc();
+    largeNumberTable.gc();
+    decimalNumberTable.gc();
+    referenceTable.gc();
 }
 
 Atom Storage::cons(Cons cons, Atom next) {
