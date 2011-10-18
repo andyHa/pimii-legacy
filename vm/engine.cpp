@@ -46,7 +46,7 @@ Atom Engine::pop(Atom& reg) {
     return result;
 }
 
-Engine::Engine() {
+Engine::Engine(QSettings* settings) : settings(settings) {
     running = false;
     s = NIL;
     e = NIL;
@@ -883,6 +883,10 @@ QString Engine::stackDump() {
 void Engine::panic(const QString& error) {
     lastError = error;
     throw new PanicException();
+}
+
+QSettings* Engine::getSettings() {
+    return settings;
 }
 
 QString Engine::lookupSource(const QString& fileName) {

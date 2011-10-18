@@ -62,7 +62,7 @@ private:
     /**
       Clears a given WebWindow
 
-        clearWeb := (WebWindow) -> WebWindow
+        clearWeb := (wnd : WebWindow) -> WebWindow
 
       */
     static void bif_clearWeb(const CallContext& ctx);
@@ -72,7 +72,7 @@ private:
       argument is omitted, a string value is popped from the stack, this
       permits patterns like: <div>Hello</div>; appendWeb(window);
 
-        appendWeb := (String?, WebWindow) -> WebWindow
+        appendWeb := (xml : String?, wnd : WebWindow) -> WebWindow
 
       */
     static void bif_appendWeb(const CallContext& ctx);
@@ -81,7 +81,8 @@ private:
       Querys for a single or a collection of web elements. A base either a
       WebWindow or a WebElement can be given.
 
-        queryWeb := (String, (WebWindow | WebElement) -> (WebElement | List)
+        queryWeb := (path : String, parent : (WebWindow | WebElement)
+                        -> (WebElement | List)
 
       */
     static void bif_queryWeb(const CallContext& ctx);

@@ -102,6 +102,22 @@ private:
       */
     static void bif_substr(const CallContext& ctx);
 
+    /**
+      Reads the given setting
+
+        readSetting := (name : String) -> *
+
+     */
+    static void bif_readSetting(const CallContext& ctx);
+
+    /**
+      Writes the given setting
+
+        writeSetting := (name : String, value : *) -> *
+
+     */
+    static void bif_writeSetting(const CallContext& ctx);
+
 public:
 
     /**

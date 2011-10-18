@@ -33,6 +33,7 @@
 #include <QObject>
 #include <QString>
 #include <QElapsedTimer>
+#include <QSettings>
 
 /**
    Forward reference - see: callcontext.h
@@ -70,6 +71,11 @@ private:
       Used by "panic" to stop the engine.
       */
     class PanicException : public std::exception {};
+
+    /**
+      Provides access to the system settings.
+      */
+    QSettings* settings;
 
     /**
       Dirty hack! Contains the message of the last call to panic. Is handled
@@ -414,6 +420,11 @@ public:
     void panic(const QString& error);
 
     /**
+      Provides direct access to the settings object.
+      */
+     QSettings* getSettings();
+
+    /**
       Prints details of the engine status.
       */
     QString stackDump();
@@ -516,7 +527,7 @@ public:
     /**
       Creates a new engine.
       */
-    Engine();
+    Engine(QSettings* settings);
 
     /**
       Initializes the engine.

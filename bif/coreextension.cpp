@@ -31,6 +31,11 @@ void CoreExtension::registerBuiltInFunctions(Engine* engine) {
 
     // Maths
     //cos sin sqrt round floor ceil pow
+
+    // Specials
+    engine->makeBuiltInFunction("settings::read", bif_readSetting);
+    engine->makeBuiltInFunction("settings::write", bif_writeSetting);
+
 }
 
 void CoreExtension::bif_println(const CallContext& ctx) {
@@ -139,4 +144,40 @@ void CoreExtension::bif_substr(const CallContext& ctx) {
     int length = ctx.fetchNumber(BIF_INFO);
     length = std::min(length, str.length() - pos);
     ctx.setStringResult(str.mid(pos, length));
+}
+
+void CoreExtension::bif_readSetting(const CallContext& ctx) {
+    QVariant val = ctx.engine->getSettings()->value(ctx.fetchString(BIF_INFO));
+    if (val.isNull()) {
+        ctx.setResult(NIL);
+    } else if (val.type() == QVariant::Int) {
+        ctx.setNumberResult(val.toInt());
+    } else if (val.type() == QVariant::String) {
+        QString value = val.toString();
+        if (value.startsWith("#")) {
+            ctx.setResult(ctx.storage->makeSymbol(
+                              value.right(value.length() - 1)));
+        } else {
+            ctx.setStringResult(value);
+        }
+    }
+}
+
+void CoreExtension::bif_writeSetting(const CallContext& ctx) {
+    QString name = ctx.fetchString(BIF_INFO);
+    Atom value = ctx.fetchArgument(BIF_INFO);
+
+    if (isNil(value)) {
+        ctx.engine->getSettings()->setValue(name, QVariant());
+    } else if (isNumber(value)) {
+        ctx.engine->getSettings()->
+                setValue(name, QVariant((int)ctx.storage->getNumber(value)));
+    } else if (isSymbol(value)) {
+        ctx.engine->getSettings()->
+                setValue(name, QVariant(ctx.engine->toString(value)));
+    } else {
+        ctx.engine->getSettings()->
+                setValue(name, QVariant(ctx.engine->toSimpleString(value)));
+    }
+    ctx.engine->getSettings()->sync();
 }

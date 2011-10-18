@@ -41,7 +41,8 @@ bool running() {
 int main(int argc, char *argv[])
 {    
     QApplication a(argc, argv);
-    Engine engine;
+    QSettings settings("pimii","pimii");
+    Engine engine(&settings);
     window = new MainWindow(&engine);
     window->showMaximized();
     engine.initialize();
