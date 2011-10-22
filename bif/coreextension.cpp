@@ -12,30 +12,43 @@ QString CoreExtension::name() {
 void CoreExtension::registerBuiltInFunctions(Engine* engine) {
 
     // Typesystem
-    engine->makeBuiltInFunction("typeOf", bif_typeOf);
-    engine->makeBuiltInFunction("symbol", bif_symbol);
-    engine->makeBuiltInFunction("asString", bif_asString);
-    engine->makeBuiltInFunction("parse", bif_parse);
+    engine->makeBuiltInFunction("sys::typeOf", bif_typeOf);
+    engine->makeBuiltInFunction("sys::symbol", bif_symbol);
+    engine->makeBuiltInFunction("sys::asString", bif_asString);
+    engine->makeBuiltInFunction("sys::parse", bif_parse);
 
     // Compilation
-    engine->makeBuiltInFunction("compile", bif_compile);
-    engine->makeBuiltInFunction("include", bif_include);
-    engine->makeBuiltInFunction("call", bif_call);
-    engine->makeBuiltInFunction("eval", bif_eval);
+    engine->makeBuiltInFunction("sys::compile", bif_compile);
+    engine->makeBuiltInFunction("sys::include", bif_include);
+    engine->makeBuiltInFunction("sys::call", bif_call);
+    engine->makeBuiltInFunction("sys::eval", bif_eval);
 
     // String functions
-    engine->makeBuiltInFunction("strlen", bif_strlen);
-    engine->makeBuiltInFunction("substr", bif_substr);
-    engine->makeBuiltInFunction("println", bif_println);
+    engine->makeBuiltInFunction("str::length", bif_strlen);
+    engine->makeBuiltInFunction("str::part", bif_substr);
     //Split, Explode, Implode
 
     // Maths
     //cos sin sqrt round floor ceil pow
 
     // Specials
+    engine->makeBuiltInFunction("sys::println", bif_println);
+    engine->makeBuiltInFunction("engine::setValue", bif_setValue);
+    engine->makeBuiltInFunction("engine::getValue", bif_getValue);
     engine->makeBuiltInFunction("settings::read", bif_readSetting);
     engine->makeBuiltInFunction("settings::write", bif_writeSetting);
 
+}
+
+
+void CoreExtension::bif_setValue(const CallContext& ctx) {
+    Atom name = ctx.fetchArgument(BIF_INFO);
+    Atom value = ctx.fetchArgument(BIF_INFO);
+    ctx.engine->setValue(name, value);
+}
+
+void CoreExtension::bif_getValue(const CallContext& ctx) {
+    ctx.setResult(ctx.engine->getValue(ctx.fetchArgument(BIF_INFO)));
 }
 
 void CoreExtension::bif_println(const CallContext& ctx) {
@@ -146,8 +159,29 @@ void CoreExtension::bif_substr(const CallContext& ctx) {
     ctx.setStringResult(str.mid(pos, length));
 }
 
+QVariant CoreExtension::fetchQVariant(const CallContext& ctx,
+                                      const char* bifName,
+                                      const char* file,
+                                      int line) {
+    if (!ctx.hasMoreArguments()) {
+        return QVariant();
+    }
+    Atom value = ctx.fetchArgument(bifName, file, line);
+    if (isNil(value)) {
+        return QVariant();
+    } else if (isNumber(value)) {
+        return QVariant((int)ctx.storage->getNumber(value));
+    } else if (isSymbol(value)) {
+        return QVariant(ctx.engine->toString(value));
+    } else {
+       return QVariant(ctx.engine->toSimpleString(value));
+    }
+}
+
 void CoreExtension::bif_readSetting(const CallContext& ctx) {
-    QVariant val = ctx.engine->getSettings()->value(ctx.fetchString(BIF_INFO));
+    QString name = ctx.fetchString(BIF_INFO);
+    QVariant defaultValue = fetchQVariant(ctx, BIF_INFO);
+    QVariant val = ctx.engine->getSettings()->value(name, defaultValue);
     if (val.isNull()) {
         ctx.setResult(NIL);
     } else if (val.type() == QVariant::Int) {
@@ -165,19 +199,8 @@ void CoreExtension::bif_readSetting(const CallContext& ctx) {
 
 void CoreExtension::bif_writeSetting(const CallContext& ctx) {
     QString name = ctx.fetchString(BIF_INFO);
-    Atom value = ctx.fetchArgument(BIF_INFO);
-
-    if (isNil(value)) {
-        ctx.engine->getSettings()->setValue(name, QVariant());
-    } else if (isNumber(value)) {
-        ctx.engine->getSettings()->
-                setValue(name, QVariant((int)ctx.storage->getNumber(value)));
-    } else if (isSymbol(value)) {
-        ctx.engine->getSettings()->
-                setValue(name, QVariant(ctx.engine->toString(value)));
-    } else {
-        ctx.engine->getSettings()->
-                setValue(name, QVariant(ctx.engine->toSimpleString(value)));
-    }
+    QVariant value = fetchQVariant(ctx, BIF_INFO);
+    ctx.engine->getSettings()->setValue(name, value);
     ctx.engine->getSettings()->sync();
+    ctx.setResult(NIL);
 }

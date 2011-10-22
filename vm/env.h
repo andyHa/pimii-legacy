@@ -422,6 +422,119 @@ const Atom SYMBOL_OP_FILE = SYMBOL(OP_CODE_INDEX + 34);
 const Atom SYMBOL_OP_LINE = SYMBOL(OP_CODE_INDEX + 35);
 
 /**
+  Can be used to easily set the offset for all value symbols.
+  These symbols are used by the setValue/getValue management extensions.
+  */
+const Word VALUE_INDEX = OP_CODE_INDEX + 36;
+
+/**
+  Used to set/get the number of executed op codes per cycle in the event
+  loop. This can heavily alter the responsiveness of the UI.
+  */
+const Atom SYMBOL_VALUE_OP_CODES_PER_EVENT_LOOP = SYMBOL(VALUE_INDEX + 0);
+
+/**
+  Used to set/get the home path of the pimii installation.
+  */
+const Atom SYMBOL_VALUE_HOME_PATH = SYMBOL(VALUE_INDEX + 1);
+
+/**
+  Used to set/get the minimal number of cells required to trigger the
+  garbage collector.
+  */
+const Atom SYMBOL_VALUE_GC_MIN_CELLS = SYMBOL(VALUE_INDEX + 2);
+
+/**
+  Used to set/get the flag which controls the debug output of the compiler
+  */
+const Atom SYMBOL_VALUE_DEBUG_COMPILER = SYMBOL(VALUE_INDEX + 3);
+
+/**
+  Used to set/get the flag which controls the debug output of the engine
+  */
+const Atom SYMBOL_VALUE_DEBUG_ENGINE = SYMBOL(VALUE_INDEX + 4);
+
+/**
+  Used to set/get the flag which controls the debug output of the storage
+  */
+const Atom SYMBOL_VALUE_DEBUG_STORAGE = SYMBOL(VALUE_INDEX + 5);
+
+/**
+  Used to get the total number of op codes executed by the engine.
+  */
+const Atom SYMBOL_VALUE_OP_COUNT = SYMBOL(VALUE_INDEX + 6);
+
+/**
+  Used to get the total number of GCs executed by the storage.
+  */
+const Atom SYMBOL_VALUE_GC_COUNT = SYMBOL(VALUE_INDEX + 7);
+
+/**
+  Used to access Storage::statusNumGCRoots
+  */
+const Atom SYMBOL_VALUE_NUM_GC_ROOTS = SYMBOL(VALUE_INDEX + 8);
+
+/**
+  Used to access Storage::statusNumSymbols
+  */
+const Atom SYMBOL_VALUE_NUM_SYMBOLS = SYMBOL(VALUE_INDEX + 9);
+
+/**
+  Used to access Storage::statusNumGlobals
+  */
+const Atom SYMBOL_VALUE_NUM_GLOBALS = SYMBOL(VALUE_INDEX + 10);
+
+/**
+  Used to access Storage::statusTotalCells
+  */
+const Atom SYMBOL_VALUE_NUM_TOTAL_CELLS = SYMBOL(VALUE_INDEX + 11);
+
+/**
+  Used to access Storage::statusCellsUsed
+  */
+const Atom SYMBOL_VALUE_NUM_CELLS_USED = SYMBOL(VALUE_INDEX + 12);
+
+/**
+  Used to access Storage::statusTotalStrings
+  */
+const Atom SYMBOL_VALUE_NUM_TOTAL_STRINGS = SYMBOL(VALUE_INDEX + 13);
+
+/**
+  Used to access Storage::statusCellsUsed
+  */
+const Atom SYMBOL_VALUE_NUM_STRINGS_USED = SYMBOL(VALUE_INDEX + 14);
+
+/**
+  Used to access Storage::statusTotalNumbers
+  */
+const Atom SYMBOL_VALUE_NUM_TOTAL_NUMBERS = SYMBOL(VALUE_INDEX + 15);
+
+/**
+  Used to access Storage::statusNumbersUsed
+  */
+const Atom SYMBOL_VALUE_NUM_NUMBERS_USED = SYMBOL(VALUE_INDEX + 16);
+
+/**
+  Used to access Storage::statusDecimalsUsed
+  */
+const Atom SYMBOL_VALUE_NUM_TOTAL_DECIMALS = SYMBOL(VALUE_INDEX + 17);
+
+/**
+  Used to access Storage::statusTotalDecimals
+  */
+const Atom SYMBOL_VALUE_NUM_DECIMALS_USED = SYMBOL(VALUE_INDEX + 18);
+
+/**
+  Used to access Storage::statusReferencesUsed
+  */
+const Atom SYMBOL_VALUE_NUM_TOTAL_REFERENCES = SYMBOL(VALUE_INDEX + 19);
+
+/**
+  Used to access Storage::statusTotalReferences
+  */
+const Atom SYMBOL_VALUE_NUM_REFERENES_USED = SYMBOL(VALUE_INDEX + 29);
+
+/**
   Reads the tag of a given atom.
   */
 inline Word getType(Atom atom) {
@@ -520,33 +633,6 @@ inline Word untagIndex(Atom atom) {
 inline Atom tagIndex(Word index, Word type) {
     return (index << TAG_LENGTH) | type;
 }
-
-/**
-  Provides information about the current state of the storage.
-  */
-struct StorageStatus {
-    Word cellsUsed;
-    Word totalCells;
-    Word numSymbols;
-    Word numGlobals;
-    Word stringsUsed;
-    Word totalStrings;
-    Word numbersUsed;
-    Word totalNumbers;
-    Word deicmalsUsed;
-    Word totalDecimals;
-};
-
-/**
-  Provides information about the status of an Engine.
-  */
-struct EngineStatus {
-    Word timeElapsed;
-    Word instructionsExecuted;
-    Word gcRuns;
-    StorageStatus storageStats;
-};
-Q_DECLARE_METATYPE(EngineStatus)
 
 /**
   Converts an int to a QString

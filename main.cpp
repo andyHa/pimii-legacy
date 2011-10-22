@@ -53,7 +53,7 @@ int main(int argc, char *argv[])
         a.sendPostedEvents();
         loop.processEvents(QEventLoop::WaitForMoreEvents);
         while (engine.isRunnable()) {
-            engine.interpret(1000);
+            engine.interpret();
             a.sendPostedEvents();
             loop.processEvents(QEventLoop::AllEvents);
         }

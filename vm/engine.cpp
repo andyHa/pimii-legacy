@@ -32,31 +32,40 @@
 #include <sstream>
 #include <exception>
 
-void Engine::push(Atom& reg, Atom atom) {
-   reg = storage.makeCons(atom, reg);
+void Engine::push(AtomRef* reg, Atom atom) {
+   reg->atom(storage.makeCons(atom, reg->atom()));
 }
 
-Atom Engine::pop(Atom& reg) {
-    if (!isCons(reg)) {
+Atom Engine::pop(AtomRef* reg) {
+    if (!isCons(reg->atom())) {
         return NIL;
     }
-    Cons cons = storage.getCons(reg);
+    Cons cons = storage.getCons(reg->atom());
     Atom result = cons->car;
-    reg = cons->cdr;
+    reg->atom(cons->cdr);
     return result;
 }
 
-Engine::Engine(QSettings* settings) : settings(settings) {
+Engine::Engine(QSettings* settings) :
+    settings(settings),
+    s(storage.ref(NIL)),
+    e(storage.ref(NIL)),
+    c(storage.ref(NIL)),
+    d(storage.ref(NIL)),
+    p(storage.ref(NIL))
+{
     running = false;
-    s = NIL;
-    e = NIL;
-    c = NIL;
-    d = NIL;
-    p = NIL;
+    opCodesInInterpret = settings->value(
+                toSimpleString(SYMBOL_VALUE_OP_CODES_PER_EVENT_LOOP),
+                1000).toUInt();
 }
 
 Engine::~Engine() {
-
+    delete s;
+    delete e;
+    delete c;
+    delete d;
+    delete p;
 }
 
 void Engine::initialize() {
@@ -115,20 +124,7 @@ QString Engine::getBIFName(Atom atom) {
 }
 
 void Engine::gc() {
-    storage.beginGC();
-    storage.markGCRoot(s);
-    storage.markGCRoot(e);
-    storage.markGCRoot(c);
-    storage.markGCRoot(d);
-    storage.markGCRoot(p);
-    for(std::deque<Execution>::const_iterator
-            i = executionStack.begin();
-            i != executionStack.end();
-            ++i) {
-        storage.markGCRoot(i->fn);
-    }
-    storage.mark();
-    storage.sweep();
+    storage.gc();
 }
 
 void Engine::opNIL() {
@@ -173,12 +169,12 @@ void Engine::opBT() {
     Atom discriminator = pop(s);
     Atom ct = pop(c);
     if (discriminator == SYMBOL_TRUE) {
-        c = ct;
+        c->atom(ct);
     }
 }
 
 void Engine::opLDF() {
-    push(s, storage.makeCons(pop(c), e));
+    push(s, storage.makeCons(pop(c), e->atom()));
 }
 
 Atom Engine::nth(Atom list, Word idx) {
@@ -193,9 +189,9 @@ Atom Engine::nth(Atom list, Word idx) {
     }
 }
 
-Atom Engine::head(Atom list) {
-    if (isCons(list)) {
-       return storage.getCons(list)->car;
+Atom Engine::head(AtomRef* list) {
+    if (isCons(list->atom())) {
+       return storage.getCons(list->atom())->car;
     } else {
         return NIL;
     }
@@ -226,17 +222,17 @@ void Engine::opAP(bool hasArguments) {
             // We have a tail recursion -> don't push useless stuff on the
             // dump-stack, only flush stack, restart code and environment
             // (with new args)
-            s = NIL;
-            c = funPair->car;
-            e = storage.makeCons(v, funPair->cdr);
+            s->atom(NIL);
+            c->atom(funPair->car);
+            e->atom(storage.makeCons(v, funPair->cdr));
         } else {
-            push(d, e);
-            push(d, s);
-            push(d, c);
-            s = NIL;
-            c = funPair->car;
-            push(d, c);
-            e = storage.makeCons(v, funPair->cdr);
+            push(d, e->atom());
+            push(d, s->atom());
+            push(d, c->atom());
+            s->atom(NIL);
+            c->atom(funPair->car);
+            push(d, c->atom());
+            e->atom(storage.makeCons(v, funPair->cdr));
             push(p, storage.makeCons(currentFile,
                                      storage.makeNumber(currentLine)));
         }
@@ -246,10 +242,10 @@ void Engine::opAP(bool hasArguments) {
 void Engine::opRTN() {
     Atom result = pop(s);
     pop(d);
-    c = pop(d);
-    s = pop(d);
+    c->atom(pop(d));
+    s->atom(pop(d));
     push(s, result);
-    e = pop(d);
+    e->atom(pop(d));
     pop(p);
 }
 
@@ -559,7 +555,7 @@ Atom Engine::locate(Atom pos) {
            __FILE__,
            __LINE__);
     Word j = storage.getNumber(cons->cdr);
-    Atom env = e;
+    Atom env = e->atom();
     while (i > 1) {
         if (!isCons(env)) {
             // We could also throw an exception here because this is most
@@ -604,7 +600,7 @@ void Engine::store(Atom pos, Atom value) {
            __FILE__,
            __LINE__);
     Word j = storage.getNumber(cons->cdr);
-    Atom env = e;
+    Atom env = e->atom();
     while (i > 1) {
         if (!isCons(env)) {
             // We could also throw an exception here because this is most
@@ -766,11 +762,11 @@ void Engine::dispatch(Atom opcode) {
 
 
 bool Engine::loadNextExecution() {
-    s = NIL;
-    e = NIL;
-    c = NIL;
-    d = NIL;
-    p = NIL;
+    s->atom(NIL);
+    e->atom(NIL);
+    c->atom(NIL);
+    d->atom(NIL);
+    p->atom(NIL);
 
     if (executionStack.empty()) {
         return false;
@@ -778,7 +774,8 @@ bool Engine::loadNextExecution() {
     Execution exe = executionStack.front();
     executionStack.pop_front();
 
-    c = exe.fn;
+    c->atom(exe.fn->atom());
+    delete exe.fn;
     currentFile = storage.makeSymbol(exe.filename);
     currentLine = 1;
     push(p, storage.makeCons(currentFile, storage.makeNumber(currentLine)));
@@ -794,18 +791,18 @@ void Engine::eval(const QString& source, const QString& filename) {
     Atom code = compileSource(filename, source, true, false);
     Execution exe;
     exe.filename = filename;
-    exe.fn = code;
+    exe.fn = storage.ref(code);
     executionStack.push_back(exe);
     if (!running) {
         running = true;
         emit onEngineStarted();
     }}
 
-void Engine::interpret(Word maxOpCodes) {
+void Engine::interpret() {
     if (!running) {
         return;
     }
-    if (c == NIL) {
+    if (c->atom() == NIL) {
         if (!loadNextExecution()) {
             running = false;
             emit onEngineStopped();
@@ -813,6 +810,7 @@ void Engine::interpret(Word maxOpCodes) {
         }
     }
     try {
+        Word maxOpCodes = opCodesInInterpret;
         while (running && maxOpCodes > 0) {
             Atom op = pop(c);
             if (op == SYMBOL_OP_STOP) {
@@ -872,10 +870,10 @@ QString Engine::stackDump() {
 
     buffer += "Registers:\n";
     buffer += "--------------------------------------------\n";
-    buffer += "S: " + toString(s) + "\n";
-    buffer += "E: " + toString(e) + "\n";
-    buffer += "C: " + toString(c) + "\n";
-    buffer += "D: " + toString(d) + "\n";
+    buffer += "S: " + toString(s->atom()) + "\n";
+    buffer += "E: " + toString(e->atom()) + "\n";
+    buffer += "C: " + toString(c->atom()) + "\n";
+    buffer += "D: " + toString(d->atom()) + "\n";
 
     return buffer;
 }
@@ -959,10 +957,10 @@ void Engine::call(Atom list) {
     if (!isCons(list)) {
         return;
     }
-    push(d, e);
-    push(d, s);
-    push(d, c);
-    s = NIL;
+    push(d, e->atom());
+    push(d, s->atom());
+    push(d, c->atom());
+    s->atom(NIL);
     //Check if code ends with an RTN statement...
     Atom tmp = list;
     Cons cell = storage.getCons(tmp);
@@ -978,9 +976,9 @@ void Engine::call(Atom list) {
     if (cell->car != SYMBOL_OP_RTN) {
         cell->cdr = storage.makeCons(SYMBOL_OP_RTN, NIL);
     }
-    c = list;
-    push(d, c);
-    e = NIL;
+    c->atom(list);
+    push(d, c->atom());
+    e->atom(NIL);
     push(p, storage.makeCons(currentFile, storage.makeNumber(currentLine)));
 }
 
@@ -1076,4 +1074,55 @@ void Engine::initializeBIF() {
     CoreExtension::INSTANCE->registerBuiltInFunctions(this);
     FilesExtension::INSTANCE->registerBuiltInFunctions(this);
     WebExtension::INSTANCE->registerBuiltInFunctions(this);
+}
+
+void Engine::setValue(Atom name, Atom value) {
+    if (name == SYMBOL_VALUE_OP_CODES_PER_EVENT_LOOP) {
+        if (!isNumber(value)) {
+            panic(QString("setValue requires a number for the key %1 (%2:%3)").
+                  arg(toSimpleString(name), __FILE__, intToString(__LINE__)));
+        }
+        opCodesInInterpret = std::max(1l, storage.getNumber(value));
+        settings->setValue(toSimpleString(SYMBOL_VALUE_OP_CODES_PER_EVENT_LOOP),
+                           opCodesInInterpret);
+        settings->sync();
+    }
+}
+
+Atom Engine::getValue(Atom name) {
+    if (name == SYMBOL_VALUE_OP_COUNT) {
+        return storage.makeNumber(instructionCounter);
+    } else if (name == SYMBOL_VALUE_GC_COUNT) {
+        return storage.makeNumber(storage.statusNumGC());
+    } else if (name == SYMBOL_VALUE_OP_CODES_PER_EVENT_LOOP) {
+        return storage.makeNumber(opCodesInInterpret);
+    } else if (name == SYMBOL_VALUE_NUM_GC_ROOTS) {
+        return storage.makeNumber(storage.statusNumGCRoots());
+    } else if (name == SYMBOL_VALUE_NUM_SYMBOLS) {
+        return storage.makeNumber(storage.statusNumSymbols());
+    } else if (name == SYMBOL_VALUE_NUM_GLOBALS) {
+        return storage.makeNumber(storage.statusNumGlobals());
+    } else if (name == SYMBOL_VALUE_NUM_TOTAL_CELLS) {
+        return storage.makeNumber(storage.statusTotalCells());
+    } else if (name == SYMBOL_VALUE_NUM_CELLS_USED) {
+        return storage.makeNumber(storage.statusCellsUsed());
+    } else if (name == SYMBOL_VALUE_NUM_TOTAL_STRINGS) {
+        return storage.makeNumber(storage.statusTotalStrings());
+    } else if (name == SYMBOL_VALUE_NUM_STRINGS_USED) {
+        return storage.makeNumber(storage.statusStringsUsed());
+    } else if (name == SYMBOL_VALUE_NUM_TOTAL_NUMBERS) {
+        return storage.makeNumber(storage.statusTotalNumbers());
+    } else if (name == SYMBOL_VALUE_NUM_NUMBERS_USED) {
+        return storage.makeNumber(storage.statusNumbersUsed());
+    } else if (name == SYMBOL_VALUE_NUM_TOTAL_DECIMALS) {
+        return storage.makeNumber(storage.statusTotalDecimals());
+    } else if (name == SYMBOL_VALUE_NUM_DECIMALS_USED) {
+        return storage.makeNumber(storage.statusDecimalsUsed());
+    } else if (name == SYMBOL_VALUE_NUM_TOTAL_REFERENCES) {
+        return storage.makeNumber(storage.statusTotalReferences());
+    } else if (name == SYMBOL_VALUE_NUM_REFERENES_USED) {
+        return storage.makeNumber(storage.statusReferencesUsed());
+    }
+
+    return NIL;
 }

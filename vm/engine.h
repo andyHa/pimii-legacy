@@ -53,7 +53,7 @@ typedef void (*BIF)(const CallContext& ctx);
   */
 struct Execution {
     QString filename;
-    Atom fn;
+    AtomRef* fn;
 };
 
 /**
@@ -104,34 +104,40 @@ private:
     Word instructionCounter;
 
     /**
+      Contains the max number of op codes executed in the interpret function
+      which is called in the event loop.
+      */
+    Word opCodesInInterpret;
+
+    /**
       Represents the stack register on which most of the computations are
       performed.
       */
-    Atom s;
+    AtomRef* const s;
 
     /**
       Represents the environment register. Contains the bound environment
       which are parameters and visible local variables.
       */
-    Atom e;
+    AtomRef* const e;
 
     /**
       Represents the code register, which contains the bytecode of the
       current function.
       */
-    Atom c;
+    AtomRef* const c;
 
     /**
       Represents the dump register, which is used to buffer the other
       registers during invocation of other functions etc.
       */
-    Atom d;
+    AtomRef* const d;
 
     /**
       Represents the position register. Contains a pair (file.line) for each
       function application.
       */
-    Atom p;
+    AtomRef* const p;
 
     /**
       Returns the nth item of the given list or register.
@@ -141,17 +147,17 @@ private:
     /**
       Returns the head of the given list or register.
       */
-    Atom head(Atom list);
+    Atom head(AtomRef* list);
 
     /**
       Pushes a value on the given machine register.
       */
-    void push(Atom& reg, Atom value);
+    void push(AtomRef* reg, Atom value);
 
     /**
       Pops a value from the given machine register.
       */
-    Atom pop(Atom& reg);
+    Atom pop(AtomRef* reg);
 
     /**
       Contains the currently active file. This is set by the #FILE bytecode.
@@ -512,7 +518,7 @@ public:
     /**
       Continues the current evaluation.
       */
-    void interpret(Word maxOpCodes);
+    void interpret();
 
     /**
       Returns if the engine has executable work to run.
@@ -535,6 +541,20 @@ public:
     void initialize();
 
     ~Engine();
+
+    /**
+      Used by the management interface (core extension provides an
+      engine::setValue function to set the internal state of the engine.
+      This provides an extensible mechanism to change various internal
+      variables. The given name must be a symbol. The given value will be
+      checked by the function.
+      */
+    void setValue(Atom name, Atom value);
+
+    /**
+      Reads an internal variable. See setValue for more information.
+      */
+    Atom getValue(Atom name);
 
     friend class Compiler;
 };

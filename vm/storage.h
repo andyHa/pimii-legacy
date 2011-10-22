@@ -31,6 +31,7 @@
 #include "reference.h"
 
 #include <QSharedPointer>
+#include <set>
 
 /**
   Represents the central unit of memory management. All data
@@ -75,6 +76,11 @@ struct StorageEntry {
 };
 
 /**
+  Forward reference. See below.
+  */
+class AtomRef;
+
+/**
   Storage area, contains a complete storage image for
   exectuion.
   */
@@ -89,6 +95,11 @@ class Storage
       Registers symbols which have fixed and expected index values.
       */
     void initializeSymbols();
+
+    /**
+      Counts the number of executed garbage collections.
+      */
+    Word gcCounter;
 
     /**
       Maps Strings to unique symbol indices
@@ -131,10 +142,33 @@ class Storage
     std::vector<Word> freeList;
 
     /**
+      Contains all external references to atoms.
+      */
+    std::set<AtomRef*> strongReferences;
+
+    /**
       Increments the location in the given value table if the given
       atom points to one.
       */
     void incValueTable(Atom atom, Word idx);
+
+    /**
+      Removes the given reference.
+      */
+    void removeRef(AtomRef* ref);
+
+    /**
+      Implements the mark-phase of the garbage collector.
+      */
+    void mark();
+
+    /**
+      Implements the sweep-phase of the garbage collector.
+      */
+    void sweep();
+
+
+    friend class AtomRef;
 
     Q_DISABLE_COPY(Storage)
 public:
@@ -149,7 +183,6 @@ public:
       Returns the name of the given symbol.
       */
     QString getSymbolName(Atom symbol);
-
 
     /**
       Generates a new cell, initialized with car and NIL
@@ -237,29 +270,146 @@ public:
     Atom makeReference(const QSharedPointer<Reference>& value);
 
     /**
-      Returns the current status of the storage.
+      Invokes the garbage collector.
       */
-    StorageStatus getStatus();
+    void gc();
 
     /**
-      Prepares the garbage collector.
+      Creates a new GC-root reference. This is initialized with the given
+      atom. If no atom is available, NIL can be used.
       */
-    void beginGC();
+    AtomRef* ref(Atom atom);
 
     /**
-      Marks an atom as GC root.
+      Returns the number of executed GCs.
       */
-    void markGCRoot(Atom atom);
+    Word statusNumGC() {
+        return gcCounter;
+    }
 
     /**
-      Implements the mark-phase of the garbage collector.
+      Returns the count of GC roots. (AtomRefs)
       */
-    void mark();
+    Word statusNumGCRoots() {
+        return strongReferences.size();
+    }
 
     /**
-      Implements the sweep-phase of the garbage collector.
+      Returns the size of the symbol table.
       */
-    void sweep();
+    Word statusNumSymbols() {
+        return symbolTable.size();
+    }
+
+    /**
+      Returns the number of global variables.
+      */
+    Word statusNumGlobals() {
+        return globalsTable.size();
+    }
+
+    /**
+      Returns the size of the cell storage.
+      */
+    Word statusTotalCells() {
+        return cells.size();
+    }
+
+    /**
+      Returns the number of reachable cells.
+      */
+    Word statusCellsUsed() {
+        return cells.size() - freeList.size();
+    }
+
+    /**
+      Returns the total size of the strings table.
+      */
+    Word statusTotalStrings() {
+        return stringTable.getTotalCells();
+    }
+
+    /**
+      Returns the number of utilized strings.
+      */
+    Word statusStringsUsed() {
+        return stringTable.getNumberOfUsedCells();
+    }
+
+    /**
+      Returns the total size of the large number table.
+      */
+    Word statusTotalNumbers() {
+        return largeNumberTable.getTotalCells();
+    }
+
+    /**
+      Returns the number of utilized large numbers.
+      */
+    Word statusNumbersUsed() {
+        return largeNumberTable.getNumberOfUsedCells();
+    }
+
+    /**
+      Returns the total size of the decimal number table.
+      */
+    Word statusDecimalsUsed() {
+        return decimalNumberTable.getTotalCells();
+    }
+
+    /**
+      Returns the number of utilized decimal numbers.
+      */
+    Word statusTotalDecimals() {
+        return decimalNumberTable.getNumberOfUsedCells();
+    }
+
+    /**
+      Returns the size of the reference table.
+      */
+    Word statusReferencesUsed() {
+        return referenceTable.getTotalCells();
+    }
+
+    /**
+      Returns the number of utilized references.
+      */
+    Word statusTotalReferences() {
+        return referenceTable.getNumberOfUsedCells();
+    }
+
+};
+
+
+/**
+  Describes a "strong" reference to an atom. Strong means, that it will
+  prevent the atom from beeing garbage collected while referenced.
+  */
+class AtomRef {
+private:
+    Storage* storage;
+    Atom referencedAtom;
+
+    AtomRef(Storage* storage, Atom atom) :
+        storage(storage),
+        referencedAtom(atom) {}
+
+    Q_DISABLE_COPY(AtomRef)
+
+    friend class Storage;
+public:
+    Atom atom() {
+        return referencedAtom;
+    }
+
+    void atom(Atom atom) {
+        referencedAtom = atom;
+    }
+
+    ~AtomRef() {
+        storage->removeRef(this);
+    }
+
 };
 
 #endif // STORAGE_H

@@ -46,7 +46,6 @@ MainWindow::MainWindow(Engine* engine, QWidget *parent)
 
     setCentralWidget(splitter);
     setWindowTitle(tr("pimii 1.0"));
-    qRegisterMetaType<EngineStatus>("EngineStatus");
 
     setupFileMenu();
     setupRunMenu();

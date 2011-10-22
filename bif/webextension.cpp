@@ -7,10 +7,10 @@ QString WebExtension::name() {
 }
 
 void WebExtension::registerBuiltInFunctions(Engine* engine) {
-    engine->makeBuiltInFunction("openWeb", bif_openWeb);
-    engine->makeBuiltInFunction("clearWeb", bif_clearWeb);
-    engine->makeBuiltInFunction("appendWeb", bif_appendWeb);
-    engine->makeBuiltInFunction("queryWeb", bif_queryWeb);
+    engine->makeBuiltInFunction("web::open", bif_openWeb);
+    engine->makeBuiltInFunction("web::clear", bif_clearWeb);
+    engine->makeBuiltInFunction("web::append", bif_appendWeb);
+    engine->makeBuiltInFunction("web::query", bif_queryWeb);
 }
 
 void WebExtension::bif_openWeb(const CallContext& ctx) {

@@ -8,6 +8,22 @@ class CoreExtension : public EngineExtension
 {
 private:
     /**
+      Sets an engine parameter.
+
+        setValue := (name : Symbol, value : *) -> NIL
+
+     */
+    static void bif_setValue(const CallContext& ctx);
+
+    /**
+      Reads an engine parameter.
+
+        getValue := (name : Symbol) -> *
+
+     */
+    static void bif_getValue(const CallContext& ctx);
+
+    /**
       Prints the given argument to the console and appends a
       linebreak.
 
@@ -15,7 +31,6 @@ private:
 
      */
     static void bif_println(const CallContext& ctx);
-
 
     /**
       Determines the type of the given argument and pushes an appropriate
@@ -117,6 +132,14 @@ private:
 
      */
     static void bif_writeSetting(const CallContext& ctx);
+
+    /**
+      Fetches a QVariant from the given context.
+      */
+    static QVariant fetchQVariant(const CallContext& ctx,
+                                  const char* bifName,
+                                  const char* file,
+                                  int line);
 
 public:
 

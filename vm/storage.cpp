@@ -24,6 +24,7 @@
 
 Storage::Storage() {
     initializeSymbols();
+    gcCounter = 0;
 }
 
 void Storage::declaredFixedSymbol(Word expected, const char* name) {
@@ -83,6 +84,31 @@ void Storage::initializeSymbols() {
     declaredFixedSymbol(SYMBOL_OP_CHAIN_END, "CHAINEND");
     declaredFixedSymbol(SYMBOL_OP_FILE, "FILE");
     declaredFixedSymbol(SYMBOL_OP_LINE, "LINE");
+    declaredFixedSymbol(SYMBOL_VALUE_OP_CODES_PER_EVENT_LOOP,
+                        "OP_CODES_PER_EVENT_LOOP");
+    declaredFixedSymbol(SYMBOL_VALUE_HOME_PATH, "HOME_PATH");
+    declaredFixedSymbol(SYMBOL_VALUE_GC_MIN_CELLS, "GC_MIN_CELLS");
+    declaredFixedSymbol(SYMBOL_VALUE_DEBUG_COMPILER, "DEBUG_COMPILER");
+    declaredFixedSymbol(SYMBOL_VALUE_DEBUG_ENGINE, "DEBUG_ENGINE");
+    declaredFixedSymbol(SYMBOL_VALUE_DEBUG_STORAGE, "DEBUG_STORAGE");
+    declaredFixedSymbol(SYMBOL_VALUE_OP_COUNT, "OP_COUNT");
+    declaredFixedSymbol(SYMBOL_VALUE_GC_COUNT, "GC_COUNT");
+    declaredFixedSymbol(SYMBOL_VALUE_NUM_GC_ROOTS, "NUM_GC_ROOTS");
+    declaredFixedSymbol(SYMBOL_VALUE_NUM_SYMBOLS, "NUM_SYMBOLS");
+    declaredFixedSymbol(SYMBOL_VALUE_NUM_GLOBALS, "NUM_GLOBALS");
+    declaredFixedSymbol(SYMBOL_VALUE_NUM_TOTAL_CELLS, "NUM_TOTAL_CELLS");
+    declaredFixedSymbol(SYMBOL_VALUE_NUM_CELLS_USED, "NUM_CELLS_USED");
+    declaredFixedSymbol(SYMBOL_VALUE_NUM_TOTAL_STRINGS, "NUM_TOTAL_STRINGS");
+    declaredFixedSymbol(SYMBOL_VALUE_NUM_STRINGS_USED, "NUM_STRINGS_USED");
+    declaredFixedSymbol(SYMBOL_VALUE_NUM_TOTAL_NUMBERS, "NUM_TOTAL_NUMBERS");
+    declaredFixedSymbol(SYMBOL_VALUE_NUM_NUMBERS_USED, "NUM_NUMBERS_USED");
+    declaredFixedSymbol(SYMBOL_VALUE_NUM_TOTAL_DECIMALS, "NUM_TOTAL_DECIMALS");
+    declaredFixedSymbol(SYMBOL_VALUE_NUM_DECIMALS_USED, "NUM_DECIMALS_USED");
+    declaredFixedSymbol(SYMBOL_VALUE_NUM_TOTAL_REFERENCES,
+                        "NUM_TOTAL_REFERENCES");
+    declaredFixedSymbol(SYMBOL_VALUE_NUM_REFERENES_USED,
+                        "SYMBOL_VALUE_NUM_REFERENES_USED");
+
 }
 
 
@@ -133,37 +159,43 @@ Cons Storage::getCons(Atom atom) {
     return cells[untagIndex(atom)].cell;
 }
 
-StorageStatus Storage::getStatus() {
-    StorageStatus status;
-    status.cellsUsed = (Word)cells.size() - (Word)freeList.size();
-    status.totalCells = cells.size();
-    status.numSymbols = symbolTable.size();
-    status.numGlobals = globalsTable.size();
-    status.stringsUsed = stringTable.getNumberOfUsedCells();
-    status.totalStrings = stringTable.getTotalCells();
-    status.numbersUsed = largeNumberTable.getNumberOfUsedCells();
-    status.totalNumbers = largeNumberTable.getNumberOfUsedCells();
-    status.deicmalsUsed = decimalNumberTable.getNumberOfUsedCells();
-    status.totalDecimals = decimalNumberTable.getNumberOfUsedCells();
-    return status;
-}
-
-void Storage::beginGC() {
-    for(Word i = 0; i < globalsTable.size(); i++) {
-        if (isCons(globalsTable.getValue(i))) {
-            cells[untagIndex(globalsTable.getValue(i))].state = REFERENCED;
-        }
-    }
+void Storage::gc() {
+    // Cleanup ref counts
     stringTable.resetRefCount();
     largeNumberTable.resetRefCount();
     decimalNumberTable.resetRefCount();
     referenceTable.resetRefCount();
-}
 
-void Storage::markGCRoot(Atom atom) {
-    if (isCons(atom)) {
-        cells[untagIndex(atom)].state = REFERENCED;
+    // Mark globals as referenced
+    for(Word i = 0; i < globalsTable.size(); i++) {
+        if (isCons(globalsTable.getValue(i))) {
+            cells[untagIndex(globalsTable.getValue(i))].state = REFERENCED;
+        } else {
+            incValueTable(globalsTable.getValue(i),
+                          untagIndex(globalsTable.getValue(i)));
+        }
     }
+
+    // Mark strong references as referenced
+    for(std::set<AtomRef*>::iterator
+        iter = strongReferences.begin();
+        iter != strongReferences.end();
+        ++iter) {
+        AtomRef* ref = *iter;
+        if (isCons(ref->atom())) {
+            cells[untagIndex(ref->atom())].state = REFERENCED;
+        } else {
+            incValueTable(ref->atom(), untagIndex(ref->atom()));
+        }
+    }
+
+    // execute mark-phase
+    mark();
+
+    // execute sweep-phase
+    sweep();
+
+    gcCounter++;
 }
 
 void Storage::incValueTable(Atom atom, Word idx) {
@@ -222,6 +254,16 @@ void Storage::sweep() {
     largeNumberTable.gc();
     decimalNumberTable.gc();
     referenceTable.gc();
+}
+
+AtomRef* Storage::ref(Atom atom) {
+    AtomRef* result = new AtomRef(this, atom);
+    strongReferences.insert(result);
+    return result;
+}
+
+void Storage::removeRef(AtomRef* ref) {
+    strongReferences.erase(ref);
 }
 
 Atom Storage::cons(Cons cons, Atom next) {
@@ -309,5 +351,4 @@ long Storage::getNumber(Atom atom) {
         return largeNumberTable.get(index);
     }
 }
-
 

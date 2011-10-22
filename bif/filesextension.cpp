@@ -9,18 +9,18 @@ QString FilesExtension::name() {
 
 void FilesExtension::registerBuiltInFunctions(Engine* engine) {
 
-    engine->makeBuiltInFunction("getFile", bif_getFile);
-    engine->makeBuiltInFunction("getHome", bif_getHome);
-    engine->makeBuiltInFunction("getPath", bif_getPath);
-    engine->makeBuiltInFunction("listFiles", bif_listFiles);
-    engine->makeBuiltInFunction("isFile", bif_isFile);
-    engine->makeBuiltInFunction("isDirectory", bif_isDirectory);
-    engine->makeBuiltInFunction("fileExists", bif_fileExists);
-    engine->makeBuiltInFunction("getParentFile", bif_getParentFile);
-    engine->makeBuiltInFunction("getChildFile", bif_getChildFile);
-    engine->makeBuiltInFunction("mkDir", bif_mkDir);
-    engine->makeBuiltInFunction("deleteFile", bif_deleteFile);
-    engine->makeBuiltInFunction("moveFile", bif_moveFile);
+    engine->makeBuiltInFunction("fs::getFile", bif_getFile);
+    engine->makeBuiltInFunction("fs::home", bif_getHome);
+    engine->makeBuiltInFunction("fs::getPath", bif_getPath);
+    engine->makeBuiltInFunction("fs::list", bif_listFiles);
+    engine->makeBuiltInFunction("fs::isFile", bif_isFile);
+    engine->makeBuiltInFunction("fs::isDirectory", bif_isDirectory);
+    engine->makeBuiltInFunction("fs::exists", bif_fileExists);
+    engine->makeBuiltInFunction("fs::getParent", bif_getParentFile);
+    engine->makeBuiltInFunction("fs::getChild", bif_getChildFile);
+    engine->makeBuiltInFunction("fs::mkDir", bif_mkDir);
+    engine->makeBuiltInFunction("fs::delete", bif_deleteFile);
+    engine->makeBuiltInFunction("fs::move", bif_moveFile);
 
     // listFiles isFile isDirectory exists file(forString), directory(forString)
     // cdUp read readall readLine eof write write line openFile closeFile
