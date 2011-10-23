@@ -1,7 +1,0 @@
-fold:with:start: ::= (list, block, sum) -> {
-    [h|t := list : fold: t with: block start: block(h, sum)]
-    [            : sum ]
-};
-
-x := fold: #(1) with: [(e,l) -> 1] start: 0;
-println(x);
