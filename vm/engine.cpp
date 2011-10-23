@@ -58,6 +58,25 @@ Engine::Engine(QSettings* settings) :
     opCodesInInterpret = settings->value(
                 toSimpleString(SYMBOL_VALUE_OP_CODES_PER_EVENT_LOOP),
                 1000).toUInt();
+    initializeSourceLookup();
+}
+
+void Engine::initializeSourceLookup() {
+    QString homePath = settings->value(toSimpleString(SYMBOL_VALUE_HOME_PATH),
+                                       "").toString();
+    if (!homePath.isEmpty()) {
+        homeDir = QDir(homePath);
+        if (homeDir.exists()) {
+            return;
+        }
+    }
+    homeDir = QDir(QFileInfo(QDir::home(),
+                             QString("pimii")).absoluteFilePath());
+    if (homeDir.exists()) {
+        return;
+    } else {
+        homeDir = QDir();
+    }
 }
 
 Engine::~Engine() {
@@ -834,11 +853,11 @@ void Engine::interpret() {
 }
 
 void Engine::expect(bool expectation,
-                    const char* errorMessage,
+                    QString errorMessage,
                     const char* file,
                     int line) {
     if (!expectation) {
-        panic(QString(errorMessage) +
+        panic(errorMessage +
               QString(" (") +
               QString(file) +
               QString(":") +
@@ -888,33 +907,32 @@ QSettings* Engine::getSettings() {
 }
 
 QString Engine::lookupSource(const QString& fileName) {
-    for(std::vector<QString>::iterator
-        i = sourcePaths.begin();
-        i != sourcePaths.end();
-        i++)
-    {
-        QString path = QString((*i) + fileName);
-        QFile file(path);
-        if (file.exists()) {
-            return (*i) + fileName;
-        }
+    QDir currentDir;
+    QFileInfo file = QFileInfo(currentDir.absolutePath()
+                               + "/"
+                               + fileName);
+    if (file.exists()) {
+        return file.absoluteFilePath();
     }
-    return fileName;
-}
-
-void Engine::addSourcePath(const QString& path) {
-    sourcePaths.insert(sourcePaths.begin(), path);
+    file = QFileInfo(homeDir.absolutePath()
+                     + "/"
+                     + fileName);
+    expect(file.exists(), QString("File '%1' was not found! Paths: '%2', '%3'").
+           arg(fileName,
+               currentDir.absolutePath(),
+               homeDir.absolutePath()), __FILE__, __LINE__);
+    return file.absoluteFilePath();
 }
 
 Atom Engine::compileFile(const QString& file, bool insertStop) {
     QString path = lookupSource(file);
-    QFile f(file);
+    QFile f(path);
     if (f.open(QFile::ReadOnly | QFile::Text)) {
         return compileSource(path, f.readAll(), insertStop, false);
     } else {
         panic(QString("Cannot compile: ") +
-              file +
-              QString(". File was not found!"));
+              path +
+              QString(". File cannot be opened!"));
         return NIL;
     }
 }

@@ -32,9 +32,11 @@ void CoreExtension::registerBuiltInFunctions(Engine* engine) {
     //cos sin sqrt round floor ceil pow
 
     // Specials
-    engine->makeBuiltInFunction("sys::println", bif_println);
+    engine->makeBuiltInFunction("sys::log", bif_log);
+    engine->makeBuiltInFunction("sys::time", bif_time);
     engine->makeBuiltInFunction("engine::setValue", bif_setValue);
     engine->makeBuiltInFunction("engine::getValue", bif_getValue);
+    engine->makeBuiltInFunction("engine::getValueKeys", bif_getValueKeys);
     engine->makeBuiltInFunction("settings::read", bif_readSetting);
     engine->makeBuiltInFunction("settings::write", bif_writeSetting);
 
@@ -51,7 +53,36 @@ void CoreExtension::bif_getValue(const CallContext& ctx) {
     ctx.setResult(ctx.engine->getValue(ctx.fetchArgument(BIF_INFO)));
 }
 
-void CoreExtension::bif_println(const CallContext& ctx) {
+void CoreExtension::bif_getValueKeys(const CallContext& ctx) {
+    ListBuilder lb(ctx.storage);
+    lb.append(SYMBOL_VALUE_OP_CODES_PER_EVENT_LOOP);
+    lb.append(SYMBOL_VALUE_HOME_PATH);
+    lb.append(SYMBOL_VALUE_GC_MIN_CELLS);
+    lb.append(SYMBOL_VALUE_DEBUG_COMPILER);
+    lb.append(SYMBOL_VALUE_DEBUG_ENGINE);
+    lb.append(SYMBOL_VALUE_DEBUG_STORAGE);
+    lb.append(SYMBOL_VALUE_OP_COUNT);
+    lb.append(SYMBOL_VALUE_GC_COUNT);
+    lb.append(SYMBOL_VALUE_NUM_GC_ROOTS);
+    lb.append(SYMBOL_VALUE_NUM_SYMBOLS);
+    lb.append(SYMBOL_VALUE_NUM_GLOBALS);
+    lb.append(SYMBOL_VALUE_NUM_TOTAL_CELLS);
+    lb.append(SYMBOL_VALUE_NUM_CELLS_USED);
+    lb.append(SYMBOL_VALUE_NUM_TOTAL_STRINGS);
+    lb.append(SYMBOL_VALUE_NUM_STRINGS_USED);
+    lb.append(SYMBOL_VALUE_NUM_TOTAL_NUMBERS);
+    lb.append(SYMBOL_VALUE_NUM_NUMBERS_USED);
+    lb.append(SYMBOL_VALUE_NUM_TOTAL_DECIMALS);
+    lb.append(SYMBOL_VALUE_NUM_DECIMALS_USED);
+    lb.append(SYMBOL_VALUE_NUM_TOTAL_REFERENCES);
+    lb.append(SYMBOL_VALUE_NUM_REFERENES_USED);
+    ctx.setResult(lb.getResult());
+}
+
+void CoreExtension::bif_time(const CallContext& ctx) {
+}
+
+void CoreExtension::bif_log(const CallContext& ctx) {
     ctx.engine->println(
                 ctx.engine->toSimpleString(
                     ctx.fetchArgument(BIF_INFO)));

@@ -34,6 +34,7 @@
 #include <QString>
 #include <QElapsedTimer>
 #include <QSettings>
+#include <QDir>
 
 /**
    Forward reference - see: callcontext.h
@@ -175,9 +176,9 @@ private:
     LookupTable <Word, BIF, Word> bifTable;
 
     /**
-      Contains a list of paths which will be used to search source files.
+      Contains the path to the pimii installation.
       */
-    std::vector<QString> sourcePaths;
+    QDir homeDir;
 
     /**
       Registers essential built in functions.
@@ -415,7 +416,7 @@ public:
       of an error.
       */
     void expect(bool expectation,
-                const char* errorMessage,
+                QString errorMessage,
                 const char* file,
                 int line);
 
@@ -436,15 +437,17 @@ public:
     QString stackDump();
 
     /**
-      Adds the given directory as source lookup path.
-      */
-    void addSourcePath(const QString& path);
-
-    /**
       Finds an absolute path for the given fileName by checking all source
       directories.
       */
     QString lookupSource(const QString& fileName);
+
+    /**
+      Returns the selected home-path of the engine.
+      */
+    QDir home() {
+        return homeDir;
+    }
 
     /**
       Compiles the given file and returns the given bytecode. If an error
@@ -534,6 +537,11 @@ public:
       Creates a new engine.
       */
     Engine(QSettings* settings);
+
+    /**
+      Tries to find the pimii home installation.
+      */
+    void initializeSourceLookup();
 
     /**
       Initializes the engine.

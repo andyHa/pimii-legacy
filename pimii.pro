@@ -46,7 +46,12 @@ OTHER_FILES += \
     test.pi \
     playground.pi \
     lib/pimii.pi \
-    lib/files.pi
+    lib/files.pi \
+    start.pi \
+    examples/test.pi \
+    examples/playground.pi \
+    examples/kernel.pi \
+    examples/example.pi
 
 FORMS += \
     gui/webwindow.ui

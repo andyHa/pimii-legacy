@@ -532,7 +532,7 @@ const Atom SYMBOL_VALUE_NUM_TOTAL_REFERENCES = SYMBOL(VALUE_INDEX + 19);
 /**
   Used to access Storage::statusTotalReferences
   */
-const Atom SYMBOL_VALUE_NUM_REFERENES_USED = SYMBOL(VALUE_INDEX + 29);
+const Atom SYMBOL_VALUE_NUM_REFERENES_USED = SYMBOL(VALUE_INDEX + 20);
 
 /**
   Reads the tag of a given atom.

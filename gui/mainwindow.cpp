@@ -57,15 +57,7 @@ MainWindow::MainWindow(Engine* engine, QWidget *parent)
     connect(engine,SIGNAL(onEnginePanic(Atom, Word, QString, QString)),
             this, SLOT(onEnginePanic(Atom,Word,QString,QString)));
     engine->println(QString("pimii v1.0 (c) 2011 Andreas Haufler"));
-    QString path;
-    char* pimiiHome = getenv("PIMII_HOME");
-    if (pimiiHome != NULL) {
-        path = QString(pimiiHome) + QDir::separator();
-    } else {
-       path = (QCoreApplication::applicationDirPath() + QDir::separator());
-    }
-    engine->addSourcePath(path);
-    engine->println(QString("Library-Path: ")+path);
+    engine->println(QString("Home-Path: ")+engine->home().absolutePath());
 
 }
 

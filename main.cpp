@@ -38,15 +38,21 @@ bool running() {
     return false;
 }
 
-int main(int argc, char *argv[])
-{    
-    QApplication a(argc, argv);
-    QSettings settings("pimii","pimii");
-    Engine engine(&settings);
-    window = new MainWindow(&engine);
-    window->showMaximized();
-    engine.initialize();
+void loadStartupScript(Engine& engine) {
+    QFileInfo startScript = QFileInfo(engine.home().
+                                      absoluteFilePath("start.pi"));
+    if (!startScript.exists()) {
+        startScript =  QFileInfo("start.pi");
+    }
+    if (startScript.exists()) {
+        QFile file(startScript.absoluteFilePath());
+        if (file.open(QFile::ReadOnly | QFile::Text)) {
+            engine.eval(file.readAll(), startScript.fileName());
+        }
+    }
+}
 
+void eventLoop(QApplication& a, Engine& engine) {
     QEventLoop loop;
 
     while(running()) {
@@ -58,6 +64,24 @@ int main(int argc, char *argv[])
             loop.processEvents(QEventLoop::AllEvents);
         }
     }
+}
+
+int main(int argc, char *argv[])
+{    
+    QApplication a(argc, argv);
+    QSettings settings("pimii","pimii");
+    Engine engine(&settings);
+    window = new MainWindow(&engine);
+    window->showMaximized();
+    engine.initialize();
+
+    // Tries to find and load the "start.pi" file.
+    loadStartupScript(engine);
+
+    // Runs the QT eventloop interleaved with the execution of the pimii
+    // engine.
+    eventLoop(a, engine);
+
     return 0;
 }
 

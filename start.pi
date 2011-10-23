@@ -1,0 +1,13 @@
+// ---------------------------------------------------------------------------
+// Script: pimii Default Startup.
+//
+// Default startup script - Automatically loaded by the engine on startup.
+// The search order is the following:
+//  1) current-dir/start.pi
+//  2) pimii-home/start.pi
+//
+// Author: Andreas Haufler (andreas@haufler.info)
+// ---------------------------------------------------------------------------
+
+// Load the main librar be default.
+sys::include('lib/pimii.pi');

@@ -24,13 +24,30 @@ private:
     static void bif_getValue(const CallContext& ctx);
 
     /**
+      Returns all available engine parameters
+
+        getValueKeys := () -> List
+
+     */
+    static void bif_getValueKeys(const CallContext& ctx);
+
+
+    /**
+      Returns the current time in milliseconds.
+
+        time := () -> Number
+
+     */
+    static void bif_time(const CallContext& ctx);
+
+    /**
       Prints the given argument to the console and appends a
       linebreak.
 
-        println := (str : *) -> NIL
+        log := (str : *) -> NIL
 
      */
-    static void bif_println(const CallContext& ctx);
+    static void bif_log(const CallContext& ctx);
 
     /**
       Determines the type of the given argument and pushes an appropriate
