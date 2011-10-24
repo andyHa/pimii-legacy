@@ -3,6 +3,8 @@
 #include <algorithm>
 #include <sstream>
 
+#include <QDateTime>
+
 CoreExtension* CoreExtension::INSTANCE = new CoreExtension();
 
 QString CoreExtension::name() {
@@ -34,6 +36,8 @@ void CoreExtension::registerBuiltInFunctions(Engine* engine) {
     // Specials
     engine->makeBuiltInFunction("sys::log", bif_log);
     engine->makeBuiltInFunction("sys::time", bif_time);
+    engine->makeBuiltInFunction("sys::version", bif_version);
+    engine->makeBuiltInFunction("sys::wordsize", bif_wordsize);
     engine->makeBuiltInFunction("engine::setValue", bif_setValue);
     engine->makeBuiltInFunction("engine::getValue", bif_getValue);
     engine->makeBuiltInFunction("engine::getValueKeys", bif_getValueKeys);
@@ -80,6 +84,15 @@ void CoreExtension::bif_getValueKeys(const CallContext& ctx) {
 }
 
 void CoreExtension::bif_time(const CallContext& ctx) {
+    ctx.setNumberResult(QDateTime::currentMSecsSinceEpoch());
+}
+
+void CoreExtension::bif_version(const CallContext& ctx) {
+    ctx.setStringResult(VERSION);
+}
+
+void CoreExtension::bif_wordsize(const CallContext& ctx) {
+    ctx.setNumberResult(NUMBER_OF_BITS);
 }
 
 void CoreExtension::bif_log(const CallContext& ctx) {

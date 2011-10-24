@@ -9,5 +9,8 @@
 // Author: Andreas Haufler (andreas@haufler.info)
 // ---------------------------------------------------------------------------
 
+// Output some info...
+sys::log('pimii ' & sys::wordsize() & 'bit VM - Version: ' & sys::version());
+
 // Load the main librar be default.
 sys::include('lib/pimii.pi');

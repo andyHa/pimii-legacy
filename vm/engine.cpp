@@ -965,8 +965,6 @@ Atom Engine::compileSource(const QString& file,
             println(buf);
         }
         return NIL;
-    } else {
-        println(toString(result.first));
     }
     return result.first;
 }

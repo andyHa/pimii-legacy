@@ -31,7 +31,6 @@ private:
      */
     static void bif_getValueKeys(const CallContext& ctx);
 
-
     /**
       Returns the current time in milliseconds.
 
@@ -39,6 +38,22 @@ private:
 
      */
     static void bif_time(const CallContext& ctx);
+
+    /**
+      Returns the number of bits in a word for this machine.
+
+        wordsize := () -> Number
+
+     */
+    static void bif_wordsize(const CallContext& ctx);
+
+    /**
+      Returns the version of pimii
+
+        version := () -> String
+
+     */
+    static void bif_version(const CallContext& ctx);
 
     /**
       Prints the given argument to the console and appends a
