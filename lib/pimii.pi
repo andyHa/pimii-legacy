@@ -8,6 +8,48 @@
 // ---------------------------------------------------------------------------
 
 // ---------------------------------------------------------------------------
+// Emulates an if statement for imperative programming.
+//
+// Param: decision - determines if the given block is executed or not.
+// Param: block    - executed if the given decision is #TRUE
+// ---------------------------------------------------------------------------
+if:then: ::= (decision, block) -> {
+    [decision : block()]
+};
+
+// ---------------------------------------------------------------------------
+// Emulates an if statement for imperative programming. Additionally supports
+// an else-part if the given decision was not #TRUE.
+//
+// Param: decision  - determines if the given block is executed or not.
+// Param: block     - executed if the given decision is #TRUE
+// Param: elseBlock - executed if the given decision is not #TRUE
+// ---------------------------------------------------------------------------
+if:then:else: ::= (decision, block, elseBlock) -> {
+    [decision : block()]
+    [    -    : elseBlock()]
+};
+
+// ---------------------------------------------------------------------------
+// Emulates a while statement for imperative programming.
+//
+// Param: decisionBlock - invoked to check if the loop should continue.
+// Param: loopBody      - executed as long as decisionBlock evaluates to #TRUE
+// ---------------------------------------------------------------------------
+while:do: ::= (descisionBlock, loopBody) -> {
+    [descisionBlock() : loopBody(); while: descisionBlock do: loopBody]
+};
+
+from:to:step:do: ::= (from, to, step, block) -> [
+    i := from;
+    while: [ i <= to ] do: [block(i); i := i + step;]
+];
+
+from:to:do: ::= (from, to, block) -> [
+    from: from to: to step: 1 do: block;
+];
+
+// ---------------------------------------------------------------------------
 // Iterates over the given list and executes the given block for each item.
 //
 // Param: list  - a list which will be iterated
@@ -33,7 +75,7 @@ each:do: ::= (list, block) -> {
 // ---------------------------------------------------------------------------
 fold:with:start: ::= (list, block, sum) -> {
     [h|t := list : fold: t with: block start: block(h, sum)]
-    [            : sum ]
+    [     -      : sum ]
 };
  
 // ---------------------------------------------------------------------------
@@ -79,7 +121,7 @@ collect:with: ::= (list, filter) -> [
     result := fold: list
               with: (e,l) -> {
                         [filter(e) : e & l]
-                        [          : l]
+                        [    -     : l]
                     }
               start: #();
 

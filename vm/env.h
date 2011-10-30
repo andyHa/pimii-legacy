@@ -563,7 +563,7 @@ inline bool isSymbol(Atom atom) {
 /**
   Checks whether the given atom is a number.
   */
-inline bool isNumber(Atom atom) {
+inline bool isSmallNumber(Atom atom) {
     return getType(atom) == TAG_TYPE_NUMBER;
 }
 
@@ -618,11 +618,18 @@ inline bool isDecimalNumber(Atom atom) {
 }
 
 /**
+  Checks whether the given atom is a number (small or large)
+  */
+inline bool isNumber(Atom atom) {
+    return isSmallNumber(atom) || isLargeNumber(atom);
+}
+
+/**
   Checks whether the given atom is a number, large number
   or decimal number.
   */
 inline bool isNumeric(Atom atom) {
-    return isNumber(atom) || isLargeNumber(atom) || isDecimalNumber(atom);
+    return isNumber(atom) || isDecimalNumber(atom);
 }
 
 /**

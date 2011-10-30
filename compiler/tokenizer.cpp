@@ -398,6 +398,8 @@ InputToken Tokenizer::parseOperator() {
         }
     } else if (ch == '%') {
         result.type = TT_MOD;
+    } else if (ch == '/') {
+        result.type = TT_DIV;
     } else if (ch == '*') {
         result.type = TT_MUL;
     } else if (ch == ':') {

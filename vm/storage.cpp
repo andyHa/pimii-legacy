@@ -339,8 +339,8 @@ Atom Storage::makeNumber(long value) {
 }
 
 long Storage::getNumber(Atom atom) {
-    assert(isNumber(atom) || isLargeNumber(atom));
-    if (isNumber(atom)) {
+    assert(isNumber(atom));
+    if (isSmallNumber(atom)) {
         Word result = atom >> TAG_LENGTH;
         if (atom & SIGN_CHECK_BIT) {
             result |= LOST_BITS;

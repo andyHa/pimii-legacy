@@ -12,5 +12,51 @@
 // Output some info...
 sys::log('pimii ' & sys::wordsize() & 'bit VM - Version: ' & sys::version());
 
-// Load the main librar be default.
-sys::include('lib/pimii.pi');
+// Load the main library by default.
+
+// Check where the VM thinks it's home...
+homePath ::= fs::getFile(engine::getValue(#HOME_PATH));
+// Let the user know...
+sys::log('Home-Path: ' & homePath & '(Exists: ' & fs::exists(homePath) & ')');
+
+// Helper function to easily lookup a file in the home directory
+getHomeFile := file -> fs::getChild(homePath, file);
+
+// Used to find the main library: pimii.pi
+loadLibrary ::= {
+    [fs::exists(getHomeFile('pimii.pi')) :
+        sys::log('Loading Standard-Library from: pimii.pi');
+        sys::include('pimii.pi');
+    ]
+    [fs::exists(getHomeFile('lib/pimii.pi')) :
+        sys::log('Loading Standard-Library from: lib/pimii.pi');
+        sys::include('lib/pimii.pi');
+    ]
+    [ - : sys::log('Error loading pimii.pi! File not found!'); ]
+};
+loadLibrary();
+
+// Define the fibbonacci function, which is used by the performance test
+fib ::= n -> {
+    [ n < 3 : 1 ]
+    [   -   : n + fib(n - 1)]
+};
+
+// Used the measure the runtime of a given closure.
+measure: ::= block -> [
+   start := sys::time();
+   block();
+   sys::log('Duration: ' & (sys::time() - start) & 'ms');
+];
+
+performanceTest ::= [
+    gcCounter := engine::getValue(#GC_COUNT);
+    measure: [
+        from: 1 to: 10 do: [
+            measure: [
+                fib(10000);
+            ];
+        ];
+    ];
+    sys::log('GCs: ' & (engine::getValue(#GC_COUNT) - gcCounter));
+];

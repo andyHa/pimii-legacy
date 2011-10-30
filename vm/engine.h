@@ -85,6 +85,11 @@ private:
     QString lastError;
 
     /**
+      Determines if the debug output of the compiler is turned on.
+      */
+    bool debugCompiler;
+
+    /**
       Represents the storage one which the engine operates.
       */
     Storage storage;
@@ -153,7 +158,7 @@ private:
     /**
       Pushes a value on the given machine register.
       */
-    void push(AtomRef* reg, Atom value);
+    inline void push(AtomRef* reg, Atom value);
 
     /**
       Pops a value from the given machine register.
@@ -188,7 +193,12 @@ private:
     /**
       Invokes the appropriate method for the given bytecode.
       */
-    void dispatch(Atom opcode);
+    inline void dispatch(Atom opcode);
+
+    /**
+      * Converts two numeric atoms into double values.
+      */
+    void convertNumeric(Word atoma, Word atomb, double* a, double* b);
 
     /**
       Invokes the appropriate arithmetic method for the given bytecode.
@@ -208,22 +218,22 @@ private:
     /**
       Pushes NIL onto the stack.
       */
-    void opNIL();
+    inline void opNIL();
 
     /**
       Loads a given location on the stack.
       */
-    void opLD();
+    inline void opLD();
 
     /**
       Stores the stack top on a location.
       */
-    void opST();
+    inline void opST();
 
     /**
       Loads a constant onto the stack.
       */
-    void opLDC();
+    inline void opLDC();
 
     /**
       Generates a closure.
@@ -243,7 +253,7 @@ private:
     /**
       Branches is the stack top is true.
       */
-    void opBT();
+    inline void opBT();
 
     /**
       Loads a global onto the stack.
@@ -415,10 +425,19 @@ public:
       This is almost like "assert" but will output more information in case
       of an error.
       */
-    void expect(bool expectation,
-                QString errorMessage,
+    inline void expect(bool expectation,
+                const char* errorMessage,
                 const char* file,
-                int line);
+                int line) {
+        if (!expectation) {
+            panic(errorMessage +
+                  QString(" (") +
+                  QString(file) +
+                  QString(":") +
+                  intToString(line) +
+                  QString(")"));
+        }
+    }
 
     /**
       Stops the execution, writes the contents of all registers and a

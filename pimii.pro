@@ -6,6 +6,8 @@
 
 QT       += core gui webkit
 
+QMAKE_CXXFLAGS += -Wall
+
 TARGET = pimii
 TEMPLATE = app
 
@@ -51,7 +53,10 @@ OTHER_FILES += \
     examples/test.pi \
     examples/playground.pi \
     examples/kernel.pi \
-    examples/example.pi
+    examples/example.pi \
+    lib/datetime.pi \
+    performance-tests.txt
 
 FORMS += \
     gui/webwindow.ui
+

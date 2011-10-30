@@ -56,9 +56,6 @@ MainWindow::MainWindow(Engine* engine, QWidget *parent)
     connect(engine,SIGNAL(onEngineStopped()), this, SLOT(onEngineStopped()));
     connect(engine,SIGNAL(onEnginePanic(Atom, Word, QString, QString)),
             this, SLOT(onEnginePanic(Atom,Word,QString,QString)));
-    engine->println(QString("pimii v1.0 (c) 2011 Andreas Haufler"));
-    engine->println(QString("Home-Path: ")+engine->home().absolutePath());
-
 }
 
 void MainWindow::onLog(const QString& str) {

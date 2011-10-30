@@ -58,6 +58,9 @@ Engine::Engine(QSettings* settings) :
     opCodesInInterpret = settings->value(
                 toSimpleString(SYMBOL_VALUE_OP_CODES_PER_EVENT_LOOP),
                 1000).toUInt();
+    debugCompiler =  settings->value(
+                toSimpleString(SYMBOL_VALUE_DEBUG_COMPILER),
+                false).toBool();
     initializeSourceLookup();
 }
 
@@ -143,7 +146,9 @@ QString Engine::getBIFName(Atom atom) {
 }
 
 void Engine::gc() {
-    storage.gc();
+    if (storage.statusCellsUsed() > 4096 && storage.statusCellsUsed()> ((storage.statusTotalCells() / 4) * 3)) {
+        storage.gc();
+    }
 }
 
 void Engine::opNIL() {
@@ -380,8 +385,14 @@ void Engine::opLT() {
     } else if (isNumber(a) && isNumber(b)) {
         push(s, storage.getNumber(a) < storage.getNumber(b) ?
                  SYMBOL_TRUE : SYMBOL_FALSE);
+    } else if (isNumeric(a) && isNumeric(b)) {
+        double da;
+        double db;
+        convertNumeric(a, b, &da, &db);
+        push(s, da < db ?
+                 SYMBOL_TRUE : SYMBOL_FALSE);
     } else {
-        push(s,a < b ? SYMBOL_TRUE : SYMBOL_FALSE);
+        push(s, a < b ? SYMBOL_TRUE : SYMBOL_FALSE);
     }
 }
 
@@ -393,6 +404,12 @@ void Engine::opLTQ() {
              storage.getString(b) ? SYMBOL_TRUE : SYMBOL_FALSE);
     } else if (isNumber(a) && isNumber(b)) {
         push(s,storage.getNumber(a) <= storage.getNumber(b) ?
+                 SYMBOL_TRUE : SYMBOL_FALSE);
+    } else if (isNumeric(a) && isNumeric(b)) {
+        double da;
+        double db;
+        convertNumeric(a, b, &da, &db);
+        push(s, da <= db ?
                  SYMBOL_TRUE : SYMBOL_FALSE);
     } else {
         push(s,a <= b ? SYMBOL_TRUE : SYMBOL_FALSE);
@@ -408,6 +425,12 @@ void Engine::opGT() {
     } else if (isNumber(a) && isNumber(b)) {
         push(s,storage.getNumber(a) > storage.getNumber(b) ?
                  SYMBOL_TRUE : SYMBOL_FALSE);
+    } else if (isNumeric(a) && isNumeric(b)) {
+        double da;
+        double db;
+        convertNumeric(a, b, &da, &db);
+        push(s, da > db ?
+                 SYMBOL_TRUE : SYMBOL_FALSE);
     } else {
         push(s,a > b ? SYMBOL_TRUE : SYMBOL_FALSE);
     }
@@ -421,6 +444,12 @@ void Engine::opGTQ() {
              storage.getString(b) ? SYMBOL_TRUE : SYMBOL_FALSE);
     } else if (isNumber(a) && isNumber(b)) {
         push(s,storage.getNumber(a) >= storage.getNumber(b) ?
+                 SYMBOL_TRUE : SYMBOL_FALSE);
+    } else if (isNumeric(a) && isNumeric(b)) {
+        double da;
+        double db;
+        convertNumeric(a, b, &da, &db);
+        push(s, da >= db ?
                  SYMBOL_TRUE : SYMBOL_FALSE);
     } else {
         push(s,a >= b ? SYMBOL_TRUE : SYMBOL_FALSE);
@@ -491,6 +520,19 @@ void Engine::opNOT() {
     push(s, atom == SYMBOL_TRUE ? SYMBOL_FALSE : SYMBOL_TRUE);
 }
 
+void Engine::convertNumeric(Word atoma, Word atomb, double* a, double* b) {
+    if (isDecimalNumber(atomb)) {
+        *b = storage.getDecimal(atomb);
+    } else {
+        *b = static_cast<double>(storage.getNumber(atomb));
+    }
+    if (isDecimalNumber(atoma)) {
+        *a = storage.getDecimal(atoma);
+    } else {
+        *a = static_cast<double>(storage.getNumber(atoma));
+    }
+}
+
 void Engine::dispatchArithmetic(Atom opcode) {
     Atom atomb = pop(s);
     expect(isNumeric(atomb),
@@ -503,8 +545,8 @@ void Engine::dispatchArithmetic(Atom opcode) {
            __FILE__,
            __LINE__);
     if (isNumber(atomb) && isNumber(atoma)) {
-        int b = storage.getNumber(atomb);
-        int a = storage.getNumber(atoma);
+        long b = storage.getNumber(atomb);
+        long a = storage.getNumber(atoma);
         switch(opcode) {
         case SYMBOL_OP_ADD:
             push(s, storage.makeNumber(a + b));
@@ -523,18 +565,10 @@ void Engine::dispatchArithmetic(Atom opcode) {
             return;
         }
     } else {
-        double b = 0.0;
-        double a = 0.0;
-        if (isDecimalNumber(atomb)) {
-            b = storage.getDecimal(atomb);
-        } else {
-            b = static_cast<double>(storage.getNumber(atomb));
-        }
-        if (isDecimalNumber(atoma)) {
-            a = storage.getDecimal(atoma);
-        } else {
-            a = static_cast<double>(storage.getNumber(atoma));
-        }
+        double a;
+        double b;
+        convertNumeric(atoma, atomb, &a, &b);
+
         switch(opcode) {
         case SYMBOL_OP_ADD:
             push(s, storage.makeDecimal(a + b));
@@ -568,12 +602,12 @@ Atom Engine::locate(Atom pos) {
            "locate: car is not a number!",
            __FILE__,
            __LINE__);
-    Word i = storage.getNumber(cons->car);
+    long i = storage.getNumber(cons->car);
     expect(isNumber(cons->car),
            "locate: cdr is not a number!",
            __FILE__,
            __LINE__);
-    Word j = storage.getNumber(cons->cdr);
+    long j = storage.getNumber(cons->cdr);
     Atom env = e->atom();
     while (i > 1) {
         if (!isCons(env)) {
@@ -613,12 +647,12 @@ void Engine::store(Atom pos, Atom value) {
            "store: car is not a number!",
            __FILE__,
            __LINE__);
-    Word i = storage.getNumber(cons->car);
+    long i = storage.getNumber(cons->car);
     expect(isNumber(cons->car),
            "store: cdr is not a number!",
            __FILE__,
            __LINE__);
-    Word j = storage.getNumber(cons->cdr);
+    long j = storage.getNumber(cons->cdr);
     Atom env = e->atom();
     while (i > 1) {
         if (!isCons(env)) {
@@ -808,14 +842,17 @@ bool Engine::isRunnable() {
 
 void Engine::eval(const QString& source, const QString& filename) {
     Atom code = compileSource(filename, source, true, false);
-    Execution exe;
-    exe.filename = filename;
-    exe.fn = storage.ref(code);
-    executionStack.push_back(exe);
-    if (!running) {
-        running = true;
-        emit onEngineStarted();
-    }}
+    if (code != NIL) {
+        Execution exe;
+        exe.filename = filename;
+        exe.fn = storage.ref(code);
+        executionStack.push_back(exe);
+        if (!running) {
+            running = true;
+            emit onEngineStarted();
+        }
+    }
+}
 
 void Engine::interpret() {
     if (!running) {
@@ -844,32 +881,18 @@ void Engine::interpret() {
             }
             maxOpCodes--;
         }
+        gc();
     } catch(PanicException* ex) {
         running = false;
         emit onEngineStopped();
         executionStack.clear();
         emit onEnginePanic(currentFile, currentLine, lastError, stackDump());
-    }
-}
-
-void Engine::expect(bool expectation,
-                    QString errorMessage,
-                    const char* file,
-                    int line) {
-    if (!expectation) {
-        panic(errorMessage +
-              QString(" (") +
-              QString(file) +
-              QString(":") +
-              intToString(line) +
-              QString(")"));
+        c->atom(NIL);
     }
 }
 
 QString Engine::stackDump() {
     QString buffer;
-    buffer += QString("Error:\n");
-    buffer += "--------------------------------------------\n";
     buffer += "Stacktrace:\n";
     buffer += "--------------------------------------------\n";
     buffer += toSimpleString(currentFile) +
@@ -886,13 +909,6 @@ QString Engine::stackDump() {
         pos = pop(p);
     }
     buffer += "\n";
-
-    buffer += "Registers:\n";
-    buffer += "--------------------------------------------\n";
-    buffer += "S: " + toString(s->atom()) + "\n";
-    buffer += "E: " + toString(e->atom()) + "\n";
-    buffer += "C: " + toString(c->atom()) + "\n";
-    buffer += "D: " + toString(d->atom()) + "\n";
 
     return buffer;
 }
@@ -917,10 +933,18 @@ QString Engine::lookupSource(const QString& fileName) {
     file = QFileInfo(homeDir.absolutePath()
                      + "/"
                      + fileName);
-    expect(file.exists(), QString("File '%1' was not found! Paths: '%2', '%3'").
-           arg(fileName,
-               currentDir.absolutePath(),
-               homeDir.absolutePath()), __FILE__, __LINE__);
+
+    if (!file.exists()) {
+        panic(QString("File '%1' was not found! Paths: '%2', '%3'").
+              arg(fileName,
+                  currentDir.absolutePath(),
+                  homeDir.absolutePath()) +
+              QString(" (") +
+              QString(__FILE__) +
+              QString(":") +
+              intToString(__LINE__) +
+              QString(")"));
+    }
     return file.absoluteFilePath();
 }
 
@@ -965,6 +989,9 @@ Atom Engine::compileSource(const QString& file,
             println(buf);
         }
         return NIL;
+    } else if (debugCompiler) {
+        println("Compilation Result: ");
+        println(toString(result.first));
     }
     return result.first;
 }
@@ -1103,6 +1130,12 @@ void Engine::setValue(Atom name, Atom value) {
                            opCodesInInterpret);
         settings->sync();
     }
+    if (name == SYMBOL_VALUE_DEBUG_COMPILER) {
+        debugCompiler = SYMBOL_TRUE == value;
+        settings->setValue(toSimpleString(SYMBOL_VALUE_DEBUG_COMPILER),
+                           debugCompiler);
+        settings->sync();
+    }
 }
 
 Atom Engine::getValue(Atom name) {
@@ -1138,6 +1171,10 @@ Atom Engine::getValue(Atom name) {
         return storage.makeNumber(storage.statusTotalReferences());
     } else if (name == SYMBOL_VALUE_NUM_REFERENES_USED) {
         return storage.makeNumber(storage.statusReferencesUsed());
+    } else if (name == SYMBOL_VALUE_DEBUG_COMPILER) {
+        return debugCompiler ? SYMBOL_TRUE : SYMBOL_FALSE;
+    } else if (name == SYMBOL_VALUE_HOME_PATH) {
+        return storage.makeString(homeDir.absolutePath());
     }
 
     return NIL;

@@ -129,8 +129,12 @@ void Compiler::expression() {
                tokenizer->isLookahead(TT_ARROW))
     {
         shortDefinition();
-    } else if (tokenizer->isCurrent(TT_L_BRACKET)) {
+    } else if (tokenizer->isCurrent(TT_L_BRACKET))
+    {
         inlineDefinition();
+    } else if (tokenizer->isCurrent(TT_L_CURLY))
+    {
+        generateGuardedFunctionCode();
     } else {
         basicExp();
     }
@@ -174,7 +178,12 @@ void Compiler::generateGuardedFunctionCode() {
     do {
         expect(TT_L_BRACKET, "[");
         bool asSublist = false;
-        if (!tokenizer->isCurrent(TT_COLON)) {
+        if (tokenizer->isCurrent(TT_MINUS) && tokenizer->isLookahead(TT_COLON))
+        {
+            //[ - : ... ] means no condition...
+            tokenizer->fetch();
+        } else if (!tokenizer->isCurrent(TT_COLON)) {
+            // Everything but [  : ...] means we need to compile a condition.
             asSublist = true;
             basicExp();
             addCode(SYMBOL_OP_BT);
@@ -683,7 +692,7 @@ Atom Compiler::compileLiteral() {
                 mid(1, tokenizer->getCurrent().length - 2));
     } else if (tokenizer->isCurrent(TT_NUMBER)) {
         result = engine->storage.makeNumber(
-                tokenizer->getCurrentString().toInt());
+                tokenizer->getCurrentString().toLong());
     } else if (tokenizer->isCurrent(TT_DECIMAL)) {
         result = engine->storage.makeDecimal(
                 tokenizer->getCurrentString().toDouble());
@@ -834,21 +843,28 @@ void Compiler::localAssignment() {
     QString name = tokenizer->getCurrentString();
     tokenizer->fetch(); // name
     tokenizer->fetch(); // :=
-    std::vector<QString>* symbols = symbolTable[0];
+    std::pair<int, int> pos = findSymbol(name);
+    Word majorIndex = 1;
     Word minorIndex = 1;
-    while (minorIndex <= symbols->size()) {
-        if (symbols->at(minorIndex - 1) == name) {
-            break;
+    if (pos.first == -1) {
+        std::vector<QString>* symbols = symbolTable[0];
+        while (minorIndex <= symbols->size()) {
+            if (symbols->at(minorIndex - 1) == name) {
+                break;
+            }
+            minorIndex++;
         }
-        minorIndex++;
-    }
-    if (minorIndex > symbols->size()) {
-        symbols->push_back(name);
+        if (minorIndex > symbols->size()) {
+            symbols->push_back(name);
+        }
+    } else {
+        majorIndex = pos.first;
+        minorIndex = pos.second;
     }
     expression();
     addCode(SYMBOL_OP_ST);
     addCode(engine->storage.makeCons(
-                engine->storage.makeNumber(1),
+                engine->storage.makeNumber(majorIndex),
                 engine->storage.makeNumber(minorIndex)));
 }
 
