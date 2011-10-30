@@ -1,0 +1,87 @@
+Testbench:
+-------------------------------------------------------------------------------
+// Define the fibbonacci function, which is used by the performance test
+fib ::= n -> {
+    [ n < 3 : 1 ]
+    [   -   : n + fib(n - 1)]
+};
+
+// Used the measure the runtime of a given closure.
+measure: ::= block -> [
+   start := sys::time();
+   block();
+   sys::log('Duration: ' & (sys::time() - start) & 'ms');
+];
+
+performanceTest ::= [
+    gcCounter := engine::getValue(#GC_COUNT);
+    measure: [
+        from: 1 to: 10 do: [
+            measure: [
+                fib(10000);
+            ];
+        ];
+    ];
+    sys::log('GCs: ' & (engine::getValue(#GC_COUNT) - gcCounter));
+];
+-------------------------------------------------------------------------------
+
+Unoptimized:
+-------------------------------------------------------------------------------
+Duration: 2945ms
+Duration: 1186ms
+Duration: 1107ms
+Duration: 1248ms
+Duration: 1233ms
+Duration: 1279ms
+Duration: 1263ms
+Duration: 1077ms
+Duration: 1248ms
+Duration: 1248ms
+Duration: 13834ms
+GCs: 623
+
+Inline all OP-Codes.. (Reverted)
+-------------------------------------------------------------------------------
+Duration: 2777ms
+Duration: 1170ms
+Duration: 1092ms
+Duration: 1232ms
+Duration: 1233ms
+Duration: 1279ms
+Duration: 1263ms
+Duration: 1061ms
+Duration: 1233ms
+Duration: 1263ms
+Duration: 13603ms
+GCs: 623
+
+Used const char* in "expect" instead of QString
+-------------------------------------------------------------------------------
+Duration: 1934ms
+Duration: 1099ms
+Duration: 1050ms
+Duration: 1154ms
+Duration: 1139ms
+Duration: 1201ms
+Duration: 1170ms
+Duration: 983ms
+Duration: 1170ms
+Duration: 1154ms
+Duration: 12070ms
+GCs: 623
+
+Inlining of expect and some op-codes...
+-------------------------------------------------------------------------------
+Duration: 1872ms
+Duration: 1077ms
+Duration: 998ms
+Duration: 1154ms
+Duration: 1155ms
+Duration: 1185ms
+Duration: 1170ms
+Duration: 983ms
+Duration: 1155ms
+Duration: 1170ms
+Duration: 11919ms
+GCs: 623
