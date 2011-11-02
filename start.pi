@@ -60,3 +60,5 @@ performanceTest ::= [
     ];
     sys::log('GCs: ' & (engine::getValue(#GC_COUNT) - gcCounter));
 ];
+
+performanceTest();

@@ -349,16 +349,6 @@ private:
     void opLine();
 
     /**
-      Determines if a GC should be executed.
-      */
-    bool shouldGC();
-
-    /**
-      Executes a GC cycle
-      */
-    void gc();
-
-    /**
       Converts the given list into a string.
       */
     QString printList(Atom atom);

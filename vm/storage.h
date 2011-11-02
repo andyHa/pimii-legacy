@@ -43,25 +43,31 @@ struct Cell {
     Atom car;
     Atom cdr;
 };
+
 /**
   Points to a cell within the cell storage.
   */
-typedef Cell* Cons;
+//class Cons;
+//typedef Cell* Cons;
 
 /**
   Represents the state of an entry (Used by the garbage collector).
   */
 enum EntryState {
     /**
-      The entry is currently unused.
+      The entry is free.
       */
     UNUSED,
+    /**
+      The entry was allocated but might become free within the next GC.
+      */
+    GRAY,
     /**
       The entry is referenced, but its contents are not checked.
       */
     REFERENCED,
     /**
-      The entr is used and its contents are checked.
+      The entry is used and its contents are checked.
       */
     CHECKED
 };
@@ -70,10 +76,13 @@ enum EntryState {
   Internally used to store memory cells along with a header used
   for garbage collection and free-list management.
   */
+
+/*
 struct StorageEntry {
     EntryState state;
     Cons cell;
 };
+*/
 
 /**
   Forward reference. See below.
@@ -134,12 +143,12 @@ class Storage
     /**
       Contains the cell storage.
       */
-    std::vector<StorageEntry> cells;
+    Cell* cells;
 
-    /**
-      Contains indices of unused cells.
-      */
-    std::vector<Word> freeList;
+    EntryState* states;
+
+    Word cellSize;
+    Word nextFree;
 
     /**
       Contains all external references to atoms.
@@ -156,6 +165,11 @@ class Storage
       Removes the given reference.
       */
     void removeRef(AtomRef* ref);
+
+    /**
+      Invokes the garbage collector.
+      */
+    void gc(Atom car, Atom cdr);
 
     /**
       Implements the mark-phase of the garbage collector.
@@ -185,25 +199,24 @@ public:
     QString getSymbolName(Atom symbol);
 
     /**
-      Generates a new cell, initialized with car and NIL
-      */
-    std::pair<Atom, Cons> cons(Atom car, Atom cdr);
-
-    /**
       Generates a new cell, initialized with the two given atoms.
       */
     Atom makeCons(Atom car, Atom cdr);
 
+    void setCAR(Atom atom, Atom car);
+
+    void setCDR(Atom atom, Atom cdr);
+
     /**
-      Creates a new cell with car set to next. Sets the cdr of cons
-      to the atom representing this cell and also returns this value.
+      Creates a new cell with car set to next. Sets the cdr of tail
+      to the atom representing created cell and also returns this value.
       */
-    Atom cons(Cons cons, Atom next);
+    Atom append(Atom tail, Atom next);
 
     /**
       Returns the cell on which atom points.
       */
-    Cons getCons(Atom atom);
+    Cell getCons(Atom atom);
 
     /**
       Returns and atom pointing to the global with the given name.
@@ -270,11 +283,6 @@ public:
     Atom makeReference(const QSharedPointer<Reference>& value);
 
     /**
-      Invokes the garbage collector.
-      */
-    void gc();
-
-    /**
       Creates a new GC-root reference. This is initialized with the given
       atom. If no atom is available, NIL can be used.
       */
@@ -312,14 +320,14 @@ public:
       Returns the size of the cell storage.
       */
     Word statusTotalCells() {
-        return cells.size();
+        return 0;//cells.size();
     }
 
     /**
       Returns the number of reachable cells.
       */
     Word statusCellsUsed() {
-        return cells.size() - freeList.size();
+        return 0;//cells.size() - freeList.size();
     }
 
     /**
@@ -390,14 +398,12 @@ private:
     Storage* storage;
     Atom referencedAtom;
 
+    Q_DISABLE_COPY(AtomRef)
+public:
     AtomRef(Storage* storage, Atom atom) :
         storage(storage),
         referencedAtom(atom) {}
 
-    Q_DISABLE_COPY(AtomRef)
-
-    friend class Storage;
-public:
     Atom atom() {
         return referencedAtom;
     }
@@ -411,5 +417,6 @@ public:
     }
 
 };
+
 
 #endif // STORAGE_H

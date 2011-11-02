@@ -23,9 +23,11 @@ Compiler::Compiler(const QString& fileName,
                    const QString& input,
                    Engine* engine) :
     engine(engine),
-    tokenizer(new Tokenizer(input, true))
+    tokenizer(new Tokenizer(input, true)),
+    code(engine->storage.ref(NIL)),
+    tail(engine->storage.ref(NIL))
 {
-    file = engine->storage.makeSymbol(fileName);
+    file = engine->storage.ref(engine->storage.makeSymbol(fileName));
 }
 
 
@@ -56,19 +58,19 @@ void Compiler::expect(InputTokenType tt, const char* rep) {
 }
 
 void Compiler::addCode(Atom atom) {
-    if (isNil(code)) {
-        code = engine->storage.makeCons(atom, NIL);
-        tail = code;
+    if (isNil(code->atom())) {
+        code->atom(engine->storage.makeCons(atom, NIL));
+        tail->atom(code->atom());
     } else {
-        tail = engine->storage.cons(engine->storage.getCons(tail), atom);
+        tail->atom(engine->storage.append(tail->atom(), atom));
     }
 }
 
 std::pair<Atom, std::vector<CompilationError> > Compiler::compile(bool appendStop) {
-    code = NIL;
+    code->atom(NIL);
     tokenizer->fetch();
     addCode(SYMBOL_OP_FILE);
-    addCode(file);
+    addCode(file->atom());
     while(tokenizer->getCurrent().type != TT_EOF) {
         block();
         if (tokenizer->getCurrent().type != TT_EOF) {
@@ -80,7 +82,7 @@ std::pair<Atom, std::vector<CompilationError> > Compiler::compile(bool appendSto
     } else {
         addCode(SYMBOL_OP_RTN);
     }
-    return std::pair<Atom, std::vector<CompilationError> >(code, errors);
+    return std::pair<Atom, std::vector<CompilationError> >(code->atom(), errors);
 }
 
 void Compiler::block() {
@@ -171,10 +173,10 @@ void Compiler::definition() {
 void Compiler::generateGuardedFunctionCode() {
     expect(TT_L_CURLY, "{");
     addCode(SYMBOL_OP_LDF);
-    Atom backupCode = code;
-    Atom backupTail = tail;
-    code = NIL;
-    tail = NIL;
+    AtomRef* backupCode = engine->storage.ref(code->atom());
+    AtomRef* backupTail = engine->storage.ref(tail->atom());
+    code->atom(NIL);
+    tail->atom(NIL);
     do {
         expect(TT_L_BRACKET, "[");
         bool asSublist = false;
@@ -192,9 +194,11 @@ void Compiler::generateGuardedFunctionCode() {
         generateFunctionCode(true, asSublist);
     } while(tokenizer->isCurrent(TT_L_BRACKET));
     addCode(SYMBOL_OP_RTN);
-    Atom fn = code;
-    code = backupCode;
-    tail = backupTail;
+    Atom fn = code->atom();
+    code->atom(backupCode->atom());
+    delete backupCode;
+    tail->atom(backupTail->atom());
+    delete backupTail;
     addCode(fn);
     expect(TT_R_CURLY, "}");
 }
@@ -259,14 +263,14 @@ void Compiler::inlineDefinition() {
 }
 
 void Compiler::generateFunctionCode(bool expectBracet, bool asSublist) {
-    Atom backupCode = code;
-    Atom backupTail = tail;
+    AtomRef* backupCode = engine->storage.ref(code->atom());
+    AtomRef* backupTail = engine->storage.ref(tail->atom());
     if (asSublist) {
-        code = NIL;
-        tail = NIL;
+        code->atom(NIL);
+        tail->atom(NIL);
     }
     addCode(SYMBOL_OP_FILE);
-    addCode(file);
+    addCode(file->atom());
     if (expectBracet) {
         while (!tokenizer->isCurrent(TT_R_BRACKET) &&
                !tokenizer->isCurrent(TT_EOF))
@@ -282,9 +286,11 @@ void Compiler::generateFunctionCode(bool expectBracet, bool asSublist) {
     }
     addCode(SYMBOL_OP_RTN);
     if (asSublist) {
-        Atom fn = code;
-        code = backupCode;
-        tail = backupTail;
+        Atom fn = code->atom();
+        code->atom(backupCode->atom());
+        delete backupCode;
+        tail->atom(backupTail->atom());
+        delete backupTail;
         addCode(fn);
     }
 }
@@ -318,18 +324,18 @@ void Compiler::relExp() {
             // argument (x in this case) so we build an expression like
             // 1 < x & x < 10
             Atom code = lastSubexpression;
-            Atom stop = tail;
+            Atom stop = tail->atom();
             while(isCons(code) && code != stop) {
-                Cons cell = engine->storage.getCons(code);
-                addCode(cell->car);
-                code = cell->cdr;
+                Cell cell = engine->storage.getCons(code);
+                addCode(cell.car);
+                code = cell.cdr;
             }
         }
-        lastSubexpression = tail;
+        lastSubexpression = tail->atom();
         termExp();
         // Remember second argument in case we have a conjunction like
         // 1 < x < 10...
-        lastSubexpression = engine->storage.getCons(lastSubexpression)->cdr;
+        lastSubexpression = engine->storage.getCons(lastSubexpression).cdr;
         addCode(opCode);
         if (conjunction) {
             addCode(SYMBOL_OP_AND);

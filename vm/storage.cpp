@@ -25,6 +25,10 @@
 Storage::Storage() {
     initializeSymbols();
     gcCounter = 0;
+    nextFree = 0;
+    cellSize = 0;
+    cells = NULL;
+    states = NULL;
 }
 
 void Storage::declaredFixedSymbol(Word expected, const char* name) {
@@ -123,53 +127,66 @@ QString Storage::getSymbolName(Atom symbol) {
     return symbolTable.getKey(untagIndex(symbol));
 }
 
-std::pair<Atom, Cons> Storage::cons(Atom car, Atom cdr) {
-
-
-    if (!freeList.empty()) {
-        Word index = freeList.back();
-        freeList.pop_back();
-        Cons cons = cells[index].cell;
-        cons->car = car;
-        cons->cdr = cdr;
-        std::pair<Atom, Cons> pair(tagIndex(index, TAG_TYPE_CONS), cons);
-        return pair;
-    } else {
-        Cons cons = new Cell();
-        cons->car = car;
-        cons->cdr = cdr;
-
-        StorageEntry entry;
-        entry.cell = cons;
-        entry.state = UNUSED;
-        Word result = cells.size();
-        assert(result < MAX_INDEX_SIZE);
-        cells.push_back(entry);
-        std::pair<Atom, Cons> pair(tagIndex(result, TAG_TYPE_CONS), cons);
-        return pair;
-    }
-}
-
 Atom Storage::makeCons(Atom car, Atom cdr) {
-    return cons(car, cdr).first;
+    if (nextFree >= cellSize) {
+        std::wcout << "OOM" <<std::endl;
+        if (cellSize > 0) {
+            std::wcout << "GC" <<std::endl;
+            gc(car, cdr);
+        }
+        if (nextFree >= cellSize) {//TODO schon ab 75% voll machen!
+            std::wcout << "OOM!!"<<std::endl;
+            Word oldSize = cellSize;
+            cellSize += 1024;
+            if (cells == NULL) {
+                cells = (Cell*)malloc(sizeof(Cell) * cellSize);
+                states = (EntryState*)malloc(sizeof(EntryState) * cellSize);
+            } else {
+                cells = (Cell*)realloc(cells, sizeof(Cell) * cellSize);
+                states = (EntryState*)realloc(states, sizeof(EntryState) * cellSize);
+            }
+            for(Word i = cellSize; i > oldSize ; i--) {
+                cells[i - 1].car = i;
+                states[i - 1] = UNUSED;
+            }
+            nextFree = oldSize;
+        }
+    }
+
+    Word index = nextFree;
+    assert(states[index] == UNUSED);
+    //std::wcout << "IDX" << index <<std::endl;
+    nextFree = cells[index].car;
+    cells[index].car = car;
+    cells[index].cdr = cdr;
+    states[index] = GRAY;
+    assert(index < MAX_INDEX_SIZE);
+    return tagIndex(index, TAG_TYPE_CONS);
 }
 
-Cons Storage::getCons(Atom atom) {
-    assert(isCons(atom));
-    return cells[untagIndex(atom)].cell;
-}
-
-void Storage::gc() {
+void Storage::gc(Atom car, Atom cdr) {
     // Cleanup ref counts
     stringTable.resetRefCount();
     largeNumberTable.resetRefCount();
     decimalNumberTable.resetRefCount();
     referenceTable.resetRefCount();
 
+    // Mark temporary variables
+    if (isCons(car)) {
+        states[untagIndex(car)] = REFERENCED;
+    } else {
+        incValueTable(car, untagIndex(car));
+    }
+    if (isCons(cdr)) {
+        states[untagIndex(cdr)] = REFERENCED;
+    } else {
+        incValueTable(cdr, untagIndex(cdr));
+    }
+
     // Mark globals as referenced
     for(Word i = 0; i < globalsTable.size(); i++) {
         if (isCons(globalsTable.getValue(i))) {
-            cells[untagIndex(globalsTable.getValue(i))].state = REFERENCED;
+            states[untagIndex(globalsTable.getValue(i))] = REFERENCED;
         } else {
             incValueTable(globalsTable.getValue(i),
                           untagIndex(globalsTable.getValue(i)));
@@ -183,7 +200,7 @@ void Storage::gc() {
         ++iter) {
         AtomRef* ref = *iter;
         if (isCons(ref->atom())) {
-            cells[untagIndex(ref->atom())].state = REFERENCED;
+            states[untagIndex(ref->atom())] = REFERENCED;
         } else {
             incValueTable(ref->atom(), untagIndex(ref->atom()));
         }
@@ -212,44 +229,54 @@ void Storage::incValueTable(Atom atom, Word idx) {
 
 void Storage::mark() {  
     Word index = 0;
-    while(index < cells.size()) {
-        if (cells[index].state == REFERENCED) {
-            cells[index].state = CHECKED;
-            Cons cell = cells[index].cell;
-            Word carIdx = untagIndex(cell->car);
-            Word cdrIdx = untagIndex(cell->cdr);
+    Word iterations = 0;
+    Word used = 0;
+    while(index < cellSize) {
+        iterations++;
+        if (states[index] == REFERENCED) {
+            used++;
+            states[index] = CHECKED;
+            Cell cell = cells[index];
+            Word carIdx = untagIndex(cell.car);
+            Word cdrIdx = untagIndex(cell.cdr);
             index++;
-            if (isCons(cell->car) && cells[carIdx].state != CHECKED) {
-                 cells[carIdx].state = REFERENCED;
+            if (isCons(cell.car) && states[carIdx] != CHECKED) {
+                 states[carIdx] = REFERENCED;
                  if (carIdx < index) {
                      index = carIdx;
                  }
             } else {
-                incValueTable(cell->car, carIdx);
+                incValueTable(cell.car, carIdx);
             }
-            if (isCons(cell->cdr) && cells[cdrIdx].state != CHECKED) {
-                 cells[cdrIdx].state = REFERENCED;
+            if (isCons(cell.cdr) && states[cdrIdx] != CHECKED) {
+                 states[cdrIdx] = REFERENCED;
                  if (cdrIdx < index) {
                      index = cdrIdx;
                  }
             } else {
-                incValueTable(cell->cdr, cdrIdx);
+                incValueTable(cell.cdr, cdrIdx);
             }
         } else {
             index++;
         }
     }
+    std::cout << "Iterations: " << iterations << ", Cells: " << cellSize << ", Used: " << used << std::endl;
 }
 
 void Storage::sweep() {
-    freeList.clear();
-    for(Word i = 0; i < cells.size(); i++) {
-        if (cells[i].state == UNUSED) {
-            freeList.push_back(i);
+    nextFree = cellSize;
+    Word reclaimed = 0;
+    for(Word i = 0; i < cellSize; i++) {
+        if (states[i] == UNUSED || states[i] == GRAY) {
+            states[i] = UNUSED;
+            reclaimed++;
+            cells[i].car = nextFree;
+            nextFree = i;
         } else {
-            cells[i].state = UNUSED;
+            states[i] = GRAY;
         }
     }
+    std::cout << "Reclaimed: " << reclaimed << std::endl;
     stringTable.gc();
     largeNumberTable.gc();
     decimalNumberTable.gc();
@@ -266,10 +293,34 @@ void Storage::removeRef(AtomRef* ref) {
     strongReferences.erase(ref);
 }
 
-Atom Storage::cons(Cons cons, Atom next) {
+Atom Storage::append(Atom tail, Atom next) {
+    AtomRef tailRef(this, tail);
     Atom tmp = makeCons(next, NIL);
-    cons->cdr = tmp;
+    setCDR(tailRef.atom(), tmp);
     return tmp;
+}
+
+Cell Storage::getCons(Atom atom) {
+    assert(isCons(atom));
+    Word index = untagIndex(atom);
+    if (states[index] != GRAY) {
+     assert(states[index] == GRAY);
+    }
+    return cells[index];
+}
+
+void Storage::setCAR(Atom atom, Atom car) {
+    assert(isCons(atom));
+    Word index = untagIndex(atom);
+    assert(states[index] == GRAY);
+    cells[index].car = car;
+}
+
+void Storage::setCDR(Atom atom, Atom cdr) {
+    assert(isCons(atom));
+    Word index = untagIndex(atom);
+    assert(states[index] == GRAY);
+    cells[index].cdr = cdr;
 }
 
 Atom Storage::findGlobal(Atom nameSymbol) {

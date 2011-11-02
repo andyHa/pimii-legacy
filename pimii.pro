@@ -40,7 +40,8 @@ HEADERS += \
     bif/filesextension.h \
     bif/engineextension.h \
     bif/callcontext.h \
-    bif/webextension.h
+    bif/webextension.h \
+    vm/logger.h
 
 OTHER_FILES += \
     example.pi \
@@ -59,4 +60,5 @@ OTHER_FILES += \
 
 FORMS += \
     gui/webwindow.ui
+
 

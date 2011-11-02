@@ -40,9 +40,9 @@ Atom Engine::pop(AtomRef* reg) {
     if (!isCons(reg->atom())) {
         return NIL;
     }
-    Cons cons = storage.getCons(reg->atom());
-    Atom result = cons->car;
-    reg->atom(cons->cdr);
+    Cell cons = storage.getCons(reg->atom());
+    Atom result = cons.car;
+    reg->atom(cons.cdr);
     return result;
 }
 
@@ -145,12 +145,6 @@ QString Engine::getBIFName(Atom atom) {
     return storage.getSymbolName(bifTable.getKey(untagIndex(atom)));
 }
 
-void Engine::gc() {
-    if (storage.statusCellsUsed() > 4096 && storage.statusCellsUsed()> ((storage.statusTotalCells() / 4) * 3)) {
-        storage.gc();
-    }
-}
-
 void Engine::opNIL() {
     push(s, NIL);
 }
@@ -164,9 +158,9 @@ void Engine::opLDC() {
 }
 
 void Engine::opST() {
-   Atom val = pop(s);
-   store(pop(c), val);
-   push(s, val);
+   AtomRef val(&storage, pop(s));
+   store(pop(c), val.atom());
+   push(s, val.atom());
 }
 
 void Engine::opLDG() {
@@ -204,10 +198,10 @@ void Engine::opLDF() {
 Atom Engine::nth(Atom list, Word idx) {
     while(isCons(list) && idx > 0) {
         idx--;
-        list = storage.getCons(list)->cdr;
+        list = storage.getCons(list).cdr;
     }
     if (isCons(list)) {
-        return storage.getCons(list)->car;
+        return storage.getCons(list).car;
     } else {
         return NIL;
     }
@@ -215,48 +209,48 @@ Atom Engine::nth(Atom list, Word idx) {
 
 Atom Engine::head(AtomRef* list) {
     if (isCons(list->atom())) {
-       return storage.getCons(list->atom())->car;
+       return storage.getCons(list->atom()).car;
     } else {
         return NIL;
     }
 }
 
 void Engine::opAP(bool hasArguments) {
-    Atom name = pop(c);
-    Atom fun = pop(s);
-    Atom v = NIL;
+    AtomRef name(&storage, pop(c));
+    AtomRef fun(&storage, pop(s));
+    AtomRef v(&storage, NIL);
     if (hasArguments) {
-        v = pop(s);
+        v.atom(pop(s));
     }
-    if (isBIF(fun)) {
-        BIF bif = getBuiltInFunction(fun);
-        CallContext ctx(this, &storage, v);
+    if (isBIF(fun.atom())) {
+        BIF bif = getBuiltInFunction(fun.atom());
+        CallContext ctx(this, &storage, v.atom());
         bif(ctx);
         push(s, ctx.getResult());
     } else {
-        if (!isCons(fun)) {
+        if (!isCons(fun.atom())) {
          panic(
            QString("'%1' is neither a closure nor a built in function (%2:%3)")
-                        .arg(storage.getSymbolName(name),
+                        .arg(storage.getSymbolName(name.atom()),
                              QString(__FILE__),
                              intToString(__LINE__)));
         }
-        Cons funPair = storage.getCons(fun);
-        if ((head(c) == SYMBOL_OP_RTN) && (funPair->car == head(d))) {
+        Cell funPair = storage.getCons(fun.atom());
+        if ((head(c) == SYMBOL_OP_RTN) && (funPair.car == head(d))) {
             // We have a tail recursion -> don't push useless stuff on the
             // dump-stack, only flush stack, restart code and environment
             // (with new args)
             s->atom(NIL);
-            c->atom(funPair->car);
-            e->atom(storage.makeCons(v, funPair->cdr));
+            c->atom(funPair.car);
+            e->atom(storage.makeCons(v.atom(), funPair.cdr));
         } else {
             push(d, e->atom());
             push(d, s->atom());
             push(d, c->atom());
             s->atom(NIL);
-            c->atom(funPair->car);
+            c->atom(funPair.car);
             push(d, c->atom());
-            e->atom(storage.makeCons(v, funPair->cdr));
+            e->atom(storage.makeCons(v.atom(), funPair.cdr));
             push(p, storage.makeCons(currentFile,
                                      storage.makeNumber(currentLine)));
         }
@@ -279,8 +273,8 @@ void Engine::opCAR() {
            "#CAR: stack top was not a cons!",
            __FILE__,
            __LINE__);
-    Cons cons = storage.getCons(atom);
-    push(s, cons->car);
+    Cell cons = storage.getCons(atom);
+    push(s, cons.car);
 }
 
 void Engine::opCDR() {
@@ -289,8 +283,8 @@ void Engine::opCDR() {
            "#CDR: stack top was not a cons!",
            __FILE__,
            __LINE__);
-    Cons cons = storage.getCons(atom);
-    push(s, cons->cdr);
+    Cell cons = storage.getCons(atom);
+    push(s, cons.cdr);
 }
 
 void Engine::opCONS() {
@@ -300,20 +294,20 @@ void Engine::opCONS() {
 }
 
 void Engine::opSPLIT() {
-    Atom element = pop(s);
-    Atom l1 = pop(c);
-    Atom l2 = pop(c);
-    if (isCons(element)) {
-        Cons c = storage.getCons(element);
-        if (isGlobal(l1)) {
-            storage.writeGlobal(l1, c->car);
-        } else if (isCons(l1)) {
-            store(l1, c->car);
+    AtomRef element(&storage, pop(s));
+    AtomRef l1(&storage, pop(c));
+    AtomRef l2(&storage, pop(c));
+    if (isCons(element.atom())) {
+        Cell c = storage.getCons(element.atom());
+        if (isGlobal(l1.atom())) {
+            storage.writeGlobal(l1.atom(), c.car);
+        } else if (isCons(l1.atom())) {
+            store(l1.atom(), c.car);
         }
-        if (isGlobal(l2)) {
-            storage.writeGlobal(l2, c->cdr);
-        } else if (isCons(l2)) {
-            store(l2, c->cdr);
+        if (isGlobal(l2.atom())) {
+            storage.writeGlobal(l2.atom(), c.cdr);
+        } else if (isCons(l2.atom())) {
+            store(l2.atom(), c.cdr);
         }
         push(s, SYMBOL_TRUE);
     } else {
@@ -332,10 +326,8 @@ void Engine::opCHAIN() {
                "#CHAIN: stack top was not a cons!",
                __FILE__,
                __LINE__);
-        Cons c = storage.getCons(cell);
-        Cons tail = storage.getCons(c->cdr);
-        tail->cdr = storage.makeCons(element, NIL);
-        c->cdr = tail->cdr;
+        Cell c = storage.getCons(cell);
+        storage.setCDR(cell, storage.append(c.cdr, element));
         push(s, cell);
     }
 }
@@ -345,8 +337,8 @@ void Engine::opCHAINEND() {
     if (!isCons(cell)) {
         push(s, storage.makeCons(cell, NIL));
     } else {
-        Cons c = storage.getCons(cell);
-        push(s, c->car);
+        Cell c = storage.getCons(cell);
+        push(s, c.car);
     }
 }
 
@@ -460,14 +452,17 @@ void Engine::opCONCAT() {
     Atom b = pop(s);
     Atom a = pop(s);
     if (isCons(a)) {
-        Cons cell = storage.getCons(a);
-        while(isCons(cell->cdr)) {
-            cell = storage.getCons(cell->cdr);
+        Cell cell = storage.getCons(a);
+        Atom tail = a;
+        while(isCons(cell.cdr)) {
+            tail = cell.cdr;
+            cell = storage.getCons(cell.cdr);
         }
         if (isCons(b)) {
-            cell->cdr = b;
+            storage.setCDR(tail, b);
+
         } else {
-            cell->cdr = storage.makeCons(b, NIL);
+            storage.setCDR(tail, storage.makeCons(b, NIL));
         }
         push(s, a);
         return;
@@ -597,17 +592,17 @@ Atom Engine::locate(Atom pos) {
            "locate: pos is not a pair!",
            __FILE__,
            __LINE__);
-    Cons cons = storage.getCons(pos);
-    expect(isNumber(cons->car),
+    Cell cons = storage.getCons(pos);
+    expect(isNumber(cons.car),
            "locate: car is not a number!",
            __FILE__,
            __LINE__);
-    long i = storage.getNumber(cons->car);
-    expect(isNumber(cons->car),
+    long i = storage.getNumber(cons.car);
+    expect(isNumber(cons.car),
            "locate: cdr is not a number!",
            __FILE__,
            __LINE__);
-    long j = storage.getNumber(cons->cdr);
+    long j = storage.getNumber(cons.cdr);
     Atom env = e->atom();
     while (i > 1) {
         if (!isCons(env)) {
@@ -615,26 +610,26 @@ Atom Engine::locate(Atom pos) {
             // likely an error - but we keep hoping and simply return NIL.
             return NIL;
         }
-        env = storage.getCons(env)->cdr;
+        env = storage.getCons(env).cdr;
         i--;
     }
     if (!isCons(env)) {
         return NIL;
     }
-    env = storage.getCons(env)->car;
+    env = storage.getCons(env).car;
     while (j > 1) {
         if (!isCons(env)) {
             // This is probably not an error, but a read on a not yet defined
             // local variable.
             return NIL;
         }
-        env = storage.getCons(env)->cdr;
+        env = storage.getCons(env).cdr;
         j--;
     }
     if (!isCons(env)) {
         return NIL;
     }
-    return storage.getCons(env)->car;
+    return storage.getCons(env).car;
 }
 
 void Engine::store(Atom pos, Atom value) {
@@ -642,51 +637,51 @@ void Engine::store(Atom pos, Atom value) {
            "store: pos is not a pair!",
            __FILE__,
            __LINE__);
-    Cons cons = storage.getCons(pos);
-    expect(isNumber(cons->car),
+    Cell cons = storage.getCons(pos);
+    expect(isNumber(cons.car),
            "store: car is not a number!",
            __FILE__,
            __LINE__);
-    long i = storage.getNumber(cons->car);
-    expect(isNumber(cons->car),
+    long i = storage.getNumber(cons.car);
+    expect(isNumber(cons.car),
            "store: cdr is not a number!",
            __FILE__,
            __LINE__);
-    long j = storage.getNumber(cons->cdr);
-    Atom env = e->atom();
+    long j = storage.getNumber(cons.cdr);
+    AtomRef env(&storage, e->atom());
     while (i > 1) {
-        if (!isCons(env)) {
+        if (!isCons(env.atom())) {
             // We could also throw an exception here because this is most
             // likely an error - but we keep hoping and simply return NIL.
             return;
         }
-        env = storage.getCons(env)->cdr;
+        env.atom(storage.getCons(env.atom()).cdr);
         i--;
     }
-    if (!isCons(env)) {
+    if (!isCons(env.atom())) {
         return;
     }
-    Atom targetEnv = storage.getCons(env)->car;
-    if (isNil(targetEnv)) {
-        storage.getCons(env)->car = storage.makeCons(NIL, NIL);
+    if (isNil(storage.getCons(env.atom()).car)) {
+        storage.setCAR(env.atom(), storage.makeCons(NIL, NIL));
     }
-    env = storage.getCons(env)->car;
+    env.atom(storage.getCons(env.atom()).car);
     while (j > 1) {
-        if (!isCons(env)) {
+        if (!isCons(env.atom())) {
             return;
         }
-        Cons c = storage.getCons(env);
-        if (isNil(c->cdr)) {
-            c->cdr = storage.makeCons(NIL, NIL);
+        Cell c = storage.getCons(env.atom());
+        if (isNil(c.cdr)) {
+            storage.setCDR(env.atom(), storage.makeCons(NIL, NIL));
+            // Refresh cell...
+            c = storage.getCons(env.atom());
         }
-        env = c->cdr;
+        env.atom(c.cdr);
         j--;
     }
-    if (!isCons(env)) {
+    if (!isCons(env.atom())) {
         return;
     }
-    storage.getCons(env)->car = value;
-
+    storage.setCAR(env.atom(), value);
 }
 
 void Engine::opLine() {
@@ -870,7 +865,6 @@ void Engine::interpret() {
         while (running && maxOpCodes > 0) {
             Atom op = pop(c);
             if (op == SYMBOL_OP_STOP) {
-                gc();
                 if (!loadNextExecution()) {
                     running = false;
                     emit onEngineStopped();
@@ -881,7 +875,6 @@ void Engine::interpret() {
             }
             maxOpCodes--;
         }
-        gc();
     } catch(PanicException* ex) {
         running = false;
         emit onEngineStopped();
@@ -901,10 +894,10 @@ QString Engine::stackDump() {
               "\n";
     Atom pos = pop(p);
     while(isCons(pos)) {
-        Cons location = storage.getCons(pos);
-        buffer += toSimpleString(location->car) +
+        Cell location = storage.getCons(pos);
+        buffer += toSimpleString(location.car) +
                   ":" +
-                  toSimpleString(location->cdr) +
+                  toSimpleString(location.cdr) +
                   "\n";
         pos = pop(p);
     }
@@ -1006,18 +999,18 @@ void Engine::call(Atom list) {
     s->atom(NIL);
     //Check if code ends with an RTN statement...
     Atom tmp = list;
-    Cons cell = storage.getCons(tmp);
+    Cell cell = storage.getCons(tmp);
     while(true) {
-        if (isCons(cell->cdr)) {
-            tmp = cell->cdr;
+        if (isCons(cell.cdr)) {
+            tmp = cell.cdr;
             cell = storage.getCons(tmp);
         } else {
             break;
         }
     }
     //If not, append an RTN.
-    if (cell->car != SYMBOL_OP_RTN) {
-        cell->cdr = storage.makeCons(SYMBOL_OP_RTN, NIL);
+    if (cell.car != SYMBOL_OP_RTN) {
+        cell.cdr = storage.makeCons(SYMBOL_OP_RTN, NIL);
     }
     c->atom(list);
     push(d, c->atom());
@@ -1032,20 +1025,20 @@ void Engine::println(const QString& string) {
 
 QString Engine::printList(Atom atom) {
     QString sb("");
-    Cons cons = storage.getCons(atom);
-    sb += QString("(") + toString(cons->car);
-    if (isCons(cons->cdr) || isNil(cons->cdr)) {
-        Atom val = cons->cdr;
+    Cell cons = storage.getCons(atom);
+    sb += QString("(") + toString(cons.car);
+    if (isCons(cons.cdr) || isNil(cons.cdr)) {
+        Atom val = cons.cdr;
         while (isCons(val)) {
             cons = storage.getCons(val);
-            sb += " " + toString(cons->car);
-            val = cons->cdr;
+            sb += " " + toString(cons.car);
+            val = cons.cdr;
         }
         if (!isCons(val) && !isNil(val)) {
             sb += " " + toString(val);
         }
     } else {
-        sb += "." + toString(cons->cdr);
+        sb += "." + toString(cons.cdr);
     }
     sb += ")";
     return sb;

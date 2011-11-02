@@ -41,26 +41,28 @@
 class ListBuilder {
 private:
     Storage* storage;
-    Atom start;
-    Cons current;
+    AtomRef* start;
+    AtomRef* current;
 public:
     ListBuilder(Storage* storage) :
         storage(storage),
-        start(NIL),
-        current(NULL) {}
+        start(storage->ref(NIL)),
+        current(storage->ref(NIL)) {}
+
+    ~ListBuilder() {
+        delete start;
+        delete current;
+    }
 
     /**
       Appends a new value to the list.
       */
     void append(Atom cell) {
-        if (isNil(start)) {
-            std::pair<Atom, Cons> result = storage->cons(cell, NIL);
-            current = result.second;
-            start = result.first;
+        if (isNil(start->atom())) {
+            current->atom(storage->makeCons(cell, NIL));
+            start->atom(current->atom());
         } else {
-            std::pair<Atom, Cons> result = storage->cons(cell, NIL);
-            current->cdr = result.first;
-            current = result.second;
+            current->atom(storage->append(current->atom(), cell));
         }
     }
 
@@ -68,7 +70,7 @@ public:
       Returns the constructed list.
       */
     Atom getResult() {
-        return start;
+        return start->atom();
     }
 };
 
@@ -135,9 +137,9 @@ public:
                           intToString(line)));
             }
         }
-        Cons cons = storage->getCons(currentParam);
-        currentParam = cons->cdr;
-        return cons->car;
+        Cell cons = storage->getCons(currentParam);
+        currentParam = cons.cdr;
+        return cons.car;
     }
 
     /**
@@ -248,7 +250,7 @@ public:
     /**
       Fetches a list argument.
       */
-    Cons fetchCons(const char* bifName,
+    Cell fetchCons(const char* bifName,
                    const char* file,
                    int line) const {
         Atom result = fetchArgument(bifName, file, line);

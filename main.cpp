@@ -9,6 +9,7 @@
 #include <cstdlib>
 
 #include "gui/mainwindow.h"
+#include "vm/logger.h"
 
 #include <QApplication>
 #include <QEventLoop>
@@ -68,6 +69,9 @@ void eventLoop(QApplication& a, Engine& engine) {
 
 int main(int argc, char *argv[])
 {    
+    Logger sys("SYS");
+//    Logger::setLevel("SYS", ERROR);
+    INFO(sys) << "Hallo WB";
     QApplication a(argc, argv);
     QSettings settings("pimii","pimii");
     Engine engine(&settings);

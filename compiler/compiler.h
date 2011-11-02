@@ -146,9 +146,9 @@ class Compiler
     Engine* engine;
     Tokenizer* tokenizer;
 
-    Atom file;
-    Atom code;
-    Atom tail;
+    AtomRef* file;
+    AtomRef* code;
+    AtomRef* tail;
 
     std::vector<CompilationError> errors;
 
@@ -196,6 +196,9 @@ public:
     Compiler(const QString& fileName, const QString& input, Engine* engine);
     ~Compiler() {
         delete tokenizer;
+        delete code;
+        delete file;
+        delete tail;
     }
 
     std::pair< Atom, std::vector<CompilationError> > compile(bool appendStop);
