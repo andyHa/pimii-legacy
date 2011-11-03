@@ -69,15 +69,14 @@ void eventLoop(QApplication& a, Engine& engine) {
 
 int main(int argc, char *argv[])
 {    
-    Logger sys("SYS");
-//    Logger::setLevel("SYS", ERROR);
-    INFO(sys) << "Hallo WB";
     QApplication a(argc, argv);
     QSettings settings("pimii","pimii");
     Engine engine(&settings);
     window = new MainWindow(&engine);
     window->showMaximized();
     engine.initialize();
+
+    //Logger::setLevel("STORE", TRACE);
 
     // Tries to find and load the "start.pi" file.
     loadStartupScript(engine);

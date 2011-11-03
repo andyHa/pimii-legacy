@@ -27,6 +27,7 @@
 
 #include "env.h"
 #include "storage.h"
+#include "logger.h"
 
 #include <deque>
 
@@ -67,6 +68,11 @@ class Engine : public QObject
 private:
 
     Q_OBJECT
+
+    /**
+      The logger used by the engine.
+      */
+    Logger log;
 
     /**
       Used by "panic" to stop the engine.

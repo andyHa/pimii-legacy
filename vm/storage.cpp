@@ -22,11 +22,12 @@
 #include <iomanip>
 #include <algorithm>
 
-Storage::Storage() {
+Storage::Storage() : log("STORE") {
     initializeSymbols();
     gcCounter = 0;
     nextFree = 0;
     cellSize = 0;
+    cellsInUse = 0;
     cells = NULL;
     states = NULL;
 }
@@ -129,15 +130,15 @@ QString Storage::getSymbolName(Atom symbol) {
 
 Atom Storage::makeCons(Atom car, Atom cdr) {
     if (nextFree >= cellSize) {
-        std::wcout << "OOM" <<std::endl;
+        TRACE(log, "Memory maxed out...");
         if (cellSize > 0) {
-            std::wcout << "GC" <<std::endl;
+            FINE(log, "Starting garbage collection...");
             gc(car, cdr);
         }
-        if (nextFree >= cellSize) {//TODO schon ab 75% voll machen!
-            std::wcout << "OOM!!"<<std::endl;
+        if (cellSize - cellsInUse < 512) {
             Word oldSize = cellSize;
-            cellSize += 1024;
+            cellSize += 4096;
+            FINE(log, "Expanding heap from: " << oldSize << " to: " << cellSize);
             if (cells == NULL) {
                 cells = (Cell*)malloc(sizeof(Cell) * cellSize);
                 states = (EntryState*)malloc(sizeof(EntryState) * cellSize);
@@ -155,11 +156,11 @@ Atom Storage::makeCons(Atom car, Atom cdr) {
 
     Word index = nextFree;
     assert(states[index] == UNUSED);
-    //std::wcout << "IDX" << index <<std::endl;
     nextFree = cells[index].car;
     cells[index].car = car;
     cells[index].cdr = cdr;
     states[index] = GRAY;
+    cellsInUse++;
     assert(index < MAX_INDEX_SIZE);
     return tagIndex(index, TAG_TYPE_CONS);
 }
@@ -171,14 +172,18 @@ void Storage::gc(Atom car, Atom cdr) {
     decimalNumberTable.resetRefCount();
     referenceTable.resetRefCount();
 
+    int gcRoots = 0;
+
     // Mark temporary variables
     if (isCons(car)) {
         states[untagIndex(car)] = REFERENCED;
+        gcRoots++;
     } else {
         incValueTable(car, untagIndex(car));
     }
     if (isCons(cdr)) {
         states[untagIndex(cdr)] = REFERENCED;
+        gcRoots++;
     } else {
         incValueTable(cdr, untagIndex(cdr));
     }
@@ -187,6 +192,7 @@ void Storage::gc(Atom car, Atom cdr) {
     for(Word i = 0; i < globalsTable.size(); i++) {
         if (isCons(globalsTable.getValue(i))) {
             states[untagIndex(globalsTable.getValue(i))] = REFERENCED;
+            gcRoots++;
         } else {
             incValueTable(globalsTable.getValue(i),
                           untagIndex(globalsTable.getValue(i)));
@@ -201,10 +207,13 @@ void Storage::gc(Atom car, Atom cdr) {
         AtomRef* ref = *iter;
         if (isCons(ref->atom())) {
             states[untagIndex(ref->atom())] = REFERENCED;
+            gcRoots++;
         } else {
             incValueTable(ref->atom(), untagIndex(ref->atom()));
         }
     }
+
+    FINE(log, "GC: GC-Roots:" << gcRoots);
 
     // execute mark-phase
     mark();
@@ -260,7 +269,11 @@ void Storage::mark() {
             index++;
         }
     }
-    std::cout << "Iterations: " << iterations << ", Cells: " << cellSize << ", Used: " << used << std::endl;
+    FINE(log, "MARK: Iterations: " <<
+         iterations <<
+         ", Cells: " <<
+         cellSize <<
+         ", Used: " << used);
 }
 
 void Storage::sweep() {
@@ -268,6 +281,7 @@ void Storage::sweep() {
     Word reclaimed = 0;
     for(Word i = 0; i < cellSize; i++) {
         if (states[i] == UNUSED || states[i] == GRAY) {
+            cellsInUse--;
             states[i] = UNUSED;
             reclaimed++;
             cells[i].car = nextFree;
@@ -276,7 +290,13 @@ void Storage::sweep() {
             states[i] = GRAY;
         }
     }
-    std::cout << "Reclaimed: " << reclaimed << std::endl;
+
+    FINE(log, "SWEEP: Reclaimed: " <<
+         reclaimed <<
+         "(" <<
+         (100.0 * reclaimed / cellSize) <<
+         "%)");
+
     stringTable.gc();
     largeNumberTable.gc();
     decimalNumberTable.gc();
@@ -285,12 +305,8 @@ void Storage::sweep() {
 
 AtomRef* Storage::ref(Atom atom) {
     AtomRef* result = new AtomRef(this, atom);
-    strongReferences.insert(result);
-    return result;
-}
 
-void Storage::removeRef(AtomRef* ref) {
-    strongReferences.erase(ref);
+    return result;
 }
 
 Atom Storage::append(Atom tail, Atom next) {
@@ -304,7 +320,8 @@ Cell Storage::getCons(Atom atom) {
     assert(isCons(atom));
     Word index = untagIndex(atom);
     if (states[index] != GRAY) {
-     assert(states[index] == GRAY);
+        TRACE(log, "ACCESS: " << atom);
+        assert(states[index] == GRAY);
     }
     return cells[index];
 }

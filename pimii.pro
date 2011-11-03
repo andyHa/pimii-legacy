@@ -21,7 +21,8 @@ SOURCES += main.cpp \
     gui/webwindow.cpp \
     bif/coreextension.cpp \
     bif/filesextension.cpp \
-    bif/webextension.cpp
+    bif/webextension.cpp \
+    vm/logger.cpp
 
 HEADERS += \
     vm/engine.h \
@@ -60,5 +61,6 @@ OTHER_FILES += \
 
 FORMS += \
     gui/webwindow.ui
+
 
 

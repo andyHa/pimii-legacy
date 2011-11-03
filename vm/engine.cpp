@@ -47,6 +47,7 @@ Atom Engine::pop(AtomRef* reg) {
 }
 
 Engine::Engine(QSettings* settings) :
+    log("EXEC"),
     settings(settings),
     s(storage.ref(NIL)),
     e(storage.ref(NIL)),
@@ -853,8 +854,11 @@ void Engine::interpret() {
     if (!running) {
         return;
     }
+    TRACE(log, "Entering Interpert...");
     if (c->atom() == NIL) {
+        TRACE(log, "Loading next execution...");
         if (!loadNextExecution()) {
+            TRACE(log, "Nothing to do. Halting engine.");
             running = false;
             emit onEngineStopped();
             return;
@@ -865,7 +869,9 @@ void Engine::interpret() {
         while (running && maxOpCodes > 0) {
             Atom op = pop(c);
             if (op == SYMBOL_OP_STOP) {
+                TRACE(log, "STOP requested. Loading next execution.");
                 if (!loadNextExecution()) {
+                    TRACE(log, "Nothing to do. Halting engine.");
                     running = false;
                     emit onEngineStopped();
                     return;
@@ -875,6 +881,7 @@ void Engine::interpret() {
             }
             maxOpCodes--;
         }
+        TRACE(log, "Leaving interpret...");
     } catch(PanicException* ex) {
         running = false;
         emit onEngineStopped();

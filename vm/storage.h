@@ -29,6 +29,7 @@
 #include "lookuptable.h"
 #include "valuetable.h"
 #include "reference.h"
+#include "logger.h"
 
 #include <QSharedPointer>
 #include <set>
@@ -106,6 +107,11 @@ class Storage
     void initializeSymbols();
 
     /**
+      Contains the logger used by the storage engine.
+      */
+    Logger log;
+
+    /**
       Counts the number of executed garbage collections.
       */
     Word gcCounter;
@@ -148,6 +154,7 @@ class Storage
     EntryState* states;
 
     Word cellSize;
+    Word cellsInUse;
     Word nextFree;
 
     /**
@@ -160,11 +167,6 @@ class Storage
       atom points to one.
       */
     void incValueTable(Atom atom, Word idx);
-
-    /**
-      Removes the given reference.
-      */
-    void removeRef(AtomRef* ref);
 
     /**
       Invokes the garbage collector.
@@ -402,7 +404,9 @@ private:
 public:
     AtomRef(Storage* storage, Atom atom) :
         storage(storage),
-        referencedAtom(atom) {}
+        referencedAtom(atom) {
+        storage->strongReferences.insert(this);
+    }
 
     Atom atom() {
         return referencedAtom;
@@ -413,7 +417,7 @@ public:
     }
 
     ~AtomRef() {
-        storage->removeRef(this);
+        storage->strongReferences.erase(this);
     }
 
 };

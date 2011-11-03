@@ -85,3 +85,18 @@ Duration: 1155ms
 Duration: 1170ms
 Duration: 11919ms
 GCs: 623
+
+Switched over to chunk allocator and memory-usage dependet GC
+-------------------------------------------------------------------------------
+Duration: 1740ms
+Duration: 100ms
+Duration: 90ms
+Duration: 100ms
+Duration: 90ms
+Duration: 100ms
+Duration: 80ms
+Duration: 90ms
+Duration: 90ms
+Duration: 100ms
+Duration: 2590ms
+GCs: 343
