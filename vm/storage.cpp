@@ -21,6 +21,7 @@
 
 #include <iomanip>
 #include <algorithm>
+#include <deque>
 
 Storage::Storage() : log("STORE") {
     initializeSymbols();
@@ -111,8 +112,10 @@ void Storage::initializeSymbols() {
     declaredFixedSymbol(SYMBOL_VALUE_NUM_DECIMALS_USED, "NUM_DECIMALS_USED");
     declaredFixedSymbol(SYMBOL_VALUE_NUM_TOTAL_REFERENCES,
                         "NUM_TOTAL_REFERENCES");
-    declaredFixedSymbol(SYMBOL_VALUE_NUM_REFERENES_USED,
-                        "SYMBOL_VALUE_NUM_REFERENES_USED");
+    declaredFixedSymbol(SYMBOL_VALUE_NUM_REFERENCES_USED,
+                        "NUM_REFERENES_USED");
+    declaredFixedSymbol(SYMBOL_VALUE_GC_EFFICIENCY,
+                        "GC_EFFICIENCY");
 
 }
 
@@ -132,19 +135,36 @@ Atom Storage::makeCons(Atom car, Atom cdr) {
     if (nextFree >= cellSize) {
         TRACE(log, "Memory maxed out...");
         if (cellSize > 0) {
-            FINE(log, "Starting garbage collection...");
-            gc(car, cdr);
+            // Every 10th GC is always a major (full) GC (we need to free
+            // our value tables (strings table, large number table etc.)
+            if (gcCounter % 10 == 0 ) {
+                FINE(log, "Starting MAJOR garbage collection...");
+                gc(true, car, cdr);
+            } else {
+                // Try a minor GC first...
+                FINE(log, "Starting MINOR garbage collection...");
+                gc(false, car, cdr);
+                if (cellSize - cellsInUse < 1024) {
+                    // Still not enough, run a full GC!
+                    FINE(log, "Starting MAJOR garbage collection...");
+                    gc(true, car, cdr);
+                }
+            }
         }
-        if (cellSize - cellsInUse < 512) {
+        if (cellSize - cellsInUse < 1024) {
             Word oldSize = cellSize;
-            cellSize += 4096;
-            FINE(log, "Expanding heap from: " << oldSize << " to: " << cellSize);
+            cellSize += 1024 * 32;
+            FINE(log, "Expanding heap from: " <<
+                 oldSize <<
+                 " to: " <<
+                 cellSize);
             if (cells == NULL) {
                 cells = (Cell*)malloc(sizeof(Cell) * cellSize);
                 states = (EntryState*)malloc(sizeof(EntryState) * cellSize);
             } else {
                 cells = (Cell*)realloc(cells, sizeof(Cell) * cellSize);
-                states = (EntryState*)realloc(states, sizeof(EntryState) * cellSize);
+                states = (EntryState*)realloc(states,
+                                              sizeof(EntryState) * cellSize);
             }
             for(Word i = cellSize; i > oldSize ; i--) {
                 cells[i - 1].car = i;
@@ -165,12 +185,19 @@ Atom Storage::makeCons(Atom car, Atom cdr) {
     return tagIndex(index, TAG_TYPE_CONS);
 }
 
-void Storage::gc(Atom car, Atom cdr) {
-    // Cleanup ref counts
-    stringTable.resetRefCount();
-    largeNumberTable.resetRefCount();
-    decimalNumberTable.resetRefCount();
-    referenceTable.resetRefCount();
+void Storage::gc(bool major, Atom car, Atom cdr) {
+
+    if (major) {
+        // Cleanup ref counts
+        stringTable.resetRefCount();
+        largeNumberTable.resetRefCount();
+        decimalNumberTable.resetRefCount();
+        referenceTable.resetRefCount();
+
+        for(Word i = 0; i < cellSize; i++) {
+            states[i] = GRAY;
+        }
+    }
 
     int gcRoots = 0;
 
@@ -221,6 +248,13 @@ void Storage::gc(Atom car, Atom cdr) {
     // execute sweep-phase
     sweep();
 
+    if (major) {
+        stringTable.gc();
+        largeNumberTable.gc();
+        decimalNumberTable.gc();
+        referenceTable.gc();
+    }
+
     gcCounter++;
 }
 
@@ -236,44 +270,60 @@ void Storage::incValueTable(Atom atom, Word idx) {
     }
 }
 
+void Storage::markCell(Word index,
+                       std::deque<Word>& refQueue,
+                       bool alwaysQueue) {
+    states[index] = CHECKED;
+    Cell cell = cells[index];
+    Word carIdx = untagIndex(cell.car);
+    Word cdrIdx = untagIndex(cell.cdr);
+    if (isCons(cell.car)) {
+        if (states[carIdx] != CHECKED) {
+            states[carIdx] = REFERENCED;
+            if (alwaysQueue || carIdx < index) {
+                refQueue.push_back(carIdx);
+            }
+        }
+    } else {
+        incValueTable(cell.car, carIdx);
+    }
+    if (isCons(cell.cdr)) {
+        if (states[cdrIdx] != CHECKED) {
+            states[cdrIdx] = REFERENCED;
+            if (alwaysQueue || cdrIdx < index) {
+                refQueue.push_back(cdrIdx);
+            }
+        }
+    } else {
+        incValueTable(cell.cdr, cdrIdx);
+    }
+}
+
 void Storage::mark() {  
-    Word index = 0;
-    Word iterations = 0;
+    std::deque<Word> refQueue;
+    Word iterations = cellSize;
     Word used = 0;
-    while(index < cellSize) {
-        iterations++;
+    for(Word index = 0; index < cellSize; index++) {
         if (states[index] == REFERENCED) {
             used++;
-            states[index] = CHECKED;
-            Cell cell = cells[index];
-            Word carIdx = untagIndex(cell.car);
-            Word cdrIdx = untagIndex(cell.cdr);
-            index++;
-            if (isCons(cell.car) && states[carIdx] != CHECKED) {
-                 states[carIdx] = REFERENCED;
-                 if (carIdx < index) {
-                     index = carIdx;
-                 }
-            } else {
-                incValueTable(cell.car, carIdx);
-            }
-            if (isCons(cell.cdr) && states[cdrIdx] != CHECKED) {
-                 states[cdrIdx] = REFERENCED;
-                 if (cdrIdx < index) {
-                     index = cdrIdx;
-                 }
-            } else {
-                incValueTable(cell.cdr, cdrIdx);
-            }
-        } else {
-            index++;
+            markCell(index, refQueue, false);
         }
     }
+    while(!refQueue.empty()) {
+        iterations++;
+        Word index = refQueue.front();
+        refQueue.pop_front();
+        if (states[index] == REFERENCED) {
+            used++;
+            markCell(index, refQueue, true);
+        }
+    }
+
     FINE(log, "MARK: Iterations: " <<
          iterations <<
          ", Cells: " <<
          cellSize <<
-         ", Used: " << used);
+         ", Marked: " << used);
 }
 
 void Storage::sweep() {
@@ -286,21 +336,15 @@ void Storage::sweep() {
             reclaimed++;
             cells[i].car = nextFree;
             nextFree = i;
-        } else {
-            states[i] = GRAY;
         }
     }
 
-    FINE(log, "SWEEP: Reclaimed: " <<
-         reclaimed <<
-         "(" <<
-         (100.0 * reclaimed / cellSize) <<
-         "%)");
+    double eff =  (100.0 * reclaimed / cellSize);
+    avgGCEfficiency.addValue(eff);
 
-    stringTable.gc();
-    largeNumberTable.gc();
-    decimalNumberTable.gc();
-    referenceTable.gc();
+    FINE(log, "SWEEP: Reclaimed: " <<
+         reclaimed << "(" << eff << "%" <<
+         ", Avg: " << avgGCEfficiency.average() << "%)");
 }
 
 AtomRef* Storage::ref(Atom atom) {
@@ -319,9 +363,13 @@ Atom Storage::append(Atom tail, Atom next) {
 Cell Storage::getCons(Atom atom) {
     assert(isCons(atom));
     Word index = untagIndex(atom);
-    if (states[index] != GRAY) {
-        TRACE(log, "ACCESS: " << atom);
-        assert(states[index] == GRAY);
+
+    if (states[index] == UNUSED) {
+        ERROR(log, "Atom " <<
+              atom <<
+              " (Index: " <<
+              index <<
+              ") cannot be accessed!");
     }
     return cells[index];
 }
@@ -329,15 +377,41 @@ Cell Storage::getCons(Atom atom) {
 void Storage::setCAR(Atom atom, Atom car) {
     assert(isCons(atom));
     Word index = untagIndex(atom);
-    assert(states[index] == GRAY);
+
+    if (states[index] == UNUSED) {
+        ERROR(log, "Atom " <<
+              atom <<
+              " (Index: " <<
+              index <<
+              ") cannot be accessed!");
+    }
     cells[index].car = car;
+    // Due to a minor GC, the cell might be considered CHECKED. Since its
+    // components changed, we must force the collector to check this cell
+    // again.
+    if (states[index] == CHECKED) {
+        states[index] = REFERENCED;
+    }
 }
 
 void Storage::setCDR(Atom atom, Atom cdr) {
     assert(isCons(atom));
     Word index = untagIndex(atom);
-    assert(states[index] == GRAY);
+
+    if (states[index] == UNUSED) {
+        ERROR(log, "Atom " <<
+              atom <<
+              " (Index: " <<
+              index <<
+              ") cannot be accessed!");
+    }
     cells[index].cdr = cdr;
+    // Due to a minor GC, the cell might be considered CHECKED. Since its
+    // components changed, we must force the collector to check this cell
+    // again.
+    if (states[index] == CHECKED) {
+        states[index] = REFERENCED;
+    }
 }
 
 Atom Storage::findGlobal(Atom nameSymbol) {

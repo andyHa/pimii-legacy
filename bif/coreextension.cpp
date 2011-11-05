@@ -67,6 +67,7 @@ void CoreExtension::bif_getValueKeys(const CallContext& ctx) {
     lb.append(SYMBOL_VALUE_DEBUG_STORAGE);
     lb.append(SYMBOL_VALUE_OP_COUNT);
     lb.append(SYMBOL_VALUE_GC_COUNT);
+    lb.append(SYMBOL_VALUE_GC_EFFICIENCY);
     lb.append(SYMBOL_VALUE_NUM_GC_ROOTS);
     lb.append(SYMBOL_VALUE_NUM_SYMBOLS);
     lb.append(SYMBOL_VALUE_NUM_GLOBALS);
@@ -79,7 +80,7 @@ void CoreExtension::bif_getValueKeys(const CallContext& ctx) {
     lb.append(SYMBOL_VALUE_NUM_TOTAL_DECIMALS);
     lb.append(SYMBOL_VALUE_NUM_DECIMALS_USED);
     lb.append(SYMBOL_VALUE_NUM_TOTAL_REFERENCES);
-    lb.append(SYMBOL_VALUE_NUM_REFERENES_USED);
+    lb.append(SYMBOL_VALUE_NUM_REFERENCES_USED);
     ctx.setResult(lb.getResult());
 }
 

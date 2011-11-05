@@ -22,7 +22,7 @@ SOURCES += main.cpp \
     bif/coreextension.cpp \
     bif/filesextension.cpp \
     bif/webextension.cpp \
-    vm/logger.cpp
+    tools/logger.cpp
 
 HEADERS += \
     vm/engine.h \
@@ -30,7 +30,6 @@ HEADERS += \
     vm/valuetable.h \
     vm/storage.h \
     vm/env.h \
-    vm/interceptor.h \
     compiler/tokenizer.h \
     compiler/compiler.h \
     gui/mainwindow.h \
@@ -42,7 +41,8 @@ HEADERS += \
     bif/engineextension.h \
     bif/callcontext.h \
     bif/webextension.h \
-    vm/logger.h
+    tools/logger.h \
+    tools/average.h
 
 OTHER_FILES += \
     example.pi \
@@ -61,6 +61,12 @@ OTHER_FILES += \
 
 FORMS += \
     gui/webwindow.ui
+
+
+
+
+
+
 
 
 

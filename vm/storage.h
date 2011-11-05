@@ -25,14 +25,18 @@
 #ifndef STORAGE_H
 #define STORAGE_H
 
-#include "env.h"
-#include "lookuptable.h"
-#include "valuetable.h"
-#include "reference.h"
-#include "logger.h"
+#include "vm/env.h"
+#include "vm/lookuptable.h"
+#include "vm/valuetable.h"
+#include "vm/reference.h"
+#include "tools/logger.h"
+#include "tools/average.h"
 
 #include <QSharedPointer>
+
 #include <set>
+#include <deque>
+#include <ctime>
 
 /**
   Represents the central unit of memory management. All data
@@ -44,12 +48,6 @@ struct Cell {
     Atom car;
     Atom cdr;
 };
-
-/**
-  Points to a cell within the cell storage.
-  */
-//class Cons;
-//typedef Cell* Cons;
 
 /**
   Represents the state of an entry (Used by the garbage collector).
@@ -72,18 +70,6 @@ enum EntryState {
       */
     CHECKED
 };
-
-/**
-  Internally used to store memory cells along with a header used
-  for garbage collection and free-list management.
-  */
-
-/*
-struct StorageEntry {
-    EntryState state;
-    Cons cell;
-};
-*/
 
 /**
   Forward reference. See below.
@@ -110,11 +96,6 @@ class Storage
       Contains the logger used by the storage engine.
       */
     Logger log;
-
-    /**
-      Counts the number of executed garbage collections.
-      */
-    Word gcCounter;
 
     /**
       Maps Strings to unique symbol indices
@@ -151,10 +132,35 @@ class Storage
       */
     Cell* cells;
 
+    /**
+      Contains the state for each cell.
+      */
     EntryState* states;
 
+    /**
+      Contains the size of the cells array. (Number of elements, not byte size).
+      */
     Word cellSize;
+
+    /**
+      Contains the number of cells currently in use.
+      */
     Word cellsInUse;
+
+    /**
+      Counts the number of executed garbage collections.
+      */
+    Word gcCounter;
+
+    /**
+      Contains the average ratio of freed cells within a GC run.
+      */
+    DoubleAverage avgGCEfficiency;
+
+    /**
+      Points to the first free cell or == cellSize, when no more cells are free.
+      If it points to a cell, this cells car value points to the next free cell.
+      */
     Word nextFree;
 
     /**
@@ -171,7 +177,13 @@ class Storage
     /**
       Invokes the garbage collector.
       */
-    void gc(Atom car, Atom cdr);
+    void gc(bool major, Atom car, Atom cdr);
+
+    /**
+      Used by the mark phase to mark one cell as checked, and mark referenced
+      cells as referenced.
+      */
+    void markCell(Word index, std::deque<Word>& refQueue, bool alwaysQueue);
 
     /**
       Implements the mark-phase of the garbage collector.
@@ -297,6 +309,10 @@ public:
         return gcCounter;
     }
 
+    double statusGCEfficienty() {
+        return avgGCEfficiency.average();
+    }
+
     /**
       Returns the count of GC roots. (AtomRefs)
       */
@@ -322,14 +338,14 @@ public:
       Returns the size of the cell storage.
       */
     Word statusTotalCells() {
-        return 0;//cells.size();
+        return cellSize;
     }
 
     /**
       Returns the number of reachable cells.
       */
     Word statusCellsUsed() {
-        return 0;//cells.size() - freeList.size();
+        return cellsInUse;
     }
 
     /**

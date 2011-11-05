@@ -25,9 +25,9 @@
 #ifndef ENGINE_H
 #define ENGINE_H
 
-#include "env.h"
-#include "storage.h"
-#include "logger.h"
+#include "vm/env.h"
+#include "vm/storage.h"
+#include "tools/logger.h"
 
 #include <deque>
 

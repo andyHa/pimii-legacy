@@ -9,7 +9,7 @@
 #include <cstdlib>
 
 #include "gui/mainwindow.h"
-#include "vm/logger.h"
+#include "tools/logger.h"
 
 #include <QApplication>
 #include <QEventLoop>
@@ -76,7 +76,7 @@ int main(int argc, char *argv[])
     window->showMaximized();
     engine.initialize();
 
-    //Logger::setLevel("STORE", TRACE);
+    Logger::setLevel("STORE", INFO);
 
     // Tries to find and load the "start.pi" file.
     loadStartupScript(engine);

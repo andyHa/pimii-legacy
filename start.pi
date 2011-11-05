@@ -59,6 +59,9 @@ performanceTest ::= [
         ];
     ];
     sys::log('GCs: ' & (engine::getValue(#GC_COUNT) - gcCounter));
+    sys::log('GC eff: ' & engine::getValue(#GC_EFFICIENCY) & '%');
 ];
 
 performanceTest();
+performanceTest();
+

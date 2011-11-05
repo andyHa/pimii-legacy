@@ -1143,6 +1143,8 @@ Atom Engine::getValue(Atom name) {
         return storage.makeNumber(instructionCounter);
     } else if (name == SYMBOL_VALUE_GC_COUNT) {
         return storage.makeNumber(storage.statusNumGC());
+    } else if (name == SYMBOL_VALUE_GC_EFFICIENCY) {
+        return storage.makeDecimal(storage.statusGCEfficienty());
     } else if (name == SYMBOL_VALUE_OP_CODES_PER_EVENT_LOOP) {
         return storage.makeNumber(opCodesInInterpret);
     } else if (name == SYMBOL_VALUE_NUM_GC_ROOTS) {
@@ -1169,7 +1171,7 @@ Atom Engine::getValue(Atom name) {
         return storage.makeNumber(storage.statusDecimalsUsed());
     } else if (name == SYMBOL_VALUE_NUM_TOTAL_REFERENCES) {
         return storage.makeNumber(storage.statusTotalReferences());
-    } else if (name == SYMBOL_VALUE_NUM_REFERENES_USED) {
+    } else if (name == SYMBOL_VALUE_NUM_REFERENCES_USED) {
         return storage.makeNumber(storage.statusReferencesUsed());
     } else if (name == SYMBOL_VALUE_DEBUG_COMPILER) {
         return debugCompiler ? SYMBOL_TRUE : SYMBOL_FALSE;

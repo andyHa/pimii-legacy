@@ -86,7 +86,7 @@ Duration: 1170ms
 Duration: 11919ms
 GCs: 623
 
-Switched over to chunk allocator and memory-usage dependet GC
+Switched over to chunk allocator and memory-usage depended GC
 -------------------------------------------------------------------------------
 Duration: 1740ms
 Duration: 100ms
@@ -100,3 +100,35 @@ Duration: 90ms
 Duration: 100ms
 Duration: 2590ms
 GCs: 343
+
+Introduced Minor/Major collections + Optimized Mark-Phase
+-------------------------------------------------------------------------------
+Duration: 172ms
+Duration: 93ms
+Duration: 63ms
+Duration: 62ms
+Duration: 62ms
+Duration: 63ms
+Duration: 62ms
+Duration: 63ms
+Duration: 46ms
+Duration: 63ms
+Duration: 749ms
+GCs: 127
+GC eff: 22.3867%
+
+Releasebuild without -g but with -O2...
+-------------------------------------------------------------------------------
+Duration: 16ms
+Duration: 15ms
+Duration: 16ms
+Duration: 16ms
+Duration: 15ms
+Duration: 16ms
+Duration: 62ms
+Duration: 16ms
+Duration: 15ms
+Duration: 16ms
+Duration: 203ms
+GCs: 127
+GC eff: 22.3867%
