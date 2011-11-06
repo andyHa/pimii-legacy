@@ -348,110 +348,128 @@ void Engine::opCHAINEND() {
     }
 }
 
+Relation Engine::compare(Atom a, Atom b) {
+    if (getType(a) != getType(b)) {
+        return NE;
+    }
+    if (isString(a) && isString(b)) {
+        return compareStrings(a, b);
+    } else if (isNumeric(a) && isNumeric(b)) {
+        return compareNumerics(a, b);
+    } else if (isCons(a) && isCons(b)) {
+        return compareLists(a, b);
+    }
+    // Directly compare by atom index.
+    if (a < b) {
+        return LT;
+    } else if (a > b) {
+        return GT;
+    } else {
+        return EQ;
+    }
+}
+
+Relation Engine::compareLists(Atom a, Atom b) {
+    while(isCons(a) && isCons(b)) {
+        Cell ca = storage.getCons(a);
+        Cell cb = storage.getCons(b);
+        Relation result = compare(ca.car, cb.car);
+        if (result != EQ) {
+            return result;
+        }
+        a = ca.cdr;
+        b = cb.cdr;
+    }
+    if (isNil(a) && !isNil(b)) {
+        return LT;
+    } else if (!isNil(a)) {
+        return GT;
+    } else {
+        return EQ;
+    }
+}
+
+Relation Engine::compareStrings(Atom a, Atom b) {
+    QString as = storage.getString(a);
+    QString bs = storage.getString(b);
+    if (as < bs) {
+        return LT;
+    } else if (as > bs) {
+        return GT;
+    } else {
+        return EQ;
+    }
+}
+
+Relation Engine::compareNumerics(Atom a, Atom b) {
+    double da;
+    double db;
+    convertNumeric(a, b, &da, &db);
+    if (fabs(da - db) <= DOUBLE_EQUALITY_EPSILON) {
+        return EQ;
+    }
+    if (da < db) {
+        return LT;
+    } else {
+        return GT;
+    }
+}
+
 void Engine::opEQ() {
     Atom b = pop(s);
     Atom a = pop(s);
-    if (a == b) {
-        push(s,SYMBOL_TRUE);
-    } else if (isString(a) && isString(b)) {
-        push(s,storage.getString(a) ==
-             storage.getString(b) ? SYMBOL_TRUE : SYMBOL_FALSE);
-    } else {
-        push(s,SYMBOL_FALSE);
-    }
+    push(s, compare(a, b) == EQ ? SYMBOL_TRUE : SYMBOL_FALSE);
 }
 
 void Engine::opNE() {
     Atom b = pop(s);
     Atom a = pop(s);
-    if (a == b) {
-        push(s,SYMBOL_FALSE);
-    } else if (isString(a) && isString(b)) {
-        push(s,storage.getString(a) !=
-             storage.getString(b) ? SYMBOL_TRUE : SYMBOL_FALSE);
-    } else {
-        push(s,SYMBOL_TRUE);
-    }
+    push(s, compare(a, b) != EQ ? SYMBOL_TRUE : SYMBOL_FALSE);
 }
 
 void Engine::opLT() {
     Atom b = pop(s);
     Atom a = pop(s);
-    if (isString(a) && isString(b)) {
-        push(s,storage.getString(a) <
-             storage.getString(b) ? SYMBOL_TRUE : SYMBOL_FALSE);
-    } else if (isNumber(a) && isNumber(b)) {
-        push(s, storage.getNumber(a) < storage.getNumber(b) ?
-                 SYMBOL_TRUE : SYMBOL_FALSE);
-    } else if (isNumeric(a) && isNumeric(b)) {
-        double da;
-        double db;
-        convertNumeric(a, b, &da, &db);
-        push(s, da < db ?
-                 SYMBOL_TRUE : SYMBOL_FALSE);
-    } else {
-        push(s, a < b ? SYMBOL_TRUE : SYMBOL_FALSE);
+    Relation result = compare(a, b);
+    if (result == NE) {
+        panic(QString("Cannot order values of different types: %1, %2").
+              arg(toString(a), toString(b)));
     }
+    push(s, result == LT ? SYMBOL_TRUE : SYMBOL_FALSE);
 }
 
 void Engine::opLTQ() {
     Atom b = pop(s);
     Atom a = pop(s);
-    if (isString(a) && isString(b)) {
-        push(s,storage.getString(a) <=
-             storage.getString(b) ? SYMBOL_TRUE : SYMBOL_FALSE);
-    } else if (isNumber(a) && isNumber(b)) {
-        push(s,storage.getNumber(a) <= storage.getNumber(b) ?
-                 SYMBOL_TRUE : SYMBOL_FALSE);
-    } else if (isNumeric(a) && isNumeric(b)) {
-        double da;
-        double db;
-        convertNumeric(a, b, &da, &db);
-        push(s, da <= db ?
-                 SYMBOL_TRUE : SYMBOL_FALSE);
-    } else {
-        push(s,a <= b ? SYMBOL_TRUE : SYMBOL_FALSE);
+    Relation result = compare(a, b);
+    if (result == NE) {
+        panic(QString("Cannot order values of different types: %1, %2").
+              arg(toString(a), toString(b)));
     }
+    push(s, result == LT || result == EQ ? SYMBOL_TRUE : SYMBOL_FALSE);
 }
 
 void Engine::opGT() {
     Atom b = pop(s);
     Atom a = pop(s);
-    if (isString(a) && isString(b)) {
-        push(s,storage.getString(a) >
-             storage.getString(b) ? SYMBOL_TRUE : SYMBOL_FALSE);
-    } else if (isNumber(a) && isNumber(b)) {
-        push(s,storage.getNumber(a) > storage.getNumber(b) ?
-                 SYMBOL_TRUE : SYMBOL_FALSE);
-    } else if (isNumeric(a) && isNumeric(b)) {
-        double da;
-        double db;
-        convertNumeric(a, b, &da, &db);
-        push(s, da > db ?
-                 SYMBOL_TRUE : SYMBOL_FALSE);
-    } else {
-        push(s,a > b ? SYMBOL_TRUE : SYMBOL_FALSE);
+    Relation result = compare(a, b);
+    if (result == NE) {
+        panic(QString("Cannot order values of different types: %1, %2").
+              arg(toString(a), toString(b)));
     }
+    push(s, result == GT ? SYMBOL_TRUE : SYMBOL_FALSE);
 }
 
 void Engine::opGTQ() {
     Atom b = pop(s);
     Atom a = pop(s);
-    if (isString(a) && isString(b)) {
-        push(s,storage.getString(a) >=
-             storage.getString(b) ? SYMBOL_TRUE : SYMBOL_FALSE);
-    } else if (isNumber(a) && isNumber(b)) {
-        push(s,storage.getNumber(a) >= storage.getNumber(b) ?
-                 SYMBOL_TRUE : SYMBOL_FALSE);
-    } else if (isNumeric(a) && isNumeric(b)) {
-        double da;
-        double db;
-        convertNumeric(a, b, &da, &db);
-        push(s, da >= db ?
-                 SYMBOL_TRUE : SYMBOL_FALSE);
-    } else {
-        push(s,a >= b ? SYMBOL_TRUE : SYMBOL_FALSE);
+    Relation result = compare(a, b);
+    if (result == NE) {
+        panic(QString("Cannot order values of different types: %1, %2").
+              arg(toString(a), toString(b)));
     }
+    push(s, result == GT || result == EQ ? SYMBOL_TRUE : SYMBOL_FALSE);
+
 }
 
 void Engine::opCONCAT() {

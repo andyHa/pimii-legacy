@@ -58,6 +58,13 @@ struct Execution {
     AtomRef* fn;
 };
 
+
+/**
+  Used as result when comparing two atoms. The last one "NE" means, that
+  the given atoms are not equal, but cannot be ordered.
+  */
+enum Relation { LT, EQ, GT, NE };
+
 /**
   An Engine operates on the given Storage and performs the actual exection of
   the bytecodes. It is basically a SECD machine with one additional register
@@ -302,6 +309,27 @@ private:
       created by a sequence of CHAIN bytecodes.
       */
     void opCHAINEND();
+
+    /**
+      Compares the two given atoms and returns a negative value, if a is less
+      than b, 0 if threy're equal or a positive value if a is larger than b.
+      */
+    Relation compare(Atom a, Atom b);
+
+    /**
+      Compares two atoms pointing to string values.
+      */
+    Relation compareStrings(Atom a, Atom b);
+
+    /**
+      Compares two atoms pointing to numeric values.
+      */
+    Relation compareNumerics(Atom a, Atom b);
+
+    /**
+      Compares two atoms pointing to list values.
+      */
+    Relation compareLists(Atom a, Atom b);
 
     /**
       Implements the equals operation for numbers, strings, symbols

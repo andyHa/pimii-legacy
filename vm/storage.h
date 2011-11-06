@@ -217,8 +217,14 @@ public:
       */
     Atom makeCons(Atom car, Atom cdr);
 
+    /**
+      Replaces the CAR value of the given atom.
+      */
     void setCAR(Atom atom, Atom car);
 
+    /**
+      Replaces the CDR value of the given atom.
+      */
     void setCDR(Atom atom, Atom cdr);
 
     /**

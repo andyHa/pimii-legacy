@@ -545,6 +545,11 @@ const Atom SYMBOL_VALUE_NUM_REFERENCES_USED = SYMBOL(VALUE_INDEX + 20);
 const Atom SYMBOL_VALUE_GC_EFFICIENCY = SYMBOL(VALUE_INDEX + 21);
 
 /**
+  Determines the epsilon below two given doubles are equal.
+  */
+const double DOUBLE_EQUALITY_EPSILON = 0.0000000001;
+
+/**
   Reads the tag of a given atom.
   */
 inline Word getType(Atom atom) {
