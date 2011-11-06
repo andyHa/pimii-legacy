@@ -59,12 +59,7 @@ void CoreExtension::bif_getValue(const CallContext& ctx) {
 
 void CoreExtension::bif_getValueKeys(const CallContext& ctx) {
     ListBuilder lb(ctx.storage);
-    lb.append(SYMBOL_VALUE_OP_CODES_PER_EVENT_LOOP);
     lb.append(SYMBOL_VALUE_HOME_PATH);
-    lb.append(SYMBOL_VALUE_GC_MIN_CELLS);
-    lb.append(SYMBOL_VALUE_DEBUG_COMPILER);
-    lb.append(SYMBOL_VALUE_DEBUG_ENGINE);
-    lb.append(SYMBOL_VALUE_DEBUG_STORAGE);
     lb.append(SYMBOL_VALUE_OP_COUNT);
     lb.append(SYMBOL_VALUE_GC_COUNT);
     lb.append(SYMBOL_VALUE_GC_EFFICIENCY);

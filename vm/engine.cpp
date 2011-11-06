@@ -25,7 +25,6 @@
 #include "bif/webextension.h"
 #include "compiler/compiler.h"
 
-#include <QElapsedTimer>
 #include <QFile>
 #include <QPluginLoader>
 
@@ -56,12 +55,6 @@ Engine::Engine(QSettings* settings) :
     p(storage.ref(NIL))
 {
     running = false;
-    opCodesInInterpret = settings->value(
-                toSimpleString(SYMBOL_VALUE_OP_CODES_PER_EVENT_LOOP),
-                1000).toUInt();
-    debugCompiler =  settings->value(
-                toSimpleString(SYMBOL_VALUE_DEBUG_COMPILER),
-                false).toBool();
     initializeSourceLookup();
 }
 
@@ -888,7 +881,7 @@ void Engine::interpret() {
         }
     }
     try {
-        Word maxOpCodes = opCodesInInterpret;
+        Word maxOpCodes = TUNING_PARAM_MAX_OP_CODES_IN_INTERPRET;
         while (running && maxOpCodes > 0) {
             Atom op = pop(c);
             if (op == SYMBOL_OP_STOP) {
@@ -1011,9 +1004,6 @@ Atom Engine::compileSource(const QString& file,
             println(buf);
         }
         return NIL;
-    } else if (debugCompiler) {
-        println("Compilation Result: ");
-        println(toString(compiler.getCode()));
     }
     return compiler.getCode();
 }
@@ -1142,22 +1132,7 @@ void Engine::initializeBIF() {
 }
 
 void Engine::setValue(Atom name, Atom value) {
-    if (name == SYMBOL_VALUE_OP_CODES_PER_EVENT_LOOP) {
-        if (!isNumber(value)) {
-            panic(QString("setValue requires a number for the key %1 (%2:%3)").
-                  arg(toSimpleString(name), __FILE__, intToString(__LINE__)));
-        }
-        opCodesInInterpret = std::max(1l, storage.getNumber(value));
-        settings->setValue(toSimpleString(SYMBOL_VALUE_OP_CODES_PER_EVENT_LOOP),
-                           opCodesInInterpret);
-        settings->sync();
-    }
-    if (name == SYMBOL_VALUE_DEBUG_COMPILER) {
-        debugCompiler = SYMBOL_TRUE == value;
-        settings->setValue(toSimpleString(SYMBOL_VALUE_DEBUG_COMPILER),
-                           debugCompiler);
-        settings->sync();
-    }
+
 }
 
 Atom Engine::getValue(Atom name) {
@@ -1167,8 +1142,6 @@ Atom Engine::getValue(Atom name) {
         return storage.makeNumber(storage.statusNumGC());
     } else if (name == SYMBOL_VALUE_GC_EFFICIENCY) {
         return storage.makeDecimal(storage.statusGCEfficienty());
-    } else if (name == SYMBOL_VALUE_OP_CODES_PER_EVENT_LOOP) {
-        return storage.makeNumber(opCodesInInterpret);
     } else if (name == SYMBOL_VALUE_NUM_GC_ROOTS) {
         return storage.makeNumber(storage.statusNumGCRoots());
     } else if (name == SYMBOL_VALUE_NUM_SYMBOLS) {
@@ -1195,8 +1168,6 @@ Atom Engine::getValue(Atom name) {
         return storage.makeNumber(storage.statusTotalReferences());
     } else if (name == SYMBOL_VALUE_NUM_REFERENCES_USED) {
         return storage.makeNumber(storage.statusReferencesUsed());
-    } else if (name == SYMBOL_VALUE_DEBUG_COMPILER) {
-        return debugCompiler ? SYMBOL_TRUE : SYMBOL_FALSE;
     } else if (name == SYMBOL_VALUE_HOME_PATH) {
         return storage.makeString(homeDir.absolutePath());
     }

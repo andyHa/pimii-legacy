@@ -90,15 +90,11 @@ void Storage::initializeSymbols() {
     declaredFixedSymbol(SYMBOL_OP_CHAIN_END, "CHAINEND");
     declaredFixedSymbol(SYMBOL_OP_FILE, "FILE");
     declaredFixedSymbol(SYMBOL_OP_LINE, "LINE");
-    declaredFixedSymbol(SYMBOL_VALUE_OP_CODES_PER_EVENT_LOOP,
-                        "OP_CODES_PER_EVENT_LOOP");
     declaredFixedSymbol(SYMBOL_VALUE_HOME_PATH, "HOME_PATH");
-    declaredFixedSymbol(SYMBOL_VALUE_GC_MIN_CELLS, "GC_MIN_CELLS");
-    declaredFixedSymbol(SYMBOL_VALUE_DEBUG_COMPILER, "DEBUG_COMPILER");
-    declaredFixedSymbol(SYMBOL_VALUE_DEBUG_ENGINE, "DEBUG_ENGINE");
-    declaredFixedSymbol(SYMBOL_VALUE_DEBUG_STORAGE, "DEBUG_STORAGE");
     declaredFixedSymbol(SYMBOL_VALUE_OP_COUNT, "OP_COUNT");
     declaredFixedSymbol(SYMBOL_VALUE_GC_COUNT, "GC_COUNT");
+    declaredFixedSymbol(SYMBOL_VALUE_GC_EFFICIENCY,
+                        "GC_EFFICIENCY");
     declaredFixedSymbol(SYMBOL_VALUE_NUM_GC_ROOTS, "NUM_GC_ROOTS");
     declaredFixedSymbol(SYMBOL_VALUE_NUM_SYMBOLS, "NUM_SYMBOLS");
     declaredFixedSymbol(SYMBOL_VALUE_NUM_GLOBALS, "NUM_GLOBALS");
@@ -114,9 +110,6 @@ void Storage::initializeSymbols() {
                         "NUM_TOTAL_REFERENCES");
     declaredFixedSymbol(SYMBOL_VALUE_NUM_REFERENCES_USED,
                         "NUM_REFERENES_USED");
-    declaredFixedSymbol(SYMBOL_VALUE_GC_EFFICIENCY,
-                        "GC_EFFICIENCY");
-
 }
 
 
@@ -137,23 +130,23 @@ Atom Storage::makeCons(Atom car, Atom cdr) {
         if (cellSize > 0) {
             // Every 10th GC is always a major (full) GC (we need to free
             // our value tables (strings table, large number table etc.)
-            if (gcCounter % 10 == 0 ) {
+            if (gcCounter % TUNING_PARAM_MAX_MINOR_GCS == 0 ) {
                 FINE(log, "Starting MAJOR garbage collection...");
                 gc(true, car, cdr);
             } else {
                 // Try a minor GC first...
                 FINE(log, "Starting MINOR garbage collection...");
                 gc(false, car, cdr);
-                if (cellSize - cellsInUse < 1024) {
+                if (cellSize - cellsInUse < TUNING_PARAM_MIN_FREE_SPACE) {
                     // Still not enough, run a full GC!
                     FINE(log, "Starting MAJOR garbage collection...");
                     gc(true, car, cdr);
                 }
             }
         }
-        if (cellSize - cellsInUse < 1024) {
+        if (cellSize - cellsInUse < TUNING_PARAM_MIN_FREE_SPACE) {
             Word oldSize = cellSize;
-            cellSize += 1024 * 32;
+            cellSize += TUNING_PARAM_STORAGE_CHUNK_SIZE;
             FINE(log, "Expanding heap from: " <<
                  oldSize <<
                  " to: " <<

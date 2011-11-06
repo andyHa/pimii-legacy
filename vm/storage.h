@@ -36,7 +36,6 @@
 
 #include <set>
 #include <deque>
-#include <ctime>
 
 /**
   Represents the central unit of memory management. All data

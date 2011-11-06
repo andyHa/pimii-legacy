@@ -98,11 +98,6 @@ private:
     QString lastError;
 
     /**
-      Determines if the debug output of the compiler is turned on.
-      */
-    bool debugCompiler;
-
-    /**
       Represents the storage one which the engine operates.
       */
     Storage storage;
@@ -121,12 +116,6 @@ private:
       Conts the total instructions executed.
       */
     Word instructionCounter;
-
-    /**
-      Contains the max number of op codes executed in the interpret function
-      which is called in the event loop.
-      */
-    Word opCodesInInterpret;
 
     /**
       Represents the stack register on which most of the computations are

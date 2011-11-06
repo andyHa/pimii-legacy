@@ -433,121 +433,118 @@ const Atom SYMBOL_OP_LINE = SYMBOL(OP_CODE_INDEX + 35);
 const Word VALUE_INDEX = OP_CODE_INDEX + 36;
 
 /**
-  Used to set/get the number of executed op codes per cycle in the event
-  loop. This can heavily alter the responsiveness of the UI.
-  */
-const Atom SYMBOL_VALUE_OP_CODES_PER_EVENT_LOOP = SYMBOL(VALUE_INDEX + 0);
-
-/**
   Used to set/get the home path of the pimii installation.
   */
-const Atom SYMBOL_VALUE_HOME_PATH = SYMBOL(VALUE_INDEX + 1);
-
-/**
-  Used to set/get the minimal number of cells required to trigger the
-  garbage collector.
-  */
-const Atom SYMBOL_VALUE_GC_MIN_CELLS = SYMBOL(VALUE_INDEX + 2);
-
-/**
-  Used to set/get the flag which controls the debug output of the compiler
-  */
-const Atom SYMBOL_VALUE_DEBUG_COMPILER = SYMBOL(VALUE_INDEX + 3);
-
-/**
-  Used to set/get the flag which controls the debug output of the engine
-  */
-const Atom SYMBOL_VALUE_DEBUG_ENGINE = SYMBOL(VALUE_INDEX + 4);
-
-/**
-  Used to set/get the flag which controls the debug output of the storage
-  */
-const Atom SYMBOL_VALUE_DEBUG_STORAGE = SYMBOL(VALUE_INDEX + 5);
+const Atom SYMBOL_VALUE_HOME_PATH = SYMBOL(VALUE_INDEX + 0);
 
 /**
   Used to get the total number of op codes executed by the engine.
   */
-const Atom SYMBOL_VALUE_OP_COUNT = SYMBOL(VALUE_INDEX + 6);
+const Atom SYMBOL_VALUE_OP_COUNT = SYMBOL(VALUE_INDEX + 1);
 
 /**
   Used to get the total number of GCs executed by the storage.
   */
-const Atom SYMBOL_VALUE_GC_COUNT = SYMBOL(VALUE_INDEX + 7);
-
-/**
-  Used to access Storage::statusNumGCRoots
-  */
-const Atom SYMBOL_VALUE_NUM_GC_ROOTS = SYMBOL(VALUE_INDEX + 8);
-
-/**
-  Used to access Storage::statusNumSymbols
-  */
-const Atom SYMBOL_VALUE_NUM_SYMBOLS = SYMBOL(VALUE_INDEX + 9);
-
-/**
-  Used to access Storage::statusNumGlobals
-  */
-const Atom SYMBOL_VALUE_NUM_GLOBALS = SYMBOL(VALUE_INDEX + 10);
-
-/**
-  Used to access Storage::statusTotalCells
-  */
-const Atom SYMBOL_VALUE_NUM_TOTAL_CELLS = SYMBOL(VALUE_INDEX + 11);
-
-/**
-  Used to access Storage::statusCellsUsed
-  */
-const Atom SYMBOL_VALUE_NUM_CELLS_USED = SYMBOL(VALUE_INDEX + 12);
-
-/**
-  Used to access Storage::statusTotalStrings
-  */
-const Atom SYMBOL_VALUE_NUM_TOTAL_STRINGS = SYMBOL(VALUE_INDEX + 13);
-
-/**
-  Used to access Storage::statusCellsUsed
-  */
-const Atom SYMBOL_VALUE_NUM_STRINGS_USED = SYMBOL(VALUE_INDEX + 14);
-
-/**
-  Used to access Storage::statusTotalNumbers
-  */
-const Atom SYMBOL_VALUE_NUM_TOTAL_NUMBERS = SYMBOL(VALUE_INDEX + 15);
-
-/**
-  Used to access Storage::statusNumbersUsed
-  */
-const Atom SYMBOL_VALUE_NUM_NUMBERS_USED = SYMBOL(VALUE_INDEX + 16);
-
-/**
-  Used to access Storage::statusDecimalsUsed
-  */
-const Atom SYMBOL_VALUE_NUM_TOTAL_DECIMALS = SYMBOL(VALUE_INDEX + 17);
-
-/**
-  Used to access Storage::statusTotalDecimals
-  */
-const Atom SYMBOL_VALUE_NUM_DECIMALS_USED = SYMBOL(VALUE_INDEX + 18);
-
-/**
-  Used to access Storage::statusReferencesUsed
-  */
-const Atom SYMBOL_VALUE_NUM_TOTAL_REFERENCES = SYMBOL(VALUE_INDEX + 19);
-
-/**
-  Used to access Storage::statusTotalReferences
-  */
-const Atom SYMBOL_VALUE_NUM_REFERENCES_USED = SYMBOL(VALUE_INDEX + 20);
+const Atom SYMBOL_VALUE_GC_COUNT = SYMBOL(VALUE_INDEX + 2);
 
 /**
   Used to access Storage::statusGCEfficiency
   */
-const Atom SYMBOL_VALUE_GC_EFFICIENCY = SYMBOL(VALUE_INDEX + 21);
+const Atom SYMBOL_VALUE_GC_EFFICIENCY = SYMBOL(VALUE_INDEX + 3);
+
+/**
+  Used to access Storage::statusNumGCRoots
+  */
+const Atom SYMBOL_VALUE_NUM_GC_ROOTS = SYMBOL(VALUE_INDEX + 4);
+
+/**
+  Used to access Storage::statusNumSymbols
+  */
+const Atom SYMBOL_VALUE_NUM_SYMBOLS = SYMBOL(VALUE_INDEX + 5);
+
+/**
+  Used to access Storage::statusNumGlobals
+  */
+const Atom SYMBOL_VALUE_NUM_GLOBALS = SYMBOL(VALUE_INDEX + 6);
+
+/**
+  Used to access Storage::statusTotalCells
+  */
+const Atom SYMBOL_VALUE_NUM_TOTAL_CELLS = SYMBOL(VALUE_INDEX + 7);
+
+/**
+  Used to access Storage::statusCellsUsed
+  */
+const Atom SYMBOL_VALUE_NUM_CELLS_USED = SYMBOL(VALUE_INDEX + 8);
+
+/**
+  Used to access Storage::statusTotalStrings
+  */
+const Atom SYMBOL_VALUE_NUM_TOTAL_STRINGS = SYMBOL(VALUE_INDEX + 9);
+
+/**
+  Used to access Storage::statusCellsUsed
+  */
+const Atom SYMBOL_VALUE_NUM_STRINGS_USED = SYMBOL(VALUE_INDEX + 10);
+
+/**
+  Used to access Storage::statusTotalNumbers
+  */
+const Atom SYMBOL_VALUE_NUM_TOTAL_NUMBERS = SYMBOL(VALUE_INDEX + 11);
+
+/**
+  Used to access Storage::statusNumbersUsed
+  */
+const Atom SYMBOL_VALUE_NUM_NUMBERS_USED = SYMBOL(VALUE_INDEX + 12);
+
+/**
+  Used to access Storage::statusDecimalsUsed
+  */
+const Atom SYMBOL_VALUE_NUM_TOTAL_DECIMALS = SYMBOL(VALUE_INDEX + 13);
+
+/**
+  Used to access Storage::statusTotalDecimals
+  */
+const Atom SYMBOL_VALUE_NUM_DECIMALS_USED = SYMBOL(VALUE_INDEX + 14);
+
+/**
+  Used to access Storage::statusReferencesUsed
+  */
+const Atom SYMBOL_VALUE_NUM_TOTAL_REFERENCES = SYMBOL(VALUE_INDEX + 15);
+
+/**
+  Used to access Storage::statusTotalReferences
+  */
+const Atom SYMBOL_VALUE_NUM_REFERENCES_USED = SYMBOL(VALUE_INDEX + 16);
 
 /**
   Determines the epsilon below two given doubles are equal.
   */
 const double DOUBLE_EQUALITY_EPSILON = 0.0000000001;
+
+/**
+  Contains the max. number of op codes, processed in one call to
+  Engine::interpret. This number should be kept in a reasonable range
+  because no UI update are processed during interpret().
+  */
+const Word TUNING_PARAM_MAX_OP_CODES_IN_INTERPRET = 1000;
+
+/**
+  Contains the size of a memory chunk that is allocated, if the storage runs
+  out of free cells.
+  */
+const Word TUNING_PARAM_STORAGE_CHUNK_SIZE = 32 * 1024;
+
+/**
+  Contains the minimal number of free cells that is required. If less cells are
+  free, a new memory block is allocated.
+  */
+const Word TUNING_PARAM_MIN_FREE_SPACE = 1024;
+
+/**
+  Returns the max number of minor GCs until a major GC is forced.
+  */
+const Word TUNING_PARAM_MAX_MINOR_GCS = 10;
 
 /**
   Reads the tag of a given atom.
