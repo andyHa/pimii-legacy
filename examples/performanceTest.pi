@@ -1,0 +1,28 @@
+// Define the fibbonacci function, which is used by the performance test
+fib ::= n -> {
+    [ n < 3 : 1 ]
+    [   -   : n + fib(n - 1)]
+};
+
+// Used the measure the runtime of a given closure.
+measure: ::= block -> [
+   start := sys::time();
+   block();
+   sys::log('Duration: ' & (sys::time() - start) & 'ms');
+];
+
+performanceTest ::= [
+    gcCounter := engine::getValue(#GC_COUNT);
+    measure: [
+        from: 1 to: 10 do: [
+            measure: [
+                fib(10000);
+            ];
+        ];
+    ];
+    sys::log('GCs: ' & (engine::getValue(#GC_COUNT) - gcCounter));
+    sys::log('GC eff: ' & engine::getValue(#GC_EFFICIENCY) & '%');
+];
+
+performanceTest();
+performanceTest();

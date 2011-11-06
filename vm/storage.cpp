@@ -360,20 +360,6 @@ Atom Storage::append(Atom tail, Atom next) {
     return tmp;
 }
 
-Cell Storage::getCons(Atom atom) {
-    assert(isCons(atom));
-    Word index = untagIndex(atom);
-
-    if (states[index] == UNUSED) {
-        ERROR(log, "Atom " <<
-              atom <<
-              " (Index: " <<
-              index <<
-              ") cannot be accessed!");
-    }
-    return cells[index];
-}
-
 void Storage::setCAR(Atom atom, Atom car) {
     assert(isCons(atom));
     Word index = untagIndex(atom);

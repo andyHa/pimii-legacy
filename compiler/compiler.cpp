@@ -23,17 +23,14 @@ Compiler::Compiler(const QString& fileName,
                    const QString& input,
                    Engine* engine) :
     engine(engine),
-    tokenizer(new Tokenizer(input, true)),
+    tokenizer(input, true),
     code(engine->storage.ref(NIL)),
     tail(engine->storage.ref(NIL))
 {
+    lastLine = 0;
     file = engine->storage.ref(engine->storage.makeSymbol(fileName));
 }
 
-
-void Compiler::addError(const InputToken& token, const char* errorMsg) {
-    addError(token, QString(errorMsg));
-}
 
 void Compiler::addError(const InputToken& token, const QString& errorMsg) {
     CompilationError e;
@@ -46,14 +43,14 @@ void Compiler::addError(const InputToken& token, const QString& errorMsg) {
 
 
 void Compiler::expect(InputTokenType tt, const char* rep) {
-    if (tokenizer->getCurrent().type != tt) {
-        addError(tokenizer->getCurrent(),
+    if (tokenizer.getCurrent().type != tt) {
+        addError(tokenizer.getCurrent(),
                  QString("Unexpected token: ") +
-                 tokenizer->getCurrentString() +
+                 tokenizer.getCurrentString() +
                  QString(". Expected: ")
                  +QString(rep));
     } else {
-        tokenizer->fetch();
+        tokenizer.fetch();
     }
 }
 
@@ -66,15 +63,23 @@ void Compiler::addCode(Atom atom) {
     }
 }
 
-std::pair<Atom, std::vector<CompilationError> > Compiler::compile(bool appendStop) {
+std::vector<CompilationError> Compiler::getErrors() {
+    return errors;
+}
+
+Atom Compiler::getCode() {
+    return code->atom();
+}
+
+bool Compiler::compile(bool appendStop) {
     code->atom(NIL);
-    tokenizer->fetch();
-    addCode(SYMBOL_OP_FILE);
-    addCode(file->atom());
-    while(tokenizer->getCurrent().type != TT_EOF) {
+    errors.clear();
+    tokenizer.fetch();
+    updatePosition(true);
+    while(tokenizer.getCurrent().type != TT_EOF) {
         block();
-        if (tokenizer->getCurrent().type != TT_EOF) {
-            addError(tokenizer->getCurrent(), "Missing Semicolon!");
+        if (tokenizer.getCurrent().type != TT_EOF) {
+            addError(tokenizer.getCurrent(), "Missing Semicolon!");
         }
     }
     if (appendStop) {
@@ -82,59 +87,71 @@ std::pair<Atom, std::vector<CompilationError> > Compiler::compile(bool appendSto
     } else {
         addCode(SYMBOL_OP_RTN);
     }
-    return std::pair<Atom, std::vector<CompilationError> >(code->atom(), errors);
+    return errors.empty();
 }
 
 void Compiler::block() {
     statement();
-    while(tokenizer->isCurrent(TT_SEMICOLON)
-          && !tokenizer->isLookahead(TT_R_BRACE)
-          && !tokenizer->isLookahead(TT_R_BRACKET)
-          && !tokenizer->isLookahead(TT_EOF)) {
-        tokenizer->fetch();
+    while(tokenizer.isCurrent(TT_SEMICOLON)
+          && !tokenizer.isLookahead(TT_R_BRACE)
+          && !tokenizer.isLookahead(TT_R_BRACKET)
+          && !tokenizer.isLookahead(TT_EOF)) {
+        tokenizer.fetch();
         statement();
     }
-    if (tokenizer->isCurrent(TT_SEMICOLON)) {
-        tokenizer->fetch();
+    if (tokenizer.isCurrent(TT_SEMICOLON)) {
+        tokenizer.fetch();
     }
+}
+
+void Compiler::updatePosition(bool force) {
+    if (force) {
+        addCode(SYMBOL_OP_FILE);
+        addCode(file->atom());
+        addCode(SYMBOL_OP_LINE);
+        addCode(engine->storage.makeNumber(tokenizer.getCurrent().line));
+    } else if (lastLine != tokenizer.getCurrent().line) {
+        addCode(SYMBOL_OP_LINE);
+        addCode(engine->storage.makeNumber(tokenizer.getCurrent().line));
+    }
+    lastLine = tokenizer.getCurrent().line;
 }
 
 void Compiler::statement() {
-    addCode(SYMBOL_OP_LINE);
-    addCode(engine->storage.makeNumber(tokenizer->getCurrent().line));
+    updatePosition(false);
     expression();
 }
 
-std::pair<int, int> Compiler::findSymbol(QString name) {
+EnvPos Compiler::findSymbol(QString name) {
     Word majorIndex = 1;
     while (majorIndex <= symbolTable.size()) {
         std::vector<QString>* symbols = symbolTable[majorIndex - 1];
         Word minorIndex = 1;
         while (minorIndex <= symbols->size()) {
             if (symbols->at(minorIndex - 1) == name) {
-                return std::pair<int, int>(majorIndex, minorIndex);
+                return EnvPos(majorIndex, minorIndex);
             }
             minorIndex++;
         }
         majorIndex++;
     }
-    return std::pair<int, int>(-1, -1);
+    return EnvPos(-1 , -1);
 }
 
 void Compiler::expression() {
-    if (tokenizer->isCurrent(TT_L_BRACE) &&
-            tokenizer->isLookahead(TT_NAME) &&
-            tokenizer->isLookahead2(TT_KOMMA))
+    if (tokenizer.isCurrent(TT_L_BRACE) &&
+            tokenizer.isLookahead(TT_NAME) &&
+            tokenizer.isLookahead2(TT_KOMMA))
     {
         definition();
-    } else if (tokenizer->isCurrent(TT_NAME) &&
-               tokenizer->isLookahead(TT_ARROW))
+    } else if (tokenizer.isCurrent(TT_NAME) &&
+               tokenizer.isLookahead(TT_ARROW))
     {
         shortDefinition();
-    } else if (tokenizer->isCurrent(TT_L_BRACKET))
+    } else if (tokenizer.isCurrent(TT_L_BRACKET))
     {
         inlineDefinition();
-    } else if (tokenizer->isCurrent(TT_L_CURLY))
+    } else if (tokenizer.isCurrent(TT_L_CURLY))
     {
         generateGuardedFunctionCode();
     } else {
@@ -143,24 +160,24 @@ void Compiler::expression() {
 }
 
 void Compiler::definition() {
-    tokenizer->fetch(); // (
+    tokenizer.fetch(); // (
     std::vector<QString>* symbols = new std::vector<QString>();
-    symbols->push_back(tokenizer->getCurrentString());
-    tokenizer->fetch(); // 1st param
-    while(tokenizer->isCurrent(TT_KOMMA)) {
-        tokenizer->fetch(); // ,
-        symbols->push_back(tokenizer->getCurrentString());
-        tokenizer->fetch(); // nth param
+    symbols->push_back(tokenizer.getCurrentString());
+    tokenizer.fetch(); // 1st param
+    while(tokenizer.isCurrent(TT_KOMMA)) {
+        tokenizer.fetch(); // ,
+        symbols->push_back(tokenizer.getCurrentString());
+        tokenizer.fetch(); // nth param
     }
     expect(TT_R_BRACE, ")");
     expect(TT_ARROW, "->");
     symbolTable.insert(symbolTable.begin(), symbols);
-    if (tokenizer->isCurrent(TT_L_CURLY)) {
+    if (tokenizer.isCurrent(TT_L_CURLY)) {
         generateGuardedFunctionCode();
     } else {
         bool brackets = false;
-        if (tokenizer->isCurrent(TT_L_BRACKET)) {
-            tokenizer->fetch();
+        if (tokenizer.isCurrent(TT_L_BRACKET)) {
+            tokenizer.fetch();
             brackets = true;
         }
         addCode(SYMBOL_OP_LDF);
@@ -177,22 +194,24 @@ void Compiler::generateGuardedFunctionCode() {
     AtomRef* backupTail = engine->storage.ref(tail->atom());
     code->atom(NIL);
     tail->atom(NIL);
+    updatePosition(true);
     do {
         expect(TT_L_BRACKET, "[");
         bool asSublist = false;
-        if (tokenizer->isCurrent(TT_MINUS) && tokenizer->isLookahead(TT_COLON))
+        if (tokenizer.isCurrent(TT_MINUS) && tokenizer.isLookahead(TT_COLON))
         {
             //[ - : ... ] means no condition...
-            tokenizer->fetch();
-        } else if (!tokenizer->isCurrent(TT_COLON)) {
+            tokenizer.fetch();
+        } else if (!tokenizer.isCurrent(TT_COLON)) {
             // Everything but [  : ...] means we need to compile a condition.
             asSublist = true;
+            updatePosition(false);
             basicExp();
             addCode(SYMBOL_OP_BT);
         }
         expect(TT_COLON, ":");
         generateFunctionCode(true, asSublist);
-    } while(tokenizer->isCurrent(TT_L_BRACKET));
+    } while(tokenizer.isCurrent(TT_L_BRACKET));
     addCode(SYMBOL_OP_RTN);
     Atom fn = code->atom();
     code->atom(backupCode->atom());
@@ -205,16 +224,16 @@ void Compiler::generateGuardedFunctionCode() {
 
 void Compiler::shortDefinition() {
     std::vector<QString>* symbols = new std::vector<QString>();
-    symbols->push_back(tokenizer->getCurrentString());
-    tokenizer->fetch(); // param name...
+    symbols->push_back(tokenizer.getCurrentString());
+    tokenizer.fetch(); // param name...
     expect(TT_ARROW, "->");
     symbolTable.insert(symbolTable.begin(), symbols);
-    if (tokenizer->isCurrent(TT_L_CURLY)) {
+    if (tokenizer.isCurrent(TT_L_CURLY)) {
         generateGuardedFunctionCode();
     } else {
         bool brackets = false;
-        if (tokenizer->isCurrent(TT_L_BRACKET)) {
-            tokenizer->fetch();
+        if (tokenizer.isCurrent(TT_L_BRACKET)) {
+            tokenizer.fetch();
             brackets = true;
         }
         addCode(SYMBOL_OP_LDF);
@@ -225,35 +244,35 @@ void Compiler::shortDefinition() {
 }
 
 void Compiler::inlineDefinition() {
-    tokenizer->fetch(); // [
+    tokenizer.fetch(); // [
     std::vector<QString>* symbols = new std::vector<QString>();
-    if (tokenizer->isCurrent(TT_NAME) &&
-            (tokenizer->isLookahead(TT_KOMMA) ||
-             tokenizer->isLookahead(TT_ARROW)))
+    if (tokenizer.isCurrent(TT_NAME) &&
+            (tokenizer.isLookahead(TT_KOMMA) ||
+             tokenizer.isLookahead(TT_ARROW)))
     {
-        symbols->push_back(tokenizer->getCurrentString());
-        tokenizer->fetch(); // 1st param
-        while(tokenizer->isCurrent(TT_KOMMA)) {
-            tokenizer->fetch(); // ,
-            symbols->push_back(tokenizer->getCurrentString());
-            tokenizer->fetch(); // nth param
+        symbols->push_back(tokenizer.getCurrentString());
+        tokenizer.fetch(); // 1st param
+        while(tokenizer.isCurrent(TT_KOMMA)) {
+            tokenizer.fetch(); // ,
+            symbols->push_back(tokenizer.getCurrentString());
+            tokenizer.fetch(); // nth param
         }
         expect(TT_ARROW, "->");
-    } else if (tokenizer->isCurrent(TT_L_BRACE) &&
-               (tokenizer->isLookahead(TT_NAME) &&
-                tokenizer->isLookahead2(TT_KOMMA))) {
-        tokenizer->fetch(); // (
-        symbols->push_back(tokenizer->getCurrentString());
-        tokenizer->fetch(); // 1st param
-        while(tokenizer->isCurrent(TT_KOMMA)) {
-            tokenizer->fetch(); // ,
-            symbols->push_back(tokenizer->getCurrentString());
-            tokenizer->fetch(); // nth param
+    } else if (tokenizer.isCurrent(TT_L_BRACE) &&
+               (tokenizer.isLookahead(TT_NAME) &&
+                tokenizer.isLookahead2(TT_KOMMA))) {
+        tokenizer.fetch(); // (
+        symbols->push_back(tokenizer.getCurrentString());
+        tokenizer.fetch(); // 1st param
+        while(tokenizer.isCurrent(TT_KOMMA)) {
+            tokenizer.fetch(); // ,
+            symbols->push_back(tokenizer.getCurrentString());
+            tokenizer.fetch(); // nth param
         }
         expect(TT_R_BRACE, ")");
         expect(TT_ARROW, "->");
-    } else if (tokenizer->isCurrent(TT_ARROW)) {
-        tokenizer->fetch(); // ->
+    } else if (tokenizer.isCurrent(TT_ARROW)) {
+        tokenizer.fetch(); // ->
     }
     symbolTable.insert(symbolTable.begin(), symbols);
     addCode(SYMBOL_OP_LDF);
@@ -269,15 +288,14 @@ void Compiler::generateFunctionCode(bool expectBracet, bool asSublist) {
         code->atom(NIL);
         tail->atom(NIL);
     }
-    addCode(SYMBOL_OP_FILE);
-    addCode(file->atom());
+    updatePosition(true);
     if (expectBracet) {
-        while (!tokenizer->isCurrent(TT_R_BRACKET) &&
-               !tokenizer->isCurrent(TT_EOF))
+        while (!tokenizer.isCurrent(TT_R_BRACKET) &&
+               !tokenizer.isCurrent(TT_EOF))
         {
             block();
-            if (!tokenizer->isCurrent(TT_R_BRACKET)) {
-                addError(tokenizer->getCurrent(), "Missing Semicolon!");
+            if (!tokenizer.isCurrent(TT_R_BRACKET)) {
+                addError(tokenizer.getCurrent(), "Missing Semicolon!");
             }
         }
         expect(TT_R_BRACKET, "]");
@@ -298,45 +316,45 @@ void Compiler::generateFunctionCode(bool expectBracet, bool asSublist) {
 
 void Compiler::relExp() {
     termExp();
-    Atom lastSubexpression = NIL;
+    Atom lastSubexpressionStart = NIL;
+    Atom lastSubexpressionEnd = NIL;
     while(true) {
         Atom opCode = NIL;
-        if (tokenizer->isCurrent(TT_EQ)) {
+        if (tokenizer.isCurrent(TT_EQ)) {
             opCode = SYMBOL_OP_EQ;
-        } else if (tokenizer->isCurrent(TT_NE)) {
+        } else if (tokenizer.isCurrent(TT_NE)) {
             opCode = SYMBOL_OP_NE;
-        } else if (tokenizer->isCurrent(TT_LT)) {
+        } else if (tokenizer.isCurrent(TT_LT)) {
             opCode = SYMBOL_OP_LT;
-        } else if (tokenizer->isCurrent(TT_LTEQ)) {
+        } else if (tokenizer.isCurrent(TT_LTEQ)) {
             opCode = SYMBOL_OP_LTQ;
-        } else if (tokenizer->isCurrent(TT_GT)) {
+        } else if (tokenizer.isCurrent(TT_GT)) {
             opCode = SYMBOL_OP_GT;
-        } else if (tokenizer->isCurrent(TT_GTEQ)) {
+        } else if (tokenizer.isCurrent(TT_GTEQ)) {
             opCode = SYMBOL_OP_GTQ;
         }
         if (opCode == NIL) {
             return;
         }
-        tokenizer->fetch(); // Read over operator
-        bool conjunction = lastSubexpression != NIL;
+        tokenizer.fetch(); // Read over operator
+        bool conjunction = lastSubexpressionStart != NIL;
         if (conjunction) {
             // if we're in a conjunction, like 1 < x < 10, copy last
             // argument (x in this case) so we build an expression like
             // 1 < x & x < 10
-            Atom code = lastSubexpression;
-            Atom stop = tail->atom();
-            while(isCons(code) && code != stop) {
+            Atom code = engine->storage.getCons(lastSubexpressionStart).cdr;
+            while(isCons(code) && code != lastSubexpressionEnd) {
                 Cell cell = engine->storage.getCons(code);
                 addCode(cell.car);
                 code = cell.cdr;
             }
         }
-        lastSubexpression = tail->atom();
+        lastSubexpressionStart = tail->atom();
         termExp();
         // Remember second argument in case we have a conjunction like
         // 1 < x < 10...
-        lastSubexpression = engine->storage.getCons(lastSubexpression).cdr;
         addCode(opCode);
+        lastSubexpressionEnd = tail->atom();
         if (conjunction) {
             addCode(SYMBOL_OP_AND);
         }
@@ -346,12 +364,12 @@ void Compiler::relExp() {
 void Compiler::basicExp() {
     logExp();
     while(true) {
-        if (tokenizer->isCurrent(TT_AND)) {
-            tokenizer->fetch();
+        if (tokenizer.isCurrent(TT_AND)) {
+            tokenizer.fetch();
             logExp();
             addCode(SYMBOL_OP_AND);
-        } else if (tokenizer->isCurrent(TT_OR)) {
-            tokenizer->fetch();
+        } else if (tokenizer.isCurrent(TT_OR)) {
+            tokenizer.fetch();
             logExp();
             addCode(SYMBOL_OP_OR);
         } else {
@@ -363,26 +381,26 @@ void Compiler::basicExp() {
 void Compiler::logExp() {
     relExp();
     while(true) {
-        if (tokenizer->isCurrent(TT_PLUS)) {
-            tokenizer->fetch();
+        if (tokenizer.isCurrent(TT_PLUS)) {
+            tokenizer.fetch();
             relExp();
             addCode(SYMBOL_OP_ADD);
-        } else if (tokenizer->isCurrent(TT_CONCAT)) {
-            tokenizer->fetch();
+        } else if (tokenizer.isCurrent(TT_CONCAT)) {
+            tokenizer.fetch();
             relExp();
             addCode(SYMBOL_OP_CONCAT);
-        } else if (tokenizer->isCurrent(TT_MINUS)) {
-            tokenizer->fetch();
+        } else if (tokenizer.isCurrent(TT_MINUS)) {
+            tokenizer.fetch();
             relExp();
             addCode(SYMBOL_OP_SUB);
-        } else if (tokenizer->isCurrent(TT_NUMBER) &&
-                   tokenizer->getCurrentString().toInt() < 0)
+        } else if (tokenizer.isCurrent(TT_NUMBER) &&
+                   tokenizer.getCurrentString().toInt() < 0)
         {
             addCode(SYMBOL_OP_LDC);
             addCode(engine->storage.makeNumber(
-                        tokenizer->getCurrentString().toInt()));
+                        tokenizer.getCurrentString().toInt()));
             addCode(SYMBOL_OP_ADD);
-            tokenizer->fetch();
+            tokenizer.fetch();
         } else {
             return;
         }
@@ -392,16 +410,16 @@ void Compiler::logExp() {
 void Compiler::termExp() {
     factorExp();
     while(true) {
-        if (tokenizer->isCurrent(TT_MUL)) {
-            tokenizer->fetch();
+        if (tokenizer.isCurrent(TT_MUL)) {
+            tokenizer.fetch();
             factorExp();
             addCode(SYMBOL_OP_MUL);
-        } else if (tokenizer->isCurrent(TT_DIV)) {
-            tokenizer->fetch();
+        } else if (tokenizer.isCurrent(TT_DIV)) {
+            tokenizer.fetch();
             factorExp();
             addCode(SYMBOL_OP_DIV);
-        } else if (tokenizer->isCurrent(TT_MOD)) {
-            tokenizer->fetch();
+        } else if (tokenizer.isCurrent(TT_MOD)) {
+            tokenizer.fetch();
             factorExp();
             addCode(SYMBOL_OP_REM);
         } else {
@@ -411,73 +429,73 @@ void Compiler::termExp() {
 }
 
 void Compiler::factorExp() {
-    if (tokenizer->isCurrent(TT_L_BRACE)) {
-        tokenizer->fetch();
+    if (tokenizer.isCurrent(TT_L_BRACE)) {
+        tokenizer.fetch();
         expression();
         expect(TT_R_BRACE, ")");
-    } else if (tokenizer->isCurrent(TT_NOT)) {
-        tokenizer->fetch();
+    } else if (tokenizer.isCurrent(TT_NOT)) {
+        tokenizer.fetch();
         factorExp();
         addCode(SYMBOL_OP_NOT);
     } else {
-        if (tokenizer->isCurrent(TT_SYMBOL) ||
-                tokenizer->isCurrent(TT_STRING) ||
-                tokenizer->isCurrent(TT_DECIMAL) ||
-                tokenizer->isCurrent(TT_NUMBER))
+        if (tokenizer.isCurrent(TT_SYMBOL) ||
+                tokenizer.isCurrent(TT_STRING) ||
+                tokenizer.isCurrent(TT_DECIMAL) ||
+                tokenizer.isCurrent(TT_NUMBER))
         {
             literal();
-        } else if (tokenizer->isCurrent(TT_NAME)  &&
-                   tokenizer->isLookahead(TT_SPLIT))
+        } else if (tokenizer.isCurrent(TT_NAME)  &&
+                   tokenizer.isLookahead(TT_SPLIT))
         {
             splitAssignment();
-        } else if (tokenizer->isCurrent(TT_LIST_START)) {
+        } else if (tokenizer.isCurrent(TT_LIST_START)) {
             inlineList();
-        } else if (tokenizer->isCurrent(TT_TAG_START) &&
-                   !tokenizer->isLookahead(TT_TAG_CLOSE))
+        } else if (tokenizer.isCurrent(TT_TAG_START) &&
+                   !tokenizer.isLookahead(TT_TAG_CLOSE))
         {
             inlineXML();
-        } else if (tokenizer->isCurrent(TT_NAME)) {
-            if (tokenizer->isLookahead(TT_L_BRACE)) {
+        } else if (tokenizer.isCurrent(TT_NAME)) {
+            if (tokenizer.isLookahead(TT_L_BRACE)) {
                 call();
-            } else if (tokenizer->isLookahead(TT_ASSIGNMENT)) {
+            } else if (tokenizer.isLookahead(TT_ASSIGNMENT)) {
                 localAssignment();
-            } else if (tokenizer->isLookahead(TT_GLOBAL_ASSIGNMENT)) {
+            } else if (tokenizer.isLookahead(TT_GLOBAL_ASSIGNMENT)) {
                 globalAssignment();
-            } else if (tokenizer->isLookahead(TT_SPLIT)) {
+            } else if (tokenizer.isLookahead(TT_SPLIT)) {
                 splitAssignment();
-            } else if(tokenizer->getCurrentString().endsWith(':')
-                      && !tokenizer->isLookahead(TT_R_BRACE)
-                      && !tokenizer->isLookahead(TT_R_BRACKET)
-                      && !tokenizer->isLookahead(TT_KOMMA)
-                      && !tokenizer->isLookahead(TT_EOF)
-                      && !tokenizer->isLookahead(TT_SEMICOLON)
-                      && !tokenizer->isLookahead(TT_TAG_BLOCK_END)
-                      && !(tokenizer->isLookahead(TT_TAG_START) &&
-                           tokenizer->isLookahead2(TT_TAG_CLOSE)))
+            } else if(tokenizer.getCurrentString().endsWith(':')
+                      && !tokenizer.isLookahead(TT_R_BRACE)
+                      && !tokenizer.isLookahead(TT_R_BRACKET)
+                      && !tokenizer.isLookahead(TT_KOMMA)
+                      && !tokenizer.isLookahead(TT_EOF)
+                      && !tokenizer.isLookahead(TT_SEMICOLON)
+                      && !tokenizer.isLookahead(TT_TAG_BLOCK_END)
+                      && !(tokenizer.isLookahead(TT_TAG_START) &&
+                           tokenizer.isLookahead2(TT_TAG_CLOSE)))
             {
                 call();
             } else {
                 variable();
             }
         } else {
-            addError(tokenizer->getCurrent(),
+            addError(tokenizer.getCurrent(),
                      QString("Unexpected token: ") +
-                     tokenizer->getCurrentString());
-            tokenizer->fetch();
+                     tokenizer.getCurrentString());
+            tokenizer.fetch();
         }
     }
 }
 
 void Compiler::inlineList() {
-    tokenizer->fetch(); // #(
+    tokenizer.fetch(); // #(
     addCode(SYMBOL_OP_NIL);
     bool useChain = false;
-    while(!tokenizer->isCurrent(TT_R_BRACE) && !tokenizer->isCurrent(TT_EOF)) {
+    while(!tokenizer.isCurrent(TT_R_BRACE) && !tokenizer.isCurrent(TT_EOF)) {
         expression();
         addCode(SYMBOL_OP_CHAIN);
         useChain = true;
-        if (tokenizer->isCurrent(TT_KOMMA)) {
-            tokenizer->fetch();
+        if (tokenizer.isCurrent(TT_KOMMA)) {
+            tokenizer.fetch();
         }
     }
     if (useChain) {
@@ -487,11 +505,11 @@ void Compiler::inlineList() {
 }
 
 void Compiler::inlineXML() {
-    if (tokenizer->isLookahead(TT_TAG_CLOSE)) {
+    if (tokenizer.isLookahead(TT_TAG_CLOSE)) {
         return;
     }
     bool first = true;
-    while(tokenizer->isCurrent(TT_TAG_START)) {
+    while(tokenizer.isCurrent(TT_TAG_START)) {
         handleTag();
         if (!first) {
             addCode(SYMBOL_OP_SCAT);
@@ -501,31 +519,31 @@ void Compiler::inlineXML() {
 }
 
 void Compiler::handleTag() {
-    tokenizer->fetch(); // <
+    tokenizer.fetch(); // <
     QString tag("<");
-    tag += tokenizer->getCurrentString();
-    QString tagName = tokenizer->getCurrentString();
-    tokenizer->fetch(); // tag name
-    while(!tokenizer->isCurrent(TT_EOF)) {
-        if (tokenizer->isCurrent(TT_TAG_CLOSE)) {
+    tag += tokenizer.getCurrentString();
+    QString tagName = tokenizer.getCurrentString();
+    tokenizer.fetch(); // tag name
+    while(!tokenizer.isCurrent(TT_EOF)) {
+        if (tokenizer.isCurrent(TT_TAG_CLOSE)) {
             handleTagSelfClose(tag);
             return;
-        } else if (tokenizer->isCurrent(TT_TAG_END)) {
+        } else if (tokenizer.isCurrent(TT_TAG_END)) {
             handleTagEnd(tag, tagName);
             return;
-        } else if (tokenizer->isCurrent(TT_TAG_NAME)) {
+        } else if (tokenizer.isCurrent(TT_TAG_NAME)) {
             handleTagParameter(tag);
         } else {
-            addError(tokenizer->getCurrent(),
+            addError(tokenizer.getCurrent(),
                      "Unexpected Token within XML node!");
-            tokenizer->fetch();
+            tokenizer.fetch();
         }
     }
 }
 
 void Compiler::handleTagSelfClose(QString& tag) {
     // Handle self closing tags like <hr />
-    tokenizer->fetch(); // /
+    tokenizer.fetch(); // /
     expect(TT_TAG_END, ">");
     if (tag == "") {
         addCode(SYMBOL_OP_LDC);
@@ -539,9 +557,9 @@ void Compiler::handleTagSelfClose(QString& tag) {
 }
 
 void Compiler::handleTagEnd(QString& tag, QString& tagName) {
-    tokenizer->fetch(); // >
-    if (tokenizer->isCurrent(TT_TAG_START) &&
-        tokenizer->isLookahead(TT_TAG_CLOSE))
+    tokenizer.fetch(); // >
+    if (tokenizer.isCurrent(TT_TAG_START) &&
+        tokenizer.isLookahead(TT_TAG_CLOSE))
     {
         // Handle empty tags like <div></div>
         handleTagEndEmpty(tag, tagName);
@@ -552,16 +570,16 @@ void Compiler::handleTagEnd(QString& tag, QString& tagName) {
 }
 
 void Compiler::handleTagEndEmpty(QString& tag, QString& tagName) {
-    tokenizer->fetch(); // <
-    tokenizer->fetch(); // /
-    if (!tokenizer->isCurrent(TT_TAG_NAME) ||
-        tokenizer->getCurrentString() != tagName)
+    tokenizer.fetch(); // <
+    tokenizer.fetch(); // /
+    if (!tokenizer.isCurrent(TT_TAG_NAME) ||
+        tokenizer.getCurrentString() != tagName)
     {
-        addError(tokenizer->getCurrent(),
+        addError(tokenizer.getCurrent(),
                  (QString("Expected closing tag for: ")+tagName).
                  toStdString().c_str());
     }
-    tokenizer->fetch();
+    tokenizer.fetch();
     expect(TT_TAG_END, ">");
     if (tag == "") {
         addCode(SYMBOL_OP_LDC);
@@ -588,14 +606,14 @@ void Compiler::handleTagEndFilled(QString& tag, QString& tagName) {
     handleTagContent();
     expect(TT_TAG_START, "<");
     expect(TT_TAG_CLOSE, "/");
-    if (!tokenizer->isCurrent(TT_TAG_NAME) ||
-        tokenizer->getCurrentString() != tagName)
+    if (!tokenizer.isCurrent(TT_TAG_NAME) ||
+        tokenizer.getCurrentString() != tagName)
     {
-        addError(tokenizer->getCurrent(),
+        addError(tokenizer.getCurrent(),
                  (QString("Expected closing tag for: ")+tagName).
                  toStdString().c_str());
     }
-    tokenizer->fetch();
+    tokenizer.fetch();
     expect(TT_TAG_END, ">");
     tag = QString("</")+tagName+">";
     addCode(SYMBOL_OP_LDC);
@@ -606,17 +624,17 @@ void Compiler::handleTagEndFilled(QString& tag, QString& tagName) {
 
 void Compiler::handleTagContent() {
     bool first = true;
-    while(!tokenizer->isCurrent(TT_EOF) &&
-          !(tokenizer->isCurrent(TT_TAG_START) &&
-            tokenizer->isLookahead(TT_TAG_CLOSE)))
+    while(!tokenizer.isCurrent(TT_EOF) &&
+          !(tokenizer.isCurrent(TT_TAG_START) &&
+            tokenizer.isLookahead(TT_TAG_CLOSE)))
     {
-        if (tokenizer->isCurrent(TT_TAG_VALUE)) {
+        if (tokenizer.isCurrent(TT_TAG_VALUE)) {
             // Handle textual tag content...
             addCode(SYMBOL_OP_LDC);
             addCode(engine->storage.makeString(
-                        tokenizer->getCurrentString()));
-            tokenizer->fetch();
-        } else if (tokenizer->isCurrent(TT_TAG_START)) {
+                        tokenizer.getCurrentString()));
+            tokenizer.fetch();
+        } else if (tokenizer.isCurrent(TT_TAG_START)) {
             //We have another tag, just concat the result...
             handleTag();
         } else {
@@ -632,10 +650,10 @@ void Compiler::handleTagContent() {
 }
 
 void Compiler::handleTagParameter(QString& tag) {
-    QString param = " " + tokenizer->getCurrentString() + "=";
-    tokenizer->fetch();
+    QString param = " " + tokenizer.getCurrentString() + "=";
+    tokenizer.fetch();
     expect(TT_TAG_EQ, "=");
-    if (tokenizer->isCurrent(TT_TAG_VALUE)) {
+    if (tokenizer.isCurrent(TT_TAG_VALUE)) {
         handleTagParameterPlain(param, tag);
     } else {
         handleTagParameterInterpreted(param, tag);
@@ -644,7 +662,7 @@ void Compiler::handleTagParameter(QString& tag) {
 
 void Compiler::handleTagParameterPlain(QString& param, QString& tag) {
     // Non-Interpreted parameter -> append at once
-    param += tokenizer->getCurrentString();
+    param += tokenizer.getCurrentString();
     if (tag != "") {
         tag += param;
     } else {
@@ -652,7 +670,7 @@ void Compiler::handleTagParameterPlain(QString& param, QString& tag) {
         addCode(engine->storage.makeString(param));
         addCode(SYMBOL_OP_SCAT);
     }
-    tokenizer->fetch();
+    tokenizer.fetch();
 }
 
 void Compiler::handleTagParameterInterpreted(QString& param, QString& tag) {
@@ -669,8 +687,8 @@ void Compiler::handleTagParameterInterpreted(QString& param, QString& tag) {
     }
     expect(TT_TAG_BLOCK_BEGIN,"\"[");
     bool first = true;
-    while(!tokenizer->isCurrent(TT_EOF) &&
-          !tokenizer->isCurrent(TT_TAG_BLOCK_END))
+    while(!tokenizer.isCurrent(TT_EOF) &&
+          !tokenizer.isCurrent(TT_TAG_BLOCK_END))
     {
         if (!first) {
             expect(TT_SEMICOLON, ";");
@@ -688,25 +706,25 @@ void Compiler::handleTagParameterInterpreted(QString& param, QString& tag) {
 
 Atom Compiler::compileLiteral() {
     Atom result = NIL;
-    if (tokenizer->isCurrent(TT_SYMBOL)) {
+    if (tokenizer.isCurrent(TT_SYMBOL)) {
          result = engine->storage.makeSymbol(
-                 tokenizer->getCurrentString().
-                 mid(1, tokenizer->getCurrent().length - 1));
-    } else if (tokenizer->isCurrent(TT_STRING)) {
+                 tokenizer.getCurrentString().
+                 mid(1, tokenizer.getCurrent().length - 1));
+    } else if (tokenizer.isCurrent(TT_STRING)) {
         result = engine->storage.makeString(
-                tokenizer->getCurrentString().
-                mid(1, tokenizer->getCurrent().length - 2));
-    } else if (tokenizer->isCurrent(TT_NUMBER)) {
+                tokenizer.getCurrentString().
+                mid(1, tokenizer.getCurrent().length - 2));
+    } else if (tokenizer.isCurrent(TT_NUMBER)) {
         result = engine->storage.makeNumber(
-                tokenizer->getCurrentString().toLong());
-    } else if (tokenizer->isCurrent(TT_DECIMAL)) {
+                tokenizer.getCurrentString().toLong());
+    } else if (tokenizer.isCurrent(TT_DECIMAL)) {
         result = engine->storage.makeDecimal(
-                tokenizer->getCurrentString().toDouble());
+                tokenizer.getCurrentString().toDouble());
     } else {
-        addError(tokenizer->getCurrent(),
+        addError(tokenizer.getCurrent(),
                  "Unexpected token! Expected a literal");
     }
-    tokenizer->fetch();
+    tokenizer.fetch();
     return result;
 }
 
@@ -716,18 +734,18 @@ void Compiler::literal() {
 }
 
 void Compiler::variable() {
-    QString name = tokenizer->getCurrentString();
-    tokenizer->fetch();
+    QString name = tokenizer.getCurrentString();
+    tokenizer.fetch();
     load(name);
 }
 
 void Compiler::load(QString variable) {
-    std::pair<int, int> pair = findSymbol(variable);
-    if (pair.first > 0) {
+    EnvPos pos = findSymbol(variable);
+    if (pos.major > 0) {
         addCode(SYMBOL_OP_LD);
         addCode(engine->storage.makeCons(
-                    engine->storage.makeNumber(pair.first),
-                    engine->storage.makeNumber(pair.second)));
+                    engine->storage.makeNumber(pos.major),
+                    engine->storage.makeNumber(pos.minor)));
     } else {
         Atom symbol = engine->storage.makeSymbol(variable);
         Atom bif = engine->findBuiltInFunction(symbol);
@@ -742,7 +760,7 @@ void Compiler::load(QString variable) {
 }
 
 void Compiler::call() {
-    if (tokenizer->getCurrentString().endsWith(':')) {
+    if (tokenizer.getCurrentString().endsWith(':')) {
         colonCall();
     } else {
         standardCall();
@@ -752,10 +770,10 @@ void Compiler::call() {
 void Compiler::colonCall() {
     QString name("");
     addCode(SYMBOL_OP_NIL);
-    while(tokenizer->isCurrent(TT_NAME) &&
-          tokenizer->getCurrentString().endsWith(':')) {
-        name += tokenizer->getCurrentString();
-        tokenizer->fetch();
+    while(tokenizer.isCurrent(TT_NAME) &&
+          tokenizer.getCurrentString().endsWith(':')) {
+        name += tokenizer.getCurrentString();
+        tokenizer.fetch();
         expression();
         addCode(SYMBOL_OP_CHAIN);
     }
@@ -766,18 +784,18 @@ void Compiler::colonCall() {
 }
 
 void Compiler::standardCall() {
-    QString name = tokenizer->getCurrentString();
-    tokenizer->fetch(); // name
-    tokenizer->fetch(); // (
-    if (!tokenizer->isCurrent(TT_R_BRACE)) {
+    QString name = tokenizer.getCurrentString();
+    tokenizer.fetch(); // name
+    tokenizer.fetch(); // (
+    if (!tokenizer.isCurrent(TT_R_BRACE)) {
         addCode(SYMBOL_OP_NIL);
-        while(!tokenizer->isCurrent(TT_R_BRACE) &&
-              !tokenizer->isCurrent(TT_EOF))
+        while(!tokenizer.isCurrent(TT_R_BRACE) &&
+              !tokenizer.isCurrent(TT_EOF))
         {
             expression();
             addCode(SYMBOL_OP_CHAIN);
-            if (tokenizer->isCurrent(TT_KOMMA)) {
-                tokenizer->fetch();
+            if (tokenizer.isCurrent(TT_KOMMA)) {
+                tokenizer.fetch();
             }
         }
         addCode(SYMBOL_OP_CHAIN_END);
@@ -796,19 +814,19 @@ void Compiler::standardCall() {
 
 void Compiler::splitAssignment() {
     if (symbolTable.size() == 0) {
-        addError(tokenizer->getCurrent(),
+        addError(tokenizer.getCurrent(),
                  "Split-Assignments not allowed on top-level");
-        tokenizer->fetch(); // name
-        tokenizer->fetch(); // |
-        tokenizer->fetch(); // name
+        tokenizer.fetch(); // name
+        tokenizer.fetch(); // |
+        tokenizer.fetch(); // name
         expect(TT_ASSIGNMENT, ":=");
         return;
     }
-    QString headName = tokenizer->getCurrentString();
-    tokenizer->fetch(); // name
-    tokenizer->fetch(); // |
-    QString tailName = tokenizer->getCurrentString();
-    tokenizer->fetch(); // name
+    QString headName = tokenizer.getCurrentString();
+    tokenizer.fetch(); // name
+    tokenizer.fetch(); // |
+    QString tailName = tokenizer.getCurrentString();
+    tokenizer.fetch(); // name
     expect(TT_ASSIGNMENT, ":=");
     std::vector<QString>* symbols = symbolTable[0];
     Word headMinorIndex = 1;
@@ -846,13 +864,13 @@ void Compiler::localAssignment() {
         globalAssignment();
         return;
     }
-    QString name = tokenizer->getCurrentString();
-    tokenizer->fetch(); // name
-    tokenizer->fetch(); // :=
-    std::pair<int, int> pos = findSymbol(name);
+    QString name = tokenizer.getCurrentString();
+    tokenizer.fetch(); // name
+    tokenizer.fetch(); // :=
+    EnvPos pos = findSymbol(name);
     Word majorIndex = 1;
     Word minorIndex = 1;
-    if (pos.first == -1) {
+    if (pos.major == -1) {
         std::vector<QString>* symbols = symbolTable[0];
         while (minorIndex <= symbols->size()) {
             if (symbols->at(minorIndex - 1) == name) {
@@ -864,8 +882,8 @@ void Compiler::localAssignment() {
             symbols->push_back(name);
         }
     } else {
-        majorIndex = pos.first;
-        minorIndex = pos.second;
+        majorIndex = pos.major;
+        minorIndex = pos.minor;
     }
     expression();
     addCode(SYMBOL_OP_ST);
@@ -875,16 +893,16 @@ void Compiler::localAssignment() {
 }
 
 void Compiler::globalAssignment() {
-    QString name = tokenizer->getCurrentString();
-    tokenizer->fetch(); // name
-    tokenizer->fetch(); // ::=
+    QString name = tokenizer.getCurrentString();
+    tokenizer.fetch(); // name
+    tokenizer.fetch(); // ::=
     expression();
-    std::pair<int, int> pair = findSymbol(name);
-    if (pair.first > 0) {
+    EnvPos pos = findSymbol(name);
+    if (pos.major > 0) {
         addCode(SYMBOL_OP_ST);
         addCode(engine->storage.makeCons(
-                    engine->storage.makeNumber(pair.first),
-                    engine->storage.makeNumber(pair.second)));
+                    engine->storage.makeNumber(pos.major),
+                    engine->storage.makeNumber(pos.minor)));
     } else {
         addCode(SYMBOL_OP_STG);
         addCode(engine->storage.findGlobal(engine->storage.makeSymbol(name)));

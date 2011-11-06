@@ -101,7 +101,7 @@ Duration: 100ms
 Duration: 2590ms
 GCs: 343
 
-Introduced Minor/Major collections + Optimized Mark-Phase
+Introduced Minor/Major collections + Optimized Mark-Phase & Chunk size
 -------------------------------------------------------------------------------
 Duration: 172ms
 Duration: 93ms
@@ -130,5 +130,21 @@ Duration: 16ms
 Duration: 15ms
 Duration: 16ms
 Duration: 203ms
+GCs: 127
+GC eff: 22.3867%
+
+Inlined AtomRef::atom + Storage::getCons (Again with releasebuild)
+-------------------------------------------------------------------------------
+Duration: 26ms
+Duration: 14ms
+Duration: 15ms
+Duration: 13ms
+Duration: 15ms
+Duration: 13ms
+Duration: 14ms
+Duration: 13ms
+Duration: 15ms
+Duration: 14ms
+Duration: 155ms
 GCs: 127
 GC eff: 22.3867%

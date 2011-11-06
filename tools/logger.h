@@ -68,7 +68,7 @@ public:
     /**
       Called by a logger, to handle (output) the given message.
       */
-    virtual void append(const std::string& msg) {}
+    virtual void append(const std::string& msg) = 0;
 };
 
 /**

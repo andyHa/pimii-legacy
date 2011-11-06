@@ -40,11 +40,27 @@ while:do: ::= (descisionBlock, loopBody) -> {
     [descisionBlock() : loopBody(); while: descisionBlock do: loopBody]
 };
 
+// ---------------------------------------------------------------------------
+// Emulates a for statement for imperative programming.
+//
+// Param: from  - the first value passed to the given block.
+// Param: to    - the last value passed to the given bock.
+// Param: step  - sets the increment in which the value is changed, before
+//                the block is called again. If to is smaller than from,
+//                step must be negative!
+// Param: block - Called with all numbers between from and to (inclusive) with
+//                the distance of step.
+// ---------------------------------------------------------------------------
 from:to:step:do: ::= (from, to, step, block) -> [
     i := from;
     while: [ i <= to ] do: [block(i); i := i + step;]
 ];
 
+// ---------------------------------------------------------------------------
+// Emulates a for statement with a step of 1.
+//
+// Short for "from: from to: to step: 1 do: block;"
+// ---------------------------------------------------------------------------
 from:to:do: ::= (from, to, block) -> [
     from: from to: to step: 1 do: block;
 ];

@@ -230,7 +230,10 @@ public:
     /**
       Returns the cell on which atom points.
       */
-    Cell getCons(Atom atom);
+    inline Cell getCons(Atom atom) {
+        assert(isCons(atom));
+        return cells[untagIndex(atom)];
+    }
 
     /**
       Returns and atom pointing to the global with the given name.
@@ -424,11 +427,11 @@ public:
         storage->strongReferences.insert(this);
     }
 
-    Atom atom() {
+    inline Atom atom() {
         return referencedAtom;
     }
 
-    void atom(Atom atom) {
+    inline void atom(Atom atom) {
         referencedAtom = atom;
     }
 

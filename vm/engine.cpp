@@ -265,7 +265,12 @@ void Engine::opRTN() {
     s->atom(pop(d));
     push(s, result);
     e->atom(pop(d));
-    pop(p);
+    Atom pos = pop(p);
+    if (isCons(pos)) {
+        Cell cell = storage.getCons(pos);
+        currentFile = cell.car;
+        currentLine = storage.getNumber(cell.cdr);
+    }
 }
 
 void Engine::opCAR() {
@@ -825,9 +830,9 @@ bool Engine::loadNextExecution() {
 
     c->atom(exe.fn->atom());
     delete exe.fn;
-    currentFile = storage.makeSymbol(exe.filename);
-    currentLine = 1;
-    push(p, storage.makeCons(currentFile, storage.makeNumber(currentLine)));
+    //currentFile = storage.makeSymbol(exe.filename);
+    //currentLine = 1;
+    //push(p, storage.makeCons(currentFile, storage.makeNumber(currentLine)));
 
     return true;
 }
@@ -967,15 +972,14 @@ Atom Engine::compileSource(const QString& file,
                            bool silent)
 {
     Compiler compiler(file, source, this);
-    std::pair<Atom, std::vector<CompilationError> >
-            result = compiler.compile(insertStop);
-    if (!result.second.empty()) {
+    if (!compiler.compile(insertStop)) {
         if (!silent) {
+            std::vector<CompilationError> errors = compiler.getErrors();
             QString buf;
             buf += "Compilation error(s) in: " + file + "\n";
             for(std::vector<CompilationError>::iterator
-                i = result.second.begin();
-                i != result.second.end();
+                i = errors.begin();
+                i != errors.end();
                 i++)
             {
                 CompilationError e = *i;
@@ -991,9 +995,9 @@ Atom Engine::compileSource(const QString& file,
         return NIL;
     } else if (debugCompiler) {
         println("Compilation Result: ");
-        println(toString(result.first));
+        println(toString(compiler.getCode()));
     }
-    return result.first;
+    return compiler.getCode();
 }
 
 void Engine::call(Atom list) {

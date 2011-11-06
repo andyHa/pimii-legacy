@@ -57,10 +57,12 @@ OTHER_FILES += \
     examples/kernel.pi \
     examples/example.pi \
     lib/datetime.pi \
-    performance-tests.txt
+    performance-tests.txt \
+    examples/performanceTest.pi
 
 FORMS += \
     gui/webwindow.ui
+
 
 
 

@@ -42,8 +42,8 @@
       easily understood by people new to this subject.
 
   The compiler is implemented as recursive descendand parser with a hand
-  written tokenizer. Therefore the complete tokenizer is contained in the
-  fetch() method and for each non-terminal is a method with the same name.
+  written tokenizer. Therefore for each non-terminal is a method with the
+  same name.
 
   Being a one pass compiler, each method directly outputs the appropriate
   bytecode for the parsed sources.
@@ -131,6 +131,10 @@
 #include "vm/engine.h"
 #include "compiler/tokenizer.h"
 
+/**
+  Used to signal a compilation problem. We try to continue as long as
+  possible and not to fail on the first missing ; etc.
+  */
 struct CompilationError {
     int line;
     int pos;
@@ -138,70 +142,301 @@ struct CompilationError {
     bool severe;
 };
 
+/**
+  Used to describe the location of a variable in the environment.
+  */
+class EnvPos {
+public:
+    int major;
+    int minor;
+
+    EnvPos(int major, int minor) : major(major), minor(minor) {}
+};
+
+/**
+  Contains the main part of the compiler. An instance is used to compile one
+  source file and should not be reused.
+  */
 class Compiler
-{    
-    std::vector< std::vector<QString>* > symbolTable;
-    std::pair<int, int> findSymbol(QString name);
+{
+private:
 
+    /**
+      Contains the last linenumer which was added to the code. This is used,
+      to generate accurate position information within the code.
+      */
+    int lastLine;
+
+    /**
+      Contains the engine for which the code is compiled.
+      */
     Engine* engine;
-    Tokenizer* tokenizer;
 
+    /**
+      Contains the tokenizer, which transforms the code.
+      */
+    Tokenizer tokenizer;
+
+    /**
+      Contains the symbol which represents the file name.
+      */
     AtomRef* file;
+
+    /**
+      Contains the start of the generated op-codes
+      */
     AtomRef* code;
+
+    /**
+      Points to the last cell of th generated op codes.
+      */
     AtomRef* tail;
 
+    /**
+      Contains a list of all discovered errors.
+      */
     std::vector<CompilationError> errors;
 
+    /**
+      Contains the current symbol table (all known variable names). The
+      indices within these nested vectors directly reflects the position
+      within the environment of the execution engine.
+      */
+    std::vector< std::vector<QString>* > symbolTable;
+
+    /**
+      Checks if the position in the source file changed and generates
+      appropriate op-codes to notify the interpreter.
+      */
+    void updatePosition(bool force);
+
+    /**
+      Used to lookup a symbol in the symbol table. If nothing is found, the
+      major index is negative.
+      */
+    EnvPos findSymbol(QString name);
+
+    /**
+      Adds an op code or value to the resulting code-list.
+      */
     void addCode(Atom atom);
+
+    /**
+      Expects the given token as next in the tokenizer, or created an error
+      otherwise.
+      */
     void expect(InputTokenType tt, const char* rep);
 
+    /**
+      Compiles a block which is a list of statements.
+      */
     void block();
+
+    /**
+      Compiles a statement.
+      */
     void statement();
+
+    /**
+      Compiles an expression.
+      */
     void expression();
+
+    /**
+      Compiles a function definition.
+      */
     void definition();
+
+    /**
+      Compiles a shortened function definition: x -> ...
+      */
     void shortDefinition();
+
+    /**
+      Compiles an inline function definition: [ x -> ...] or [...]
+      */
     void inlineDefinition();
+
+    /**
+      Compiles a guarded function: {[x > 3 : ...]}
+      */
     void generateGuardedFunctionCode();
+
+    /**
+      Compiles a function body.
+      */
     void generateFunctionCode(bool expectBracet, bool asSublist);
+
+    /**
+      Compiles: && and ||
+      */
     void basicExp();
+
+    /**
+      Compiles: + - &
+      */
     void logExp();
+
+    /**
+      Compiles: < <= = >= > !=
+      */
     void relExp();
+
+    /**
+      Compiles: * / %
+      */
     void termExp();
+
+    /**
+      Compiles ! or expression in braces.
+      */
     void factorExp();
+
+    /**
+      Compiles a literal.
+      */
     void literal();
+
+    /**
+      Compiles an inline list.
+      */
     void inlineList();
+
+    /**
+      Compiles inlined XML
+      */
     void inlineXML();
+
+    /**
+      Compiles an XML tag.
+      */
     void handleTag();
+
+    /**
+      Compiles a self closing tag: <xml />
+      */
     void handleTagSelfClose(QString& tag);
+
+    /**
+      Compiles the end of a tag definition.
+      */
     void handleTagEnd(QString& tag, QString& tagName);
+
+    /**
+      Compiles an end tag when no body was found.
+      */
     void handleTagEndEmpty(QString& tag, QString& tagName);
+
+    /**
+      Compiles an end tag when a body was found.
+      */
     void handleTagEndFilled(QString& tag, QString& tagName);
+
+    /**
+      Compiles the tag content.
+      */
     void handleTagContent();
+
+    /**
+      Compiles a parameter in a tag definition.
+      */
     void handleTagParameter(QString& tag);
+
+    /**
+      Handles a direct parameter value.
+      */
     void handleTagParameterPlain(QString& param, QString& tag);
+
+    /**
+      Compiles an interpreted parameter value.
+      */
     void handleTagParameterInterpreted(QString& param, QString& tag);
+
+    /**
+     Transforms a literal into an atom.
+     */
     Atom compileLiteral();
+
+    /**
+      Compiles a variable reference.
+      */
     void variable();
+
+    /**
+      Generates a load operation for the given name.
+      */
     void load(QString name);
+
+    /**
+      Compiles a function call.
+      */
     void call();
+
+    /**
+      Compiles a function call with colons, like: if: x then: y
+      */
     void colonCall();
+
+    /**
+      Compiles a standard call, like f(x)
+      */
     void standardCall();
+
+    /**
+      Compiles a lokal assignment: x := 1;
+      */
     void localAssignment();
+
+    /**
+      Compiles a split assignment like: x|y := a; This is the same as:
+      if (isCons(a) {
+         x := car(a);
+         y := car(cdr(a));
+         push TRUE
+      } else {
+         push FALSE
+      }
+     */
     void splitAssignment();
+
+    /**
+      Compiles a global assignment like x ::= 1;
+      */
     void globalAssignment();
 
+    /**
+      Adds an error message.
+      */
     void addError(const InputToken& token, const QString& errorMsg);
-    void addError(const InputToken& token, const char* errorMsg);
 public:
+
+    /**
+      Creates a new compiler for the given filename, with the given content,
+      for compilation within the given engine.
+      */
     Compiler(const QString& fileName, const QString& input, Engine* engine);
+
     ~Compiler() {
-        delete tokenizer;
         delete code;
-        delete file;
         delete tail;
+        delete file;
     }
 
-    std::pair< Atom, std::vector<CompilationError> > compile(bool appendStop);
+    /**
+      Invokes the compilation. Returns true, if the compilation was successfull,
+      false otherwise.
+      */
+    bool compile(bool appendStop);
+
+    /**
+      Provides access to the generated code.
+      */
+    Atom getCode();
+
+    /**
+      Provides access to the generated error list.
+      */
+    std::vector<CompilationError> getErrors();
 };
 
 #endif // COMPILER_H
