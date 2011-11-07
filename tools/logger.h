@@ -30,10 +30,10 @@
 #ifndef LOGGER_H
 #define LOGGER_H
 
-#include <sstream>
-#include <string>
-#include <stdio.h>
-#include <vector>
+#include <QString>
+#include <QTextStream>
+#include <iostream>
+#include <set>
 #include <map>
 
 /**
@@ -68,7 +68,7 @@ public:
     /**
       Called by a logger, to handle (output) the given message.
       */
-    virtual void append(const std::string& msg) = 0;
+    virtual void append(const QString& msg, const QString& pos) = 0;
 };
 
 /**
@@ -83,11 +83,11 @@ private:
     /**
       Contains all know appenders.
       */
-    static std::vector<Appender*> appenders;
+    static std::set<Appender*> appenders;
     /**
      Maps names to all known loggers.
      */
-    static std::map<std::string, Logger*> instances;
+    static std::map<QString, Logger*> instances;
 
     /**
       A Logger cannot be copied.
@@ -102,12 +102,12 @@ public:
     /**
       Contains the name of this logger.
       */
-    const std::string name;
+    const QString name;
 
     /**
       Called by instances to distribute the given message to all appenders.
       */
-    static void log(const std::string& msg);
+    static void log(const QString& msg, const QString& pos);
 
     /**
       Registers a new appender.
@@ -115,19 +115,24 @@ public:
     static void addAppender(Appender* a);
 
     /**
+      Removes a registered appender.
+      */
+    static void removeAppender(Appender* a);
+
+    /**
       Sets the level of the given logger.
       */
-    static void setLevel(std::string name, Level level);
+    static void setLevel(const QString& name, Level level);
 
     /**
       Determines the level of the given logger.
       */
-    static Level getLevel(std::string name);
+    static Level getLevel(const QString& name);
 
     /**
       Creates a new logger.
       */
-    Logger(const char* loggerName);
+    Logger(const QString& loggerName);
 
     /**
       Remove the logger from the instances map.
@@ -142,26 +147,23 @@ public:
 class Log {
 public:
     const Logger& logger;
-    const char* file;
-    const int line;
+    QString pos;
+    QString msg;
+    QTextStream  stream;
 
     inline Log(const Logger& logger, const char* file, const int line) :
         logger(logger),
-        file(file),
-        line(line) {}
+        pos(QString(file) + ":" + QString::number(line)),
+        stream(&msg) {}
 
     inline ~Log() {
-        os << " (" << file << ":" << line << ")" << std::endl;
-        Logger::log(os.str());
+        Logger::log(msg, pos);
     }
 
-    inline std::ostringstream& get() {
-        os << "[" << logger.name << "]\t";
-        return os;
+    inline QTextStream& get() {
+        stream << "[" << logger.name << "]\t";
+        return stream;
     }
-
-protected:
-    std::ostringstream os;
 private:
     Log(const Log&);
     Log& operator =(const Log&);

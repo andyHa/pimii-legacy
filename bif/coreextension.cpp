@@ -11,6 +11,8 @@ QString CoreExtension::name() {
     return QString("CoreExtension");
 }
 
+Logger CoreExtension::log("PIMII");
+
 void CoreExtension::registerBuiltInFunctions(Engine* engine) {
 
     // Typesystem
@@ -92,8 +94,7 @@ void CoreExtension::bif_wordsize(const CallContext& ctx) {
 }
 
 void CoreExtension::bif_log(const CallContext& ctx) {
-    ctx.engine->println(
-                ctx.engine->toSimpleString(
+    INFO(log, ctx.engine->toSimpleString(
                     ctx.fetchArgument(BIF_INFO)));
 }
 

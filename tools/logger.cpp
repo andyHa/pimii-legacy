@@ -22,47 +22,53 @@
 #include <string>
 #include <iostream>
 
-std::vector<Appender*> Logger::appenders;
-std::map<std::string, Logger*> Logger::instances;
+std::set<Appender*> Logger::appenders;
+std::map<QString, Logger*> Logger::instances;
 
-void Logger::log(const std::string& msg) {
-    for(std::vector<Appender*>::iterator
+void Logger::log(const QString& msg, const QString& pos) {
+    for(std::set<Appender*>::iterator
         iter = appenders.begin();
         iter != appenders.end();
         ++iter)
     {
-        (*iter)->append(msg);
+        (*iter)->append(msg, pos);
     }
-     std::cout << msg;
+    std::wcout << msg.toStdWString() <<
+                  " (" << pos.toStdWString() << ")" <<
+                  std::endl;
 }
 
 
 void Logger::addAppender(Appender* a) {
-    appenders.push_back(a);
+    appenders.insert(a);
 }
 
-void Logger::setLevel(std::string name, Level level) {
-    std::map<std::string, Logger*>::iterator i = instances.find(name);
+void Logger::removeAppender(Appender* a) {
+    appenders.erase(a);
+}
+
+void Logger::setLevel(const QString& name, Level level) {
+    std::map<QString, Logger*>::iterator i = instances.find(name);
     if (i != instances.end()) {
         (*i).second->level = level;
     }
 }
 
-Level Logger::getLevel(std::string name) {
-    std::map<std::string, Logger*>::iterator i = instances.find(name);
+Level Logger::getLevel(const QString& name) {
+    std::map<QString, Logger*>::iterator i = instances.find(name);
     if (i != instances.end()) {
         return (*i).second->level;
     }
     return ERROR;
 }
 
-Logger::Logger(const char* loggerName) : name(std::string(loggerName)) {
+Logger::Logger(const QString& loggerName) : name(loggerName) {
     level = INFO;
     instances[name] = this;
 }
 
 Logger::~Logger() {
-    std::map<std::string, Logger*>::iterator i = instances.find(name);
+    std::map<QString, Logger*>::iterator i = instances.find(name);
     if (i != instances.end()) {
         instances.erase(i);
     }

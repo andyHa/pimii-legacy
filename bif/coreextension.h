@@ -3,10 +3,18 @@
 
 #include "engineextension.h"
 #include "callcontext.h"
+#include "tools/logger.h"
 
 class CoreExtension : public EngineExtension
 {
 private:
+
+
+    /**
+      Contains the appliction logger
+      */
+    static Logger log;
+
     /**
       Sets an engine parameter.
 

@@ -31,6 +31,8 @@
 #include <sstream>
 #include <exception>
 
+Logger Engine::log("EXEC");
+
 void Engine::push(AtomRef* reg, Atom atom) {
    reg->atom(storage.makeCons(atom, reg->atom()));
 }
@@ -46,7 +48,6 @@ Atom Engine::pop(AtomRef* reg) {
 }
 
 Engine::Engine(QSettings* settings) :
-    log("EXEC"),
     settings(settings),
     s(storage.ref(NIL)),
     e(storage.ref(NIL)),
@@ -837,13 +838,7 @@ bool Engine::loadNextExecution() {
         return false;
     }
     Execution exe = executionStack.front();
-    executionStack.pop_front();
-
     c->atom(exe.fn->atom());
-    delete exe.fn;
-    //currentFile = storage.makeSymbol(exe.filename);
-    //currentLine = 1;
-    //push(p, storage.makeCons(currentFile, storage.makeNumber(currentLine)));
 
     return true;
 }
@@ -852,12 +847,16 @@ bool Engine::isRunnable() {
     return running;
 }
 
-void Engine::eval(const QString& source, const QString& filename) {
+void Engine::eval(const QString& source,
+                  const QString& filename,
+                  bool printStackTop)
+{
     Atom code = compileSource(filename, source, true, false);
     if (code != NIL) {
         Execution exe;
         exe.filename = filename;
         exe.fn = storage.ref(code);
+        exe.printStackTop = printStackTop;
         executionStack.push_back(exe);
         if (!running) {
             running = true;
@@ -885,6 +884,16 @@ void Engine::interpret() {
         while (running && maxOpCodes > 0) {
             Atom op = pop(c);
             if (op == SYMBOL_OP_STOP) {
+                Execution exe = executionStack.front();
+                // Check if we should print the execution result...
+                if (exe.printStackTop) {
+                    INFO(log, toString(pop(s)));
+                }
+
+                // Remove execution...
+                executionStack.pop_front();
+                delete exe.fn;
+
                 TRACE(log, "STOP requested. Loading next execution.");
                 if (!loadNextExecution()) {
                     TRACE(log, "Nothing to do. Halting engine.");
@@ -1001,7 +1010,7 @@ Atom Engine::compileSource(const QString& file,
                        + e.error
                        + "\n";
             }
-            println(buf);
+            INFO(log, buf);
         }
         return NIL;
     }
@@ -1035,11 +1044,6 @@ void Engine::call(Atom list) {
     push(d, c->atom());
     e->atom(NIL);
     push(p, storage.makeCons(currentFile, storage.makeNumber(currentLine)));
-}
-
-
-void Engine::println(const QString& string) {
-    emit onLog(string);
 }
 
 QString Engine::printList(Atom atom) {

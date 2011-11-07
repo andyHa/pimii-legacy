@@ -200,7 +200,7 @@ public:
     /**
       Fetches a reference argument.
       */
-    QSharedPointer<Reference> fetchReference(const char* bifName,
+   Reference* fetchReference(const char* bifName,
                                              const char* file,
                                              int line,
                                              Atom* atom = NULL) const {
@@ -232,11 +232,8 @@ public:
                                      int line,
                                      Atom* atom = NULL)
     const {
-        QSharedPointer<Reference> ref = fetchReference(bifName,
-                                                       file,
-                                                       line,
-                                                       atom);
-        R* result = dynamic_cast<R*>(ref.data());
+        Reference* ref = fetchReference(bifName, file, line, atom);
+        R* result = dynamic_cast<R*>(ref);
         if (result == NULL) {
             engine->panic(QString("The %2. argument of %1 must be a '%5'! (%3:%4)").
                   arg(QString(bifName),
@@ -312,7 +309,7 @@ public:
     /**
       Convenience to return a reference.
       */
-    inline void setReferenceResult(QSharedPointer<Reference> result) const {
+    inline void setReferenceResult(Reference* result) const {
         this->result = storage->makeReference(result);
     }
 

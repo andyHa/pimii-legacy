@@ -48,7 +48,7 @@ void loadStartupScript(Engine& engine) {
     if (startScript.exists()) {
         QFile file(startScript.absoluteFilePath());
         if (file.open(QFile::ReadOnly | QFile::Text)) {
-            engine.eval(file.readAll(), startScript.fileName());
+            engine.eval(file.readAll(), startScript.fileName(), false);
         }
     }
 }
@@ -76,7 +76,7 @@ int main(int argc, char *argv[])
     window->showMaximized();
     engine.initialize();
 
-    Logger::setLevel("STORE", INFO);
+    Logger::setLevel("STORE", TRACE);
 
     // Tries to find and load the "start.pi" file.
     loadStartupScript(engine);

@@ -56,6 +56,7 @@ typedef void (*BIF)(const CallContext& ctx);
 struct Execution {
     QString filename;
     AtomRef* fn;
+    bool printStackTop;
 };
 
 
@@ -79,7 +80,7 @@ private:
     /**
       The logger used by the engine.
       */
-    Logger log;
+    static Logger log;
 
     /**
       Used by "panic" to stop the engine.
@@ -401,11 +402,6 @@ signals:
                        const QString& status);
 
     /**
-      Emitted if the engine sends a message.
-      */
-    void onLog(const QString& message);
-
-    /**
       Emitted if the engine enters a new line, can be used by a debugger.
       */
     void onLine(Atom file, Word line);
@@ -430,7 +426,9 @@ public slots:
       Compiles and loads the given source. Will be pushed on the
       "executionStack".
       */
-    void eval(const QString& source, const QString& filename);
+    void eval(const QString& source,
+              const QString& filename,
+              bool printStackTop);
 
 public:
     /**
@@ -504,11 +502,6 @@ public:
       is more or less like a call without parameters.
       */
     void call(Atom list);
-
-    /**
-      Prints the given string.
-      */
-    void println(const QString& string);
 
     /**
       Registers a built in function.

@@ -432,13 +432,13 @@ Atom Storage::makeDecimal(double value) {
     return tagIndex(index, TAG_TYPE_DECIMAL_NUMBER);
 }
 
-QSharedPointer<Reference> Storage::getReference(Atom atom) {
+Reference* Storage::getReference(Atom atom) {
     assert(isReference(atom));
     Word index = untagIndex(atom);
-    return referenceTable.get(index);
+    return referenceTable.get(index).data();
 }
-Atom Storage::makeReference(const QSharedPointer<Reference>& value) {
-    Word index = referenceTable.allocate(value);
+Atom Storage::makeReference(Reference* value) {
+    Word index = referenceTable.allocate(QSharedPointer<Reference>(value));
     assert(index < MAX_INDEX_SIZE);
     return tagIndex(index, TAG_TYPE_REFERENCE);
 }

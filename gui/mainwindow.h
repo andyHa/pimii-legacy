@@ -27,22 +27,25 @@
 #include <QLabel>
 
 #include "vm/env.h"
-#include "gui/highlighter.h"
 #include "vm/engine.h"
+#include "tools/logger.h"
+#include "gui/highlighter.h"
 
 QT_BEGIN_NAMESPACE
 class QTextEdit;
 QT_END_NAMESPACE
 
 //! [0]
-class MainWindow : public QMainWindow
+class MainWindow : public QMainWindow, Appender
 {
     Q_OBJECT
 
 public:
     MainWindow(Engine* engine, QWidget *parent = 0);
 
-    void println(const QString& str);
+    ~MainWindow() {
+        Logger::removeAppender(this);
+    }
 
 public slots:
     void about();
@@ -51,8 +54,9 @@ public slots:
     void saveFile();
     void saveFileAs(const QString& path = QString());
     void runFile();
+    void inspect();
 
-    void onLog(const QString& str);
+    virtual void append(const QString& msg, const QString& pos);
     void onEngineStarted();
     void onEngineStopped();
     void onEnginePanic(Atom file,

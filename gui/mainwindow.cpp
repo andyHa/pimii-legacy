@@ -21,16 +21,18 @@
 
 #include "mainwindow.h"
 
+
 #include <iostream>
 
 MainWindow::MainWindow(Engine* engine, QWidget *parent)
     : QMainWindow(parent), engine(engine)
 {
-
+    Logger::addAppender(this);
     setupEditor();
     splitter = new QSplitter(Qt::Vertical, parent);
     splitter->addWidget(editor);
     console = new QTextEdit();
+    console->setAcceptRichText(false);
     console->setMinimumHeight(100);
     console->setReadOnly(true);
     console->setFont(QFont("Courier", 12));
@@ -51,17 +53,17 @@ MainWindow::MainWindow(Engine* engine, QWidget *parent)
     setupRunMenu();
     setupHelpMenu();
 
-    connect(engine,SIGNAL(onLog(QString)), this, SLOT(onLog(QString)));
     connect(engine,SIGNAL(onEngineStarted()), this, SLOT(onEngineStarted()));
     connect(engine,SIGNAL(onEngineStopped()), this, SLOT(onEngineStopped()));
     connect(engine,SIGNAL(onEnginePanic(Atom, Word, QString, QString)),
             this, SLOT(onEnginePanic(Atom,Word,QString,QString)));
 }
 
-void MainWindow::onLog(const QString& str) {
-    std::wcout << str.toStdWString() << std::endl;
-    console->append(str);
+void MainWindow::append(const QString& msg, const QString& pos) {
+    console->insertPlainText(msg);
+    console->insertPlainText("\n");
 }
+
 
 void MainWindow::onEngineStarted() {
     status->setText(" RUNNING ");
@@ -132,7 +134,15 @@ void MainWindow::saveFileAs(const QString &path) {
 
 void MainWindow::runFile() {
     console->clear();
-    engine->eval(editor->document()->toPlainText(), currentFile);
+    engine->eval(editor->document()->toPlainText(), currentFile, false);
+}
+
+void MainWindow::inspect() {
+    if (editor->textCursor().hasSelection()) {
+        engine->eval(editor->textCursor().selectedText(), currentFile, true);
+    } else {
+        engine->eval(editor->document()->toPlainText(), currentFile, true);
+    }
 }
 
 void MainWindow::setupEditor()
@@ -174,8 +184,7 @@ void MainWindow::setupRunMenu()
     menuBar()->addMenu(runMenu);
 
     runMenu->addAction(tr("&Execute"), this, SLOT(runFile()), QKeySequence(Qt::Key_F5));
-    runMenu->addAction(tr("&Interrupt"), engine, SLOT(interrupt()), QKeySequence(Qt::Key_F6));
-    runMenu->addAction(tr("Con&tinue"), engine, SLOT(continueEvaluation()), QKeySequence(Qt::Key_F7));
+    runMenu->addAction(tr("&Inspect"), this, SLOT(inspect()), QKeySequence(Qt::Key_F6));
 }
 
 void MainWindow::setupHelpMenu()

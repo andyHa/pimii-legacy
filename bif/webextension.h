@@ -14,8 +14,8 @@ private:
     const QWebElement element;
     WebElementReference(const QWebElement& e) : element(e) {}
 public:
-    static QSharedPointer<Reference> make(const QWebElement& info) {
-        return QSharedPointer<Reference>(new WebElementReference(info));
+    static Reference* make(const QWebElement& info) {
+        return new WebElementReference(info);
     }
 
     virtual QString toString() {
@@ -34,8 +34,8 @@ private:
                    QString("<html><head></head><body></body></html>"));
     }
 public:
-    static QSharedPointer<Reference> make() {
-        return QSharedPointer<Reference>(new WebWindowReference());
+    static Reference* make() {
+        return new WebWindowReference();
     }
 
     virtual QString toString() {

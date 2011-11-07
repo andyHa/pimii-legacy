@@ -34,8 +34,8 @@ private:
     const QFileInfo info;
     FileInfoReference(const QFileInfo& info) : info(info) {}
 public:
-    static QSharedPointer<Reference> make(const QFileInfo& info) {
-        return QSharedPointer<Reference>(new FileInfoReference(info));
+    static Reference* make(const QFileInfo& info) {
+        return new FileInfoReference(info);
     }
 
     virtual QString toString() {

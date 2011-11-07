@@ -291,18 +291,14 @@ public:
     Atom makeDecimal(double value);
 
     /**
-      Returns the reference to which the given atom points. The pointer
-      contained in the result must to be extracted and added to another
-      QSharedPointer! If you want to use the same value, always use
-      makeReference with the result. Otherwise memory corruption will occur
-      and the VM will crash!
+      Returns the reference to which the given atom points.
       */
-    QSharedPointer<Reference> getReference(Atom atom);
+    Reference* getReference(Atom atom);
 
     /**
       Generates a value atom, pointing to the given reference.
       */
-    Atom makeReference(const QSharedPointer<Reference>& value);
+    Atom makeReference(Reference* value);
 
     /**
       Creates a new GC-root reference. This is initialized with the given

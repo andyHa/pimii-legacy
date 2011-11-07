@@ -36,7 +36,7 @@ void WebExtension::bif_appendWeb(const CallContext& ctx) {
 }
 
 void WebExtension::bif_queryWeb(const CallContext& ctx) {
-    Reference* ref = ctx.fetchReference(BIF_INFO).data();
+    Reference* ref = ctx.fetchReference(BIF_INFO);
     QWebElement base;
     WebWindowReference* ww = dynamic_cast<WebWindowReference*>(ref);
     if (ww != NULL) {
