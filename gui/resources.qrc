@@ -1,0 +1,13 @@
+<RCC>
+    <qresource prefix="/pimii">
+        <file>document_new.png</file>
+        <file>floppy_disk.png</file>
+        <file>folder_document.png</file>
+        <file>gears_run.png</file>
+        <file>gears_stop.png</file>
+        <file>gears_view.png</file>
+        <file>save_as.png</file>
+        <file>window_black.png</file>
+        <file>pimii.png</file>
+    </qresource>
+</RCC>

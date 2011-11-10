@@ -22,7 +22,8 @@ SOURCES += main.cpp \
     bif/coreextension.cpp \
     bif/filesextension.cpp \
     bif/webextension.cpp \
-    tools/logger.cpp
+    tools/logger.cpp \
+    gui/editorwindow.cpp
 
 HEADERS += \
     vm/engine.h \
@@ -42,7 +43,8 @@ HEADERS += \
     bif/callcontext.h \
     bif/webextension.h \
     tools/logger.h \
-    tools/average.h
+    tools/average.h \
+    gui/editorwindow.h
 
 OTHER_FILES += \
     example.pi \
@@ -61,7 +63,15 @@ OTHER_FILES += \
     examples/performanceTest.pi
 
 FORMS += \
-    gui/webwindow.ui
+    gui/webwindow.ui \
+    gui/editorwindow.ui
+
+RESOURCES += \
+    gui/resources.qrc
+
+
+
+
 
 
 

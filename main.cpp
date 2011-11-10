@@ -9,12 +9,14 @@
 #include <cstdlib>
 
 #include "gui/mainwindow.h"
+#include "gui/editorwindow.h"
 #include "tools/logger.h"
 
 #include <QApplication>
 #include <QEventLoop>
 
-MainWindow* window;
+
+EditorWindow* window;
 
 /**
   Determines if the program is still running - YES! Nowadays that's not so
@@ -72,11 +74,11 @@ int main(int argc, char *argv[])
     QApplication a(argc, argv);
     QSettings settings("pimii","pimii");
     Engine engine(&settings);
-    window = new MainWindow(&engine);
-    window->showMaximized();
+    window = new EditorWindow(&engine);
+    window->show();
     engine.initialize();
 
-    Logger::setLevel("STORE", TRACE);
+    Logger::setLevel("STORE", INFO);
 
     // Tries to find and load the "start.pi" file.
     loadStartupScript(engine);
