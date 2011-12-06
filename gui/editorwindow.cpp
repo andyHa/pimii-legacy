@@ -13,7 +13,7 @@ EditorWindow::EditorWindow(Engine* engine, QWidget *parent) :
     status = new QLabel();
     status->setText(" STOPPED ");
     ui->statusbar->addPermanentWidget(status);
-
+    currentFile = QString("unnamed");
     highlighter = new Highlighter(ui->editor->document());
     Logger::addAppender(this);
 
@@ -44,6 +44,7 @@ void EditorWindow::onEnginePanic(Atom file,
                                  const QString &error,
                                  const QString &status) {
     ui->console->insertPlainText(error);
+    ui->console->insertPlainText("\n");
     ui->console->insertPlainText(status);
     ui->console->verticalScrollBar()->setSliderPosition(
         ui->console->verticalScrollBar()->maximum());
@@ -63,7 +64,7 @@ void EditorWindow::on_actionClear_triggered()
 void EditorWindow::on_action_New_triggered()
 {
     ui->editor->clear();
-    currentFile = QString("");
+    currentFile = QString("unnamed");
 }
 
 void EditorWindow::on_action_Run_File_triggered()

@@ -390,6 +390,12 @@ private:
       */
     bool loadNextExecution();
 
+    /**
+      Used if a computation is completed and the engine should be stopped or
+      initialized with the next execution.
+      */
+    void stopEngine();
+
     Q_DISABLE_COPY(Engine)
 
 signals:
@@ -429,6 +435,16 @@ public slots:
     void eval(const QString& source,
               const QString& filename,
               bool printStackTop);
+
+    /**
+      Scheduled the given function for execution.
+      */
+    void evalFn(const QString& filename, Atom fn);
+
+    /**
+      Terminates the current and all pending executions.
+      */
+    void fullstop();
 
 public:
     /**

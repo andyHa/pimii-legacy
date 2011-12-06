@@ -865,6 +865,48 @@ void Engine::eval(const QString& source,
     }
 }
 
+void Engine::evalFn(const QString& filename, Atom fn)
+{
+    Atom code = fn;
+    if (code != NIL) {
+        Execution exe;
+        exe.filename = filename;
+        exe.fn = storage.ref(code);
+        exe.printStackTop = false;
+        executionStack.push_back(exe);
+        if (!running) {
+            running = true;
+            emit onEngineStarted();
+        }
+    }
+}
+
+void Engine::fullstop() {
+    executionStack.clear();
+    CoreExtension::INSTANCE->cancelTimers();
+    stopEngine();
+}
+
+void Engine::stopEngine() {
+    Execution exe = executionStack.front();
+    // Check if we should print the execution result...
+    if (exe.printStackTop) {
+        INFO(log, toString(pop(s)));
+    }
+
+    // Remove execution...
+    executionStack.pop_front();
+    delete exe.fn;
+
+    TRACE(log, "STOP requested. Loading next execution.");
+    if (!loadNextExecution()) {
+        TRACE(log, "Nothing to do. Halting engine.");
+        running = false;
+        emit onEngineStopped();
+        return;
+    }
+}
+
 void Engine::interpret() {
     if (!running) {
         return;
@@ -884,23 +926,7 @@ void Engine::interpret() {
         while (running && maxOpCodes > 0) {
             Atom op = pop(c);
             if (op == SYMBOL_OP_STOP) {
-                Execution exe = executionStack.front();
-                // Check if we should print the execution result...
-                if (exe.printStackTop) {
-                    INFO(log, toString(pop(s)));
-                }
-
-                // Remove execution...
-                executionStack.pop_front();
-                delete exe.fn;
-
-                TRACE(log, "STOP requested. Loading next execution.");
-                if (!loadNextExecution()) {
-                    TRACE(log, "Nothing to do. Halting engine.");
-                    running = false;
-                    emit onEngineStopped();
-                    return;
-                }
+                stopEngine();
             } else {
                 dispatch(op);
             }
