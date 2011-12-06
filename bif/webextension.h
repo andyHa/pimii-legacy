@@ -54,7 +54,7 @@ private:
     /**
       Opens a new WebWindow
 
-        println := () -> WebWindow
+        openWeb := () -> WebWindow
 
      */
     static void bif_openWeb(const CallContext& ctx);

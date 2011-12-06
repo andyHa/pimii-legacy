@@ -45,9 +45,13 @@ void CoreExtension::registerBuiltInFunctions(Engine* engine) {
     engine->makeBuiltInFunction("engine::getValueKeys", bif_getValueKeys);
     engine->makeBuiltInFunction("settings::read", bif_readSetting);
     engine->makeBuiltInFunction("settings::write", bif_writeSetting);
+    engine->makeBuiltInFunction("sys::timer", bif_timer);
 
 }
 
+void CoreExtension::cancelTimers() {
+
+}
 
 void CoreExtension::bif_setValue(const CallContext& ctx) {
     Atom name = ctx.fetchArgument(BIF_INFO);
@@ -244,4 +248,13 @@ void CoreExtension::bif_writeSetting(const CallContext& ctx) {
     ctx.engine->getSettings()->setValue(name, value);
     ctx.engine->getSettings()->sync();
     ctx.setResult(NIL);
+}
+
+void CoreExtension::bif_timer(const CallContext& ctx) {
+    QTimer* timer = new QTimer();
+    timer->setInterval(1000);
+    ctx.setReferenceResult(TimerReference::make(
+                               timer,
+                               ctx.storage->ref(ctx.fetchArgument(BIF_INFO)),
+                               ctx.engine));
 }

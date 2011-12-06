@@ -16,7 +16,6 @@ SOURCES += main.cpp \
     vm/storage.cpp \
     compiler/tokenizer.cpp \
     compiler/compiler.cpp \
-    gui/mainwindow.cpp \
     gui/highlighter.cpp \
     gui/webwindow.cpp \
     bif/coreextension.cpp \
@@ -33,7 +32,6 @@ HEADERS += \
     vm/env.h \
     compiler/tokenizer.h \
     compiler/compiler.h \
-    gui/mainwindow.h \
     gui/highlighter.h \
     gui/webwindow.h \
     vm/reference.h \
@@ -68,6 +66,8 @@ FORMS += \
 
 RESOURCES += \
     gui/resources.qrc
+
+
 
 
 
