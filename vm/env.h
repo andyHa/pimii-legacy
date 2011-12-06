@@ -225,18 +225,9 @@ const Atom SYMBOL_TYPE_BIF = SYMBOL(8);
 const Atom SYMBOL_TYPE_GLOBAL = SYMBOL(9);
 
 /**
-  Represent several strings which are repeatedly used by the compiler when
-  translating xml literals. Using a symbol instead of a string permits the
-  re-use of a single instance instead of creating a string each time.
-  */
-const Atom SYMBOL_TAG_CLOSE_END = SYMBOL(10); // ' />'
-const Atom SYMBOL_TAG_END = SYMBOL(11); // '>'
-const Atom SYMBOL_TAG_QUOTE = SYMBOL(12); // '"'
-
-/**
   Can be used to easily set the offset for all op-code symbols.
   */
-const Word OP_CODE_INDEX = 13;
+const Word OP_CODE_INDEX = 10;
 
 /**
   Op code: Pushes NIL onto the stack.
@@ -398,11 +389,10 @@ const Atom SYMBOL_OP_SPLIT = SYMBOL(OP_CODE_INDEX + 29);
 const Atom SYMBOL_OP_CONCAT = SYMBOL(OP_CODE_INDEX + 30);
 
 /**
-  Op code: Concats two strings. If the arguments are not strings,
-  they are converted to strings. This is heavily used by the compiler
-  to translate inline XML expressions.
+  Op code: (Was for XML processing - see branch xml_and_web).
+           Currently a NOOP.
   */
-const Atom SYMBOL_OP_SCAT = SYMBOL(OP_CODE_INDEX + 31);
+const Atom SYMBOL_OP_NOOP = SYMBOL(OP_CODE_INDEX + 31);
 
 /**
   Op code: Appends a value to a list. Short form of:

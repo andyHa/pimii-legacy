@@ -8,7 +8,6 @@
 #include <cassert>
 #include <cstdlib>
 
-#include "gui/mainwindow.h"
 #include "gui/editorwindow.h"
 #include "tools/logger.h"
 

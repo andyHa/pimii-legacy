@@ -22,7 +22,6 @@
 #include "bif/engineextension.h"
 #include "bif/coreextension.h"
 #include "bif/filesextension.h"
-#include "bif/webextension.h"
 #include "compiler/compiler.h"
 
 #include <QFile>
@@ -30,6 +29,7 @@
 
 #include <sstream>
 #include <exception>
+#include <math.h>
 
 Logger Engine::log("EXEC");
 
@@ -508,12 +508,6 @@ void Engine::opCONCAT() {
           + QString("'"));
 }
 
-void Engine::opSCAT() {
-    Atom b = pop(s);
-    Atom a = pop(s);
-    push(s, storage.makeString(toSimpleString(a) + toSimpleString(b)));
-}
-
 void Engine::opAND() {
     Atom atomb = pop(s);
     Atom atoma = pop(s);
@@ -774,8 +768,7 @@ void Engine::dispatch(Atom opcode) {
     case SYMBOL_OP_GTQ:
         opGTQ();
         return;
-    case SYMBOL_OP_SCAT:
-        opSCAT();
+    case SYMBOL_OP_NOOP:
         return;
     case SYMBOL_OP_CONCAT:
         opCONCAT();
@@ -1158,7 +1151,6 @@ QString Engine::toSimpleString(Atom atom) {
 void Engine::initializeBIF() {
     CoreExtension::INSTANCE->registerBuiltInFunctions(this);
     FilesExtension::INSTANCE->registerBuiltInFunctions(this);
-    WebExtension::INSTANCE->registerBuiltInFunctions(this);
 }
 
 void Engine::setValue(Atom name, Atom value) {

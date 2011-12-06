@@ -349,13 +349,6 @@ private:
     void opCONCAT();
 
     /**
-      Pops two arguments of the stack. Converts them to a string if neccessary,
-      concatenates them and pushes the result on the stack. This is heavily
-      used by the compiler when translating inline XML.
-      */
-    void opSCAT();
-
-    /**
       Perform the given boolean logic operations.
       */
     void opNOT();

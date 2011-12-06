@@ -4,7 +4,7 @@
 #
 #-------------------------------------------------
 
-QT       += core gui webkit
+QT       += core gui
 
 QMAKE_CXXFLAGS += -Wall
 
@@ -17,10 +17,8 @@ SOURCES += main.cpp \
     compiler/tokenizer.cpp \
     compiler/compiler.cpp \
     gui/highlighter.cpp \
-    gui/webwindow.cpp \
     bif/coreextension.cpp \
     bif/filesextension.cpp \
-    bif/webextension.cpp \
     tools/logger.cpp \
     gui/editorwindow.cpp
 
@@ -33,13 +31,11 @@ HEADERS += \
     compiler/tokenizer.h \
     compiler/compiler.h \
     gui/highlighter.h \
-    gui/webwindow.h \
     vm/reference.h \
     bif/coreextension.h \
     bif/filesextension.h \
     bif/engineextension.h \
     bif/callcontext.h \
-    bif/webextension.h \
     tools/logger.h \
     tools/average.h \
     gui/editorwindow.h
@@ -66,6 +62,10 @@ FORMS += \
 
 RESOURCES += \
     gui/resources.qrc
+
+
+
+
 
 
 

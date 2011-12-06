@@ -50,10 +50,6 @@ void Storage::initializeSymbols() {
     declaredFixedSymbol(SYMBOL_TYPE_BIF, "TYPE_BIF");
     declaredFixedSymbol(SYMBOL_TYPE_GLOBAL, "TYPE_GLOBAL");
 
-    declaredFixedSymbol(SYMBOL_TAG_CLOSE_END, " />");
-    declaredFixedSymbol(SYMBOL_TAG_END, ">");
-    declaredFixedSymbol(SYMBOL_TAG_QUOTE, "\"");
-
     declaredFixedSymbol(SYMBOL_OP_NIL, "NIL");
     declaredFixedSymbol(SYMBOL_OP_LD, "LD");
     declaredFixedSymbol(SYMBOL_OP_LDC, "LDC");
@@ -85,7 +81,7 @@ void Storage::initializeSymbols() {
     declaredFixedSymbol(SYMBOL_OP_STOP, "STOP");
     declaredFixedSymbol(SYMBOL_OP_SPLIT, "SPLIT");
     declaredFixedSymbol(SYMBOL_OP_CONCAT, "CONCAT");
-    declaredFixedSymbol(SYMBOL_OP_SCAT, "SCAT");
+    declaredFixedSymbol(SYMBOL_OP_NOOP, "NOOP");
     declaredFixedSymbol(SYMBOL_OP_CHAIN, "CHAIN");
     declaredFixedSymbol(SYMBOL_OP_CHAIN_END, "CHAINEND");
     declaredFixedSymbol(SYMBOL_OP_FILE, "FILE");

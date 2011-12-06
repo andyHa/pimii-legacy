@@ -1,9 +1,9 @@
 Testbench:
 -------------------------------------------------------------------------------
-// Define the fibbonacci function, which is used by the performance test
-fib ::= n -> {
+// Test-function
+sum ::= n -> {
     [ n < 3 : 1 ]
-    [   -   : n + fib(n - 1)]
+    [   -   : n + sum(n - 1)]
 };
 
 // Used the measure the runtime of a given closure.
@@ -18,7 +18,7 @@ performanceTest ::= [
     measure: [
         from: 1 to: 10 do: [
             measure: [
-                fib(10000);
+                sum(10000);
             ];
         ];
     ];
@@ -38,6 +38,7 @@ Duration: 1263ms
 Duration: 1077ms
 Duration: 1248ms
 Duration: 1248ms
+
 Duration: 13834ms
 GCs: 623
 
@@ -53,6 +54,7 @@ Duration: 1263ms
 Duration: 1061ms
 Duration: 1233ms
 Duration: 1263ms
+
 Duration: 13603ms
 GCs: 623
 
@@ -68,6 +70,7 @@ Duration: 1170ms
 Duration: 983ms
 Duration: 1170ms
 Duration: 1154ms
+
 Duration: 12070ms
 GCs: 623
 
@@ -83,6 +86,7 @@ Duration: 1170ms
 Duration: 983ms
 Duration: 1155ms
 Duration: 1170ms
+
 Duration: 11919ms
 GCs: 623
 
@@ -98,6 +102,7 @@ Duration: 80ms
 Duration: 90ms
 Duration: 90ms
 Duration: 100ms
+
 Duration: 2590ms
 GCs: 343
 
@@ -113,6 +118,7 @@ Duration: 62ms
 Duration: 63ms
 Duration: 46ms
 Duration: 63ms
+
 Duration: 749ms
 GCs: 127
 GC eff: 22.3867%
@@ -129,6 +135,7 @@ Duration: 62ms
 Duration: 16ms
 Duration: 15ms
 Duration: 16ms
+
 Duration: 203ms
 GCs: 127
 GC eff: 22.3867%
@@ -145,6 +152,7 @@ Duration: 14ms
 Duration: 13ms
 Duration: 15ms
 Duration: 14ms
+
 Duration: 155ms
 GCs: 127
 GC eff: 22.3867%
