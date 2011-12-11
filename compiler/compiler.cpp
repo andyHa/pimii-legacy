@@ -642,7 +642,7 @@ void Compiler::splitAssignment() {
     if (tailMinorIndex > symbols->size()) {
         symbols->push_back(tailName);
     }
-    expression();
+    factorExp();
     addCode(SYMBOL_OP_SPLIT);
     addCode(engine->storage.makeCons(
                 engine->storage.makeNumber(1),

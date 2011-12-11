@@ -476,9 +476,8 @@ void Engine::opCONCAT() {
             tail = cell.cdr;
             cell = storage.getCons(cell.cdr);
         }
-        if (isCons(b)) {
+        if (isCons(b) || isNil(b)) {
             storage.setCDR(tail, b);
-
         } else {
             storage.setCDR(tail, storage.makeCons(b, NIL));
         }
@@ -486,7 +485,11 @@ void Engine::opCONCAT() {
         return;
     }
     if (isCons(b)) {
-        push(s, storage.makeCons(a, b));
+        if (isNil(a)) {
+            push(s, b);
+        } else {
+            push(s, storage.makeCons(a, b));
+        }
         return;
     }
     if (isNil(a)) {

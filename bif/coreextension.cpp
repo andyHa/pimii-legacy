@@ -107,21 +107,29 @@ void CoreExtension::bif_typeOf(const CallContext& ctx) {
     switch(getType(first)) {
     case TAG_TYPE_CONS:
         ctx.setResult(SYMBOL_TYPE_CONS);
+        return;
     case TAG_TYPE_DECIMAL_NUMBER:
         ctx.setResult(SYMBOL_TYPE_DECIMAL);
+        return;
     case TAG_TYPE_LARGE_NUMBER:
     case TAG_TYPE_NUMBER:
         ctx.setResult(SYMBOL_TYPE_NUMBER);
+        return;
     case TAG_TYPE_REFERENCE:
         ctx.setResult(SYMBOL_TYPE_REFERENCE);
+        return;
     case TAG_TYPE_STRING:
         ctx.setResult(SYMBOL_TYPE_STRING);
+        return;
     case TAG_TYPE_SYMBOL:
         ctx.setResult(SYMBOL_TYPE_SYMBOL);
+        return;
     case TAG_TYPE_BIF:
         ctx.setResult(SYMBOL_TYPE_BIF);
+        return;
     case TAG_TYPE_GLOBAL:
         ctx.setResult(SYMBOL_TYPE_GLOBAL);
+        return;
     }
 }
 
