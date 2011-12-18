@@ -89,6 +89,10 @@ public:
         return *table[index]->data;
     }
 
+    bool inUse(I index) {
+        return table[index]->inUse;
+    }
+
     I getNumberOfUsedCells() {
         return usedCells;
     }

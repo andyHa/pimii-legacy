@@ -29,6 +29,7 @@
 #include "vm/lookuptable.h"
 #include "vm/valuetable.h"
 #include "vm/reference.h"
+#include "vm/array.h"
 #include "tools/logger.h"
 #include "tools/average.h"
 
@@ -122,6 +123,11 @@ class Storage
     ValueTable <Word, double> decimalNumberTable;
 
     /**
+      Contains the table of arrays
+      */
+    ValueTable < Word, QSharedPointer<Array> > arrayTable;
+
+    /**
       Contains the table of references
       */
     ValueTable < Word, QSharedPointer<Reference> > referenceTable;
@@ -171,7 +177,7 @@ class Storage
       Increments the location in the given value table if the given
       atom points to one.
       */
-    void incValueTable(Atom atom, Word idx);
+    void incValueTable(Atom atom, Word idx, std::deque<Word>* refQueue);
 
     /**
       Invokes the garbage collector.
@@ -291,6 +297,16 @@ public:
     Atom makeDecimal(double value);
 
     /**
+      Returns the array to which the given atom points.
+      */
+    Array* getArray(Atom atom);
+
+    /**
+      Generates a new array with the requested size.
+      */
+    Atom makeArray(int size);
+
+    /**
       Returns the reference to which the given atom points.
       */
     Reference* getReference(Atom atom);
@@ -383,29 +399,43 @@ public:
     /**
       Returns the total size of the decimal number table.
       */
-    Word statusDecimalsUsed() {
+    Word statusTotalDecimals() {
         return decimalNumberTable.getTotalCells();
     }
 
     /**
       Returns the number of utilized decimal numbers.
       */
-    Word statusTotalDecimals() {
+    Word statusDecimalsUsed() {
         return decimalNumberTable.getNumberOfUsedCells();
     }
 
     /**
       Returns the size of the reference table.
       */
-    Word statusReferencesUsed() {
+    Word statusTotalReferences() {
         return referenceTable.getTotalCells();
     }
 
     /**
       Returns the number of utilized references.
       */
-    Word statusTotalReferences() {
+    Word statusReferencesUsed() {
         return referenceTable.getNumberOfUsedCells();
+    }
+
+    /**
+      Returns the size of the array table.
+      */
+    Word statusTotalArrays() {
+        return arrayTable.getTotalCells();
+    }
+
+    /**
+      Returns the number of utilized arrays.
+      */
+    Word statusArraysUsed() {
+        return arrayTable.getNumberOfUsedCells();
     }
 
 };

@@ -198,25 +198,42 @@ public:
     }
 
     /**
-      Fetches a reference argument.
+      Fetches an array argument.
       */
-   Reference* fetchReference(const char* bifName,
-                                             const char* file,
-                                             int line,
-                                             Atom* atom = NULL) const {
+   Array* fetchArray(const char* bifName,
+                        const char* file,
+                        int line) const {
         Atom result = fetchArgument(bifName, file, line);
-        if (atom != NULL) {
-            *atom = result;
-        }
-        if (!isReference(result)) {
-            engine->panic(QString("The %2. argument of %1 must be a reference! (%3:%4)").
+        if (!isArray(result)) {
+            engine->panic(QString("The %2. argument of %1 must be an array! (%3:%4)").
                   arg(QString(bifName),
                       intToString(currentIndex),
                       QString(file),
                       intToString(line)));
         }
-        return storage->getReference(result);
+        return storage->getArray(result);
     }
+
+   /**
+     Fetches a reference argument.
+     */
+  Reference* fetchReference(const char* bifName,
+                            const char* file,
+                            int line,
+                            Atom* atom = NULL) const {
+       Atom result = fetchArgument(bifName, file, line);
+       if (atom != NULL) {
+           *atom = result;
+       }
+       if (!isReference(result)) {
+           engine->panic(QString("The %2. argument of %1 must be a reference! (%3:%4)").
+                 arg(QString(bifName),
+                     intToString(currentIndex),
+                     QString(file),
+                     intToString(line)));
+       }
+       return storage->getReference(result);
+   }
 
     /**
       The method is kind of tricky, since it serves two purposes. First, it is

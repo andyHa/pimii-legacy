@@ -5,42 +5,6 @@
 #include "callcontext.h"
 #include "tools/logger.h"
 
-#include <QTimer>
-
-class TimerReference : public Reference, QObject {
-private:
-    QTimer* const timer;
-    AtomRef* const ref;
-    Engine* const engine;
-
-    TimerReference(QTimer* t, AtomRef* ref, Engine* const engine) : timer(t),
-        ref(ref),
-        engine(engine) {
-        connect(timer, SIGNAL(timeout()), this, SLOT(fire()));
-    }
-protected slots:
-    void fire() {
-        engine->evalFn(toString(), ref->atom());
-    }
-
-public:
-
-    static Reference* make(QTimer* timer,
-                                          AtomRef* ref,
-                                          Engine* const engine) {
-        return new TimerReference(timer, ref, engine);
-    }
-
-    virtual ~TimerReference() {
-        delete timer;
-        delete ref;
-    }
-
-    virtual QString toString() {
-        return timer->objectName();
-    }
-    friend class CoreExtension;
-};
 
 class CoreExtension : public EngineExtension
 {
@@ -145,6 +109,30 @@ private:
     static void bif_parse(const CallContext& ctx);
 
     /**
+      Creates a new array with the desired size.
+
+        makeArray := (size : Integer) -> Array
+
+     */
+    static void bif_makeArray(const CallContext& ctx);
+
+    /**
+      Returns the value of the requested cell in the given array.
+
+        readArray := (array : Array, pos : Integer) -> *
+
+     */
+    static void bif_readArray(const CallContext& ctx);
+
+    /**
+      Writes the requested cell in the given array.
+
+        writeArray := (array : Array, pos : Integer, value : *) -> *
+
+     */
+    static void bif_writeArray(const CallContext& ctx);
+
+    /**
       Compiles and executes the given file. If this file was already included
       nothing will happen.
 
@@ -211,11 +199,6 @@ private:
     static void bif_writeSetting(const CallContext& ctx);
 
     /**
-      Creates a new timer.
-      */
-    static void bif_timer(const CallContext& ctx);
-
-    /**
       Fetches a QVariant from the given context.
       */
     static QVariant fetchQVariant(const CallContext& ctx,
@@ -241,10 +224,6 @@ public:
       */
     virtual void registerBuiltInFunctions(Engine* engine);
 
-    /**
-      Used to cancel all active timers.
-      */
-    void cancelTimers();
 };
 
 #endif // COREEXTENSION_H

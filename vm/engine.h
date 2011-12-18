@@ -371,6 +371,11 @@ private:
     QString printList(Atom atom);
 
     /**
+      Converts the given array into a string.
+      */
+    QString printArray(Atom atom);
+
+    /**
       Compiles the given stream and handles all errors.
       */
     Atom compileStream(const QString& file,

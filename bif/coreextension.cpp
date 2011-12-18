@@ -27,6 +27,11 @@ void CoreExtension::registerBuiltInFunctions(Engine* engine) {
     engine->makeBuiltInFunction("sys::call", bif_call);
     engine->makeBuiltInFunction("sys::eval", bif_eval);
 
+    // Array functions
+    engine->makeBuiltInFunction("array::make", bif_makeArray);
+    engine->makeBuiltInFunction("array::read", bif_readArray);
+    engine->makeBuiltInFunction("array::write", bif_writeArray);
+
     // String functions
     engine->makeBuiltInFunction("str::length", bif_strlen);
     engine->makeBuiltInFunction("str::part", bif_substr);
@@ -45,12 +50,6 @@ void CoreExtension::registerBuiltInFunctions(Engine* engine) {
     engine->makeBuiltInFunction("engine::getValueKeys", bif_getValueKeys);
     engine->makeBuiltInFunction("settings::read", bif_readSetting);
     engine->makeBuiltInFunction("settings::write", bif_writeSetting);
-    engine->makeBuiltInFunction("sys::timer", bif_timer);
-
-}
-
-void CoreExtension::cancelTimers() {
-
 }
 
 void CoreExtension::bif_setValue(const CallContext& ctx) {
@@ -82,6 +81,8 @@ void CoreExtension::bif_getValueKeys(const CallContext& ctx) {
     lb.append(SYMBOL_VALUE_NUM_DECIMALS_USED);
     lb.append(SYMBOL_VALUE_NUM_TOTAL_REFERENCES);
     lb.append(SYMBOL_VALUE_NUM_REFERENCES_USED);
+    lb.append(SYMBOL_VALUE_NUM_TOTAL_ARRAYS);
+    lb.append(SYMBOL_VALUE_NUM_ARRAYS_USED);
     ctx.setResult(lb.getResult());
 }
 
@@ -160,9 +161,32 @@ void CoreExtension::bif_parse(const CallContext& ctx) {
 
 }
 
+
+void CoreExtension::bif_makeArray(const CallContext& ctx) {
+    int size = 10;
+    if (ctx.hasMoreArguments()) {
+        size = ctx.fetchNumber(BIF_INFO);
+    }
+    ctx.setResult(ctx.storage->makeArray(size));
+}
+
+void CoreExtension::bif_readArray(const CallContext& ctx) {
+    Array* array = ctx.fetchArray(BIF_INFO);
+    int pos = ctx.fetchNumber(BIF_INFO);
+    ctx.setResult(array->at(pos));
+}
+
+void CoreExtension::bif_writeArray(const CallContext& ctx) {
+    Array* array = ctx.fetchArray(BIF_INFO);
+    int pos = ctx.fetchNumber(BIF_INFO);
+    Atom val = ctx.fetchArgument(BIF_INFO);
+    array->put(pos, val);
+    ctx.setResult(val);
+}
+
 void CoreExtension::bif_include(const CallContext& ctx) {
     Atom code = ctx.engine->compileFile(ctx.fetchString(BIF_INFO),
-                                    false);
+                                        false);
     if (!isNil(code)) {
         ctx.engine->call(code);
     }
@@ -258,11 +282,3 @@ void CoreExtension::bif_writeSetting(const CallContext& ctx) {
     ctx.setResult(NIL);
 }
 
-void CoreExtension::bif_timer(const CallContext& ctx) {
-    QTimer* timer = new QTimer();
-    timer->setInterval(1000);
-    ctx.setReferenceResult(TimerReference::make(
-                               timer,
-                               ctx.storage->ref(ctx.fetchArgument(BIF_INFO)),
-                               ctx.engine));
-}

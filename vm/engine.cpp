@@ -879,7 +879,6 @@ void Engine::evalFn(const QString& filename, Atom fn)
 
 void Engine::fullstop() {
     executionStack.clear();
-    CoreExtension::INSTANCE->cancelTimers();
     stopEngine();
 }
 
@@ -1089,6 +1088,20 @@ QString Engine::printList(Atom atom) {
     return sb;
 }
 
+QString Engine::printArray(Atom atom) {
+    QString sb("");
+    Array* array = storage.getArray(atom);
+    sb += QString("[");
+    if (array->length() > 0) {
+        sb += toString(array->at(1));
+        for(int i = 2; i <= array->length(); i++) {
+            sb += " " + toString(array->at(i));
+        }
+    }
+    sb += "]";
+    return sb;
+}
+
 QString Engine::toString(Atom atom) {
     if (isNil(atom)) {
         return QString("NIL");
@@ -1113,6 +1126,8 @@ QString Engine::toString(Atom atom) {
         return QString("#") + storage.getSymbolName(atom);
     case TAG_TYPE_CONS:
         return printList(atom);
+    case TAG_TYPE_ARRAY:
+        return printArray(atom);
     case TAG_TYPE_REFERENCE:
         return storage.getReference(atom)->toString();
     default:
@@ -1144,6 +1159,8 @@ QString Engine::toSimpleString(Atom atom) {
         return storage.getSymbolName(atom);
     case TAG_TYPE_CONS:
         return printList(atom);
+    case TAG_TYPE_ARRAY:
+        return printArray(atom);
     case TAG_TYPE_REFERENCE:
         return storage.getReference(atom)->toString();
     default:
@@ -1193,6 +1210,10 @@ Atom Engine::getValue(Atom name) {
         return storage.makeNumber(storage.statusTotalReferences());
     } else if (name == SYMBOL_VALUE_NUM_REFERENCES_USED) {
         return storage.makeNumber(storage.statusReferencesUsed());
+    } else if (name == SYMBOL_VALUE_NUM_TOTAL_ARRAYS) {
+        return storage.makeNumber(storage.statusTotalArrays());
+    } else if (name == SYMBOL_VALUE_NUM_ARRAYS_USED) {
+        return storage.makeNumber(storage.statusArraysUsed());
     } else if (name == SYMBOL_VALUE_HOME_PATH) {
         return storage.makeString(homeDir.absolutePath());
     }

@@ -131,6 +131,12 @@ const Word TAG_TYPE_DECIMAL_NUMBER  = 0b1000;
 const Word TAG_TYPE_REFERENCE  = 0b1001;
 
 /**
+  Declares that the data part of the atom is a pointer into the
+  reference table.
+  */
+const Word TAG_TYPE_ARRAY  = 0b1010;
+
+/**
   Contains the highest table index for symbols, bifs, globals and values.
   */
 const Word MAX_INDEX_SIZE =  1 << EFFECTIVE_BITS;
@@ -508,6 +514,16 @@ const Atom SYMBOL_VALUE_NUM_TOTAL_REFERENCES = SYMBOL(VALUE_INDEX + 15);
 const Atom SYMBOL_VALUE_NUM_REFERENCES_USED = SYMBOL(VALUE_INDEX + 16);
 
 /**
+  Used to access Storage::statusArraysUsed
+  */
+const Atom SYMBOL_VALUE_NUM_TOTAL_ARRAYS = SYMBOL(VALUE_INDEX + 17);
+
+/**
+  Used to access Storage::statusTotalArrays
+  */
+const Atom SYMBOL_VALUE_NUM_ARRAYS_USED = SYMBOL(VALUE_INDEX + 18);
+
+/**
   Determines the epsilon below two given doubles are equal.
   */
 const double DOUBLE_EQUALITY_EPSILON = 0.0000000001;
@@ -591,6 +607,13 @@ inline bool isGlobal(Atom atom) {
   */
 inline bool isString(Atom atom) {
     return getType(atom) == TAG_TYPE_STRING;
+}
+
+/**
+  Checks whether the given atom is an array.
+  */
+inline bool isArray(Atom atom) {
+    return getType(atom) == TAG_TYPE_ARRAY;
 }
 
 /**

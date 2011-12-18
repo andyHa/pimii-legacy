@@ -38,7 +38,8 @@ HEADERS += \
     bif/callcontext.h \
     tools/logger.h \
     tools/average.h \
-    gui/editorwindow.h
+    gui/editorwindow.h \
+    vm/array.h
 
 OTHER_FILES += \
     example.pi \
@@ -62,6 +63,7 @@ FORMS += \
 
 RESOURCES += \
     gui/resources.qrc
+
 
 
 

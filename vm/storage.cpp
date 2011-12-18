@@ -105,7 +105,11 @@ void Storage::initializeSymbols() {
     declaredFixedSymbol(SYMBOL_VALUE_NUM_TOTAL_REFERENCES,
                         "NUM_TOTAL_REFERENCES");
     declaredFixedSymbol(SYMBOL_VALUE_NUM_REFERENCES_USED,
-                        "NUM_REFERENES_USED");
+                        "NUM_REFERENCES_USED");
+    declaredFixedSymbol(SYMBOL_VALUE_NUM_TOTAL_ARRAYS,
+                        "NUM_TOTAL_ARRAYS");
+    declaredFixedSymbol(SYMBOL_VALUE_NUM_ARRAYS_USED,
+                        "NUM_ARRAYS_USED");
 }
 
 
@@ -182,6 +186,12 @@ void Storage::gc(bool major, Atom car, Atom cdr) {
         largeNumberTable.resetRefCount();
         decimalNumberTable.resetRefCount();
         referenceTable.resetRefCount();
+        arrayTable.resetRefCount();
+        for(Word i = 0; i < arrayTable.size(); i++)  {
+            if (arrayTable.inUse(i)) {
+                arrayTable.get(i).data()->checked = false;
+            }
+        }
 
         for(Word i = 0; i < cellSize; i++) {
             states[i] = GRAY;
@@ -195,13 +205,13 @@ void Storage::gc(bool major, Atom car, Atom cdr) {
         states[untagIndex(car)] = REFERENCED;
         gcRoots++;
     } else {
-        incValueTable(car, untagIndex(car));
+        incValueTable(car, untagIndex(car), NULL);
     }
     if (isCons(cdr)) {
         states[untagIndex(cdr)] = REFERENCED;
         gcRoots++;
     } else {
-        incValueTable(cdr, untagIndex(cdr));
+        incValueTable(cdr, untagIndex(cdr), NULL);
     }
 
     // Mark globals as referenced
@@ -211,7 +221,7 @@ void Storage::gc(bool major, Atom car, Atom cdr) {
             gcRoots++;
         } else {
             incValueTable(globalsTable.getValue(i),
-                          untagIndex(globalsTable.getValue(i)));
+                          untagIndex(globalsTable.getValue(i)), NULL);
         }
     }
 
@@ -225,7 +235,7 @@ void Storage::gc(bool major, Atom car, Atom cdr) {
             states[untagIndex(ref->atom())] = REFERENCED;
             gcRoots++;
         } else {
-            incValueTable(ref->atom(), untagIndex(ref->atom()));
+            incValueTable(ref->atom(), untagIndex(ref->atom()), NULL);
         }
     }
 
@@ -242,18 +252,39 @@ void Storage::gc(bool major, Atom car, Atom cdr) {
         largeNumberTable.gc();
         decimalNumberTable.gc();
         referenceTable.gc();
+        arrayTable.gc();
     }
 
     gcCounter++;
 }
 
-void Storage::incValueTable(Atom atom, Word idx) {
+void Storage::incValueTable(Atom atom, Word idx, std::deque<Word>* refQueue) {
     if (isLargeNumber(atom)) {
         largeNumberTable.inc(idx);
     } else if (isDecimalNumber(atom)) {
         decimalNumberTable.inc(idx);
     } else if (isString(atom)) {
         stringTable.inc(idx);
+    } else if (isArray(atom)) {
+        arrayTable.inc(idx);
+        Array* array = arrayTable.get(idx).data();
+        if (!array->checked) {
+            array->checked = true;
+            for(int i = 1; i < array->length(); i++) {
+                Atom a = array->at(i);
+                Word aIdx = untagIndex(a);
+                if (isCons(a)) {
+                    if (states[aIdx] != CHECKED) {
+                        states[aIdx] = REFERENCED;
+                        if (refQueue != NULL) {
+                            refQueue->push_back(aIdx);
+                        }
+                    }
+                } else {
+                    incValueTable(a, aIdx, refQueue);
+                }
+            }
+        }
     } else if (isReference(atom)) {
         referenceTable.inc(idx);
     }
@@ -274,7 +305,7 @@ void Storage::markCell(Word index,
             }
         }
     } else {
-        incValueTable(cell.car, carIdx);
+        incValueTable(cell.car, carIdx, &refQueue);
     }
     if (isCons(cell.cdr)) {
         if (states[cdrIdx] != CHECKED) {
@@ -284,7 +315,7 @@ void Storage::markCell(Word index,
             }
         }
     } else {
-        incValueTable(cell.cdr, cdrIdx);
+        incValueTable(cell.cdr, cdrIdx, &refQueue);
     }
 }
 
@@ -428,11 +459,25 @@ Atom Storage::makeDecimal(double value) {
     return tagIndex(index, TAG_TYPE_DECIMAL_NUMBER);
 }
 
+Array* Storage::getArray(Atom atom) {
+    assert(isArray(atom));
+    Word index = untagIndex(atom);
+    return arrayTable.get(index).data();
+}
+
+Atom Storage::makeArray(int size) {
+    Array* result = new Array(size);
+    Word index = arrayTable.allocate(QSharedPointer<Array>(result));
+    assert(index < MAX_INDEX_SIZE);
+    return tagIndex(index, TAG_TYPE_ARRAY);
+}
+
 Reference* Storage::getReference(Atom atom) {
     assert(isReference(atom));
     Word index = untagIndex(atom);
     return referenceTable.get(index).data();
 }
+
 Atom Storage::makeReference(Reference* value) {
     Word index = referenceTable.allocate(QSharedPointer<Reference>(value));
     assert(index < MAX_INDEX_SIZE);
