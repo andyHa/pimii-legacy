@@ -9,6 +9,7 @@ To use this project you have to clone the repository and install the Qt-Creator 
 
 ## Types
 pimii knows:
+
  - Numbers (range depends on your wordsize of your machine). The default startup script reveals the wordsize ;-)
  - Decimal numbers (floats)
  - Symbols (not in a LISP sense). Everything starting with a hash is a symbol and can be thought of a self representing constant. Examples are #TRUE and #FALSE which are used to represent results of boolean functions.
