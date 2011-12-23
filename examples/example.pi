@@ -1,33 +1,20 @@
-fib := n ->
-    if: n < 3
-    then: [ 1 ]
-    else: [ n + fib(n - 1)];
+x := #(5 2 1 4 3);
 
-fib := n ->
-    if:then:else:(n < 3, [ 1 ], [n + fib(n-1)]);
+//Print sorted list
+sys::log(sort(x));
 
-if := (predicate, ifBranch, elseBranch) ->
-    <<#SEL>>
+// Reverse unsorted list
+x := reverse(x);
 
-while := (predicate, loop) ->
-    if: predicate() then: [
-        loop();
-        while(predicate, loop);
-    ];
+// Iterate of each element and print it
+each: x do: [ n -> sys::log(n)];
 
+// Filter even numbers
+x := collect: x with: [ n -> n % 2 = 0];
 
--> Doku
+// Output result
+sys::log(x);
 
-*) BIFs
-*) Compiler
-*) GC in string table
-*) Exception handling
-*) Debugging
-*) GUI
-*) SECD-Optimizations
-*) Parallel-Kram
-
-- Channels
-- Co-routines
-- Lazy eval
+// Compute sum of list
+sys::log(fold: x with: [(n,sum) -> n+sum] start: 0);
 

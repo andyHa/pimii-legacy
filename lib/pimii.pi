@@ -334,3 +334,19 @@ from:to:step:do: ::= (from, to, step, block) -> [
 from:to:do: ::= (from, to, block) -> [
     from: from to: to step: 1 do: block;
 ];
+
+// ---------------------------------------------------------------------------
+// EXTENDED TOOLS
+// ---------------------------------------------------------------------------
+
+// ---------------------------------------------------------------------------
+// Measures and prints the execution time of a given function.
+// Param: block - Called to measure the exectuion duration.
+// ---------------------------------------------------------------------------
+
+measure: ::= block -> [
+   start := sys::time();
+   result := block();
+   sys::log('Duration: ' & (sys::time() - start) & 'ms');
+   result;
+];

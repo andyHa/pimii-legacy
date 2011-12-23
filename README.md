@@ -17,5 +17,5 @@ pimii knows:
 
 ## Syntax
 
- - TODO: Learn from some examples in lib/pimii.pi (You should launch pimii which provides syntax highlighting :-)
+ - TODO: Learn from some examples in examples.pi and lib/pimii.pi (You should launch pimii which provides syntax highlighting :-)
 

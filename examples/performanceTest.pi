@@ -1,4 +1,5 @@
-// Define the fibbonacci function, which is used by the performance test
+// Recursive test function (without tail recurstion!)
+// You can ignore the name, this is not the fibonnaci function...
 fib ::= n -> {
     [ n < 3 : 1 ]
     [   -   : n + fib(n - 1)]

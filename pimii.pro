@@ -47,15 +47,11 @@ OTHER_FILES += \
     test.pi \
     playground.pi \
     lib/pimii.pi \
-    lib/files.pi \
     start.pi \
-    examples/test.pi \
-    examples/playground.pi \
-    examples/kernel.pi \
     examples/example.pi \
-    lib/datetime.pi \
     performance-tests.txt \
-    examples/performanceTest.pi
+    examples/performanceTest.pi \
+    README.md
 
 FORMS += \
     gui/webwindow.ui \
@@ -63,6 +59,12 @@ FORMS += \
 
 RESOURCES += \
     gui/resources.qrc
+
+
+
+
+
+
 
 
 
