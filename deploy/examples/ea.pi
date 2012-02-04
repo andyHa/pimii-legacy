@@ -1,23 +1,21 @@
-eachChar:do: := (string, block) -> [
-	block(str::part(string, 1, 1));
-	if: (str::length(string) > 1) then: [
-		eachChar: str::part(string, 2, str::length(string)) do: block;
-	]
+strSplit ::= (separator, string) -> [ 
+    result := #();
+    iterator := subStr -> [	
+        idx := strIndexOf(separator, subStr);
+        if: (idx > 0) then: [
+            result := result & strLeft(subStr, idx - 1);            
+            iterator(strLeft(subStr, (idx - 1 + strLength(separator)) * -1));
+        ] else: [
+	  result := result & subStr;
+        ]
+    ];
+    iterator(string);
+
+    // Filter empty strings...
+    collect: result with: s -> strLength(s) > 0;
 ];
 
-at := (list, index) -> {
-	[ head|tail := list && index = 1 : head ]
-	[ head|tail := list && index > 1 : at(tail, index - 1) ]
-	[ - : nil ]
-};
-
-fun := #(
-  #(#START, 'a', #VARIABLE),
-  #(#START, 'b', #VARIABLE),
-  #(#VARIABLE, '+', #OPERATOR),
-  #(#VARIABLE, '-', #OPERATOR),
-  #(#OPERATOR, 'a', #VARIABLE),
-  #(#OPERATOR, 'b', #VARIABLE)
+strSplit('$$', 'a$$b$,c$$d,');ARIABLE)
 );
 
 startOf := (subList, list) -> {

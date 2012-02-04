@@ -33,11 +33,6 @@
 #include <QMetaType>
 
 /**
-  Returns the version of pimii
-  */
-#define VERSION "v1.0"
-
-/**
   Represents a machine word. According to the C++ standard, int should be
   one word in size. If not, only this type needs to be redefined but all
   uses remain valid.

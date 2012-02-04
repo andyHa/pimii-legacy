@@ -17,7 +17,7 @@
 // Param: x - The value to be checked
 // Returns: #TRUE is the given argument is a list, #FALSE otherwise.
 // ---------------------------------------------------------------------------
-isList := x -> sys::typeOf(x) = #TYPE_CONS;
+isList ::= x -> sys::typeOf(x) = #TYPE_CONS;
 
 // ---------------------------------------------------------------------------
 // Checks if the given argument is NIL.
@@ -25,12 +25,43 @@ isList := x -> sys::typeOf(x) = #TYPE_CONS;
 // Param: x - The value to be checked
 // Returns: #TRUE is the given argument is NIL, #FALSE otherwise.
 // ---------------------------------------------------------------------------
-isNil := x -> (x = nil);
+isNil ::= x -> (x = nil);
 
 // ---------------------------------------------------------------------------
 // Inverse of isNil.
 // ---------------------------------------------------------------------------
-notNil := x -> (x != nil);
+isNotNil ::= x -> (x != nil);
+
+// ---------------------------------------------------------------------------
+// Returns the first element of the given list or nil, if the given value
+// isn't a list or empty.
+// ---------------------------------------------------------------------------
+head ::= list -> {
+   [ h|t := list : h   ]
+   [     -       : nil ]
+};
+
+// ---------------------------------------------------------------------------
+// Returns the the sublist after the first element of the given list or nil,
+// if the given value isn't a list or empty.
+// ---------------------------------------------------------------------------
+tail ::= list -> {
+   [ h|t := list : t   ]
+   [     -       : nil ]
+};
+
+// ---------------------------------------------------------------------------
+// Returns the nth (index) element, of the given list.
+//
+// Param: list  - The list from which the item should be extracted.
+// Param: index - The position of the item which is to be extracted.
+// Returns: The value of the nth (index) element, or nil
+// ---------------------------------------------------------------------------
+at := (list, index) -> {
+        [ head|tail := list && index = 1 : head ]
+        [ head|tail := list && index > 1 : at(tail, index - 1) ]
+        [ - : nil ]
+};
 
 // ---------------------------------------------------------------------------
 // Computes the length of a given list. If the given value is not a list,
@@ -215,7 +246,7 @@ contains := (key, list) -> indexOf(key, list) > 0;
 //          elements as subList. Also #TRUE if subList is the first element
 //          of list. #FALSE otherwise.
 // ---------------------------------------------------------------------------
-startOf := (subList, list) -> {
+isStartOf := (subList, list) -> {
    [ x|subListTail := subList && y|listTail := list  && x = y :
       startOf(subListTail, listTail);
    ]
@@ -315,6 +346,31 @@ if:then: ::= (decision, block) -> {
 };
 
 // ---------------------------------------------------------------------------
+// Executes the given block, if the given value is not nil.
+//
+// Param: value - The value to be checked
+// Param: block - The block to be executed, if the value was not nil.
+// Returns: The result of block if the value was not nil, nil otherwise.
+// ---------------------------------------------------------------------------
+notNil:do: ::= (value, block) -> {
+    [ isNotNil(value) : block() ]
+    [          -      : nil     ]
+};
+
+// ---------------------------------------------------------------------------
+// Checks the given value, if it is nil, the given block is evaluated and its
+// result is returned. Otherwise the value is returned.
+//
+// Param: value - The value to be checked
+// Param: block - The block to be executed, if the value is nil.
+// Returns: value if not nil, the result of the block otherwise.
+// ---------------------------------------------------------------------------
+ifNil:then: ::= (value, block) -> {
+    [ isNil(value) : block() ]
+    [       -      : value   ]
+};
+
+// ---------------------------------------------------------------------------
 // Emulates an if statement for imperative programming. Additionally supports
 // an else-part if the given decision was not #TRUE.
 //
@@ -363,6 +419,84 @@ from:to:do: ::= (from, to, block) -> [
 ];
 
 // ---------------------------------------------------------------------------
+// STRING FUNCTIONS
+// ---------------------------------------------------------------------------
+
+// ---------------------------------------------------------------------------
+// Executes the given block for each character of the given string.
+//
+// Param: string - the string to iterate through
+// Param: block  - the block which is invoked for each character
+// Returns: The value of the last invokation of the given block.
+// ---------------------------------------------------------------------------
+eachChar:do: ::= (string, block) -> {
+    [ strLength(string) > 0 :
+        block(strPart(string, 1, 1));
+        eachChar: strPart(string, 2, strLength(string)) do: block;
+    ]
+};
+
+strLeft ::= (string, length) -> {
+    [ length >= 0 : strPart(string, 1, length) ]
+    [ length <  0 : strPart(string, length * -1 + 1,
+                            strLength(string) + length)
+    ]
+};
+
+strRight ::= (string, length) -> {
+    [ length >= 0 : strPart(string, strLength(string) - length + 1, length) ]
+    [ length <  0 : strPart(string, 1, strLength(string) + length)          ]
+};
+
+strCut ::= (subString, string) -> strLeft(string, strLength(subString) * -1);
+
+strIndexOf ::= (subString, string) -> [
+    iterator := pos -> {
+        [ strPart(string, pos, strLength(subString)) = subString : pos ]
+        [ pos < strLength(string) : iterator(pos + 1);                 ]
+        [ - : 0 ]
+    };
+    iterator(1);
+];
+
+strLastIndexOf := (subString, string) -> [
+    iterator := (lastIndex, pos) -> {
+        [ strPart(string, pos, strLength(subString)) = subString :
+            iterator(pos, pos + 1)
+        ]
+        [ pos < strLength(string) : iterator(lastIndex, pos + 1) ]
+        [ - : lastIndex                                          ]
+    };
+    iterator(0, 1);
+];
+
+strContains ::= (subString, string) -> strIndexOf(subString, string) > 0;
+
+strStartsWith ::= (subString, string) ->
+                          subString = strLeft(string, strLength(subString));
+
+strEndsWith ::= (subString, string) ->
+                          subString = strRight(string, strLength(subString));
+
+strSplit ::= (separator, string) -> [
+    result := #();
+    iterator := subStr -> {
+        [ (idx := strIndexOf(separator, subStr)) > 0 :
+          result := result & strLeft(subStr, idx - 1);
+            iterator(strLeft(subStr, (idx - 1 + strLength(separator)) * -1));
+        ]
+        [ - :
+          result := result & subStr;
+        ]
+    };
+    iterator(string);
+
+    // Filter empty strings...
+    collect: result with: s -> strLength(s) > 0;
+];
+
+
+// ---------------------------------------------------------------------------
 // EXTENDED TOOLS
 // ---------------------------------------------------------------------------
 
@@ -370,10 +504,9 @@ from:to:do: ::= (from, to, block) -> [
 // Measures and prints the execution time of a given function.
 // Param: block - Called to measure the exectuion duration.
 // ---------------------------------------------------------------------------
-
 measure: ::= block -> [
-   start := sys::time();
+   start := time();
    result := block();
-   sys::log('Duration: ' & (sys::time() - start) & 'ms');
+   log('Duration: ' & (time() - start) & 'ms');
    result;
 ];

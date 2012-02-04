@@ -232,6 +232,9 @@ void Engine::opAP(bool hasArguments) {
         }
         Cell funPair = storage.getCons(fun.atom());
         if ((head(c) == SYMBOL_OP_RTN) && (funPair.car == head(d))) {
+
+            //            INFO(log, storage.getSymbolName(name.atom()));
+
             // We have a tail recursion -> don't push useless stuff on the
             // dump-stack, only flush stack, restart code and environment
             // (with new args)

@@ -10,9 +10,8 @@
 // ---------------------------------------------------------------------------
 
 // Output some info...
-sys::log('pimii ' & sys::wordsize() & 'bit VM - Version: ' & sys::version());
-
+log('pimii ' & wordsize() & 'bit VM - Version: ' & version());
 // Load the main library by default.
-sys::log('Loading: lib/pimii.pi');
-sys::include('lib/pimii.pi');
-sys::log('Ready...');
+log('Loading: lib/pimii.pi');
+include('lib/pimii.pi');
+log('Ready...');

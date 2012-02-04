@@ -16,35 +16,35 @@ Logger CoreExtension::log("PIMII");
 void CoreExtension::registerBuiltInFunctions(Engine* engine) {
 
     // Typesystem
-    engine->makeBuiltInFunction("sys::typeOf", bif_typeOf);
-    engine->makeBuiltInFunction("sys::symbol", bif_symbol);
-    engine->makeBuiltInFunction("sys::asString", bif_asString);
-    engine->makeBuiltInFunction("sys::parse", bif_parse);
+    engine->makeBuiltInFunction("typeOf", bif_typeOf);
+    engine->makeBuiltInFunction("asSymbol", bif_symbol);
+    engine->makeBuiltInFunction("asString", bif_asString);
+    engine->makeBuiltInFunction("parse", bif_parse);
 
     // Compilation
-    engine->makeBuiltInFunction("sys::compile", bif_compile);
-    engine->makeBuiltInFunction("sys::include", bif_include);
-    engine->makeBuiltInFunction("sys::call", bif_call);
-    engine->makeBuiltInFunction("sys::eval", bif_eval);
+    engine->makeBuiltInFunction("compile", bif_compile);
+    engine->makeBuiltInFunction("include", bif_include);
+    engine->makeBuiltInFunction("call", bif_call);
+    engine->makeBuiltInFunction("eval", bif_eval);
 
     // Array functions
-    engine->makeBuiltInFunction("array::make", bif_makeArray);
-    engine->makeBuiltInFunction("array::read", bif_readArray);
-    engine->makeBuiltInFunction("array::write", bif_writeArray);
+    engine->makeBuiltInFunction("makeArray", bif_makeArray);
+    engine->makeBuiltInFunction("readArray", bif_readArray);
+    engine->makeBuiltInFunction("writeArray", bif_writeArray);
 
     // String functions
-    engine->makeBuiltInFunction("str::length", bif_strlen);
-    engine->makeBuiltInFunction("str::part", bif_substr);
+    engine->makeBuiltInFunction("strLength", bif_strlen);
+    engine->makeBuiltInFunction("strPart", bif_substr);
     //Split, Explode, Implode
 
     // Maths
     //cos sin sqrt round floor ceil pow
 
     // Specials
-    engine->makeBuiltInFunction("sys::log", bif_log);
-    engine->makeBuiltInFunction("sys::time", bif_time);
-    engine->makeBuiltInFunction("sys::version", bif_version);
-    engine->makeBuiltInFunction("sys::wordsize", bif_wordsize);
+    engine->makeBuiltInFunction("log", bif_log);
+    engine->makeBuiltInFunction("time", bif_time);
+    engine->makeBuiltInFunction("version", bif_version);
+    engine->makeBuiltInFunction("wordsize", bif_wordsize);
     engine->makeBuiltInFunction("engine::setValue", bif_setValue);
     engine->makeBuiltInFunction("engine::getValue", bif_getValue);
     engine->makeBuiltInFunction("engine::getValueKeys", bif_getValueKeys);
@@ -91,7 +91,10 @@ void CoreExtension::bif_time(const CallContext& ctx) {
 }
 
 void CoreExtension::bif_version(const CallContext& ctx) {
-    ctx.setStringResult(VERSION);
+    ctx.setStringResult(QString("BUILT - ") +
+                        QString(__DATE__) +
+                        " " +
+                        __TIME__);
 }
 
 void CoreExtension::bif_wordsize(const CallContext& ctx) {

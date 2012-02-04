@@ -51,7 +51,11 @@ OTHER_FILES += \
     examples/example.pi \
     performance-tests.txt \
     examples/performanceTest.pi \
-    README.md
+    README.md \
+    deploy/start.pi \
+    deploy/lib/pimii.pi \
+    deploy/examples/performanceTest.pi \
+    deploy/examples/example.pi
 
 FORMS += \
     gui/webwindow.ui \
@@ -59,6 +63,9 @@ FORMS += \
 
 RESOURCES += \
     gui/resources.qrc
+
+
+
 
 
 
