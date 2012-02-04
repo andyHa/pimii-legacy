@@ -303,56 +303,6 @@ private:
     void inlineList();
 
     /**
-      Compiles inlined XML
-      */
-    void inlineXML();
-
-    /**
-      Compiles an XML tag.
-      */
-    void handleTag();
-
-    /**
-      Compiles a self closing tag: <xml />
-      */
-    void handleTagSelfClose(QString& tag);
-
-    /**
-      Compiles the end of a tag definition.
-      */
-    void handleTagEnd(QString& tag, QString& tagName);
-
-    /**
-      Compiles an end tag when no body was found.
-      */
-    void handleTagEndEmpty(QString& tag, QString& tagName);
-
-    /**
-      Compiles an end tag when a body was found.
-      */
-    void handleTagEndFilled(QString& tag, QString& tagName);
-
-    /**
-      Compiles the tag content.
-      */
-    void handleTagContent();
-
-    /**
-      Compiles a parameter in a tag definition.
-      */
-    void handleTagParameter(QString& tag);
-
-    /**
-      Handles a direct parameter value.
-      */
-    void handleTagParameterPlain(QString& param, QString& tag);
-
-    /**
-      Compiles an interpreted parameter value.
-      */
-    void handleTagParameterInterpreted(QString& param, QString& tag);
-
-    /**
      Transforms a literal into an atom.
      */
     Atom compileLiteral();

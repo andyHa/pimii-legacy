@@ -1,0 +1,14 @@
+
+
+startsWith := (subList, list) -> {
+   [ x|subListTail := subList && y|listTail := list  && x = y :
+      startsWith(subListTail, listTail);
+   ]
+   [ x|listTail := list  && subList = x : #TRUE ]
+   [ isNil( subList) : #TRUE  ]
+   [        -        : #FALSE ]
+};
+
+a := #(1, 2, 3);
+b := #(1,2);
+startsWith(#(1), a);startsWith(#(1), a);

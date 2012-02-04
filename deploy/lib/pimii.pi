@@ -198,6 +198,33 @@ lastIndexOf := (key, list) -> [
 ];
 
 // ---------------------------------------------------------------------------
+// Checks if the given key occurs in the given list.
+//
+// Param: key  - The value which is to be searched.
+// Param: list - The list which will be used as input.
+// Returns: #TRUE, if the key occurs in the list, #FALSE otherwise.
+// ---------------------------------------------------------------------------
+contains := (key, list) -> indexOf(key, list) > 0;
+
+// ---------------------------------------------------------------------------
+// Checks if the given list starts with the given sub list.
+//
+// Param: subList - The list or element which should be the start of list
+// Param: list - The list which should start with the given sub list.
+// Returns: #TRUE, if subList is a list and list starts with exactly the same
+//          elements as subList. Also #TRUE if subList is the first element
+//          of list. #FALSE otherwise.
+// ---------------------------------------------------------------------------
+startOf := (subList, list) -> {
+   [ x|subListTail := subList && y|listTail := list  && x = y :
+      startOf(subListTail, listTail);
+   ]
+   [ x|listTail := list  && subList = x : #TRUE ]
+   [ isNil( subList) : #TRUE  ]
+   [        -        : #FALSE ]
+};
+
+// ---------------------------------------------------------------------------
 // Adds a list to a list of lists. Unlike the & operator, this won't return
 // a list, which contains all items of both given lists, but returns a list
 // with one new child, which is the given list.

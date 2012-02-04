@@ -1,0 +1,50 @@
+eachChar:do: := (string, block) -> [
+	block(str::part(string, 1, 1));
+	if: (str::length(string) > 1) then: [
+		eachChar: str::part(string, 2, str::length(string)) do: block;
+	]
+];
+
+at := (list, index) -> {
+	[ head|tail := list && index = 1 : head ]
+	[ head|tail := list && index > 1 : at(tail, index - 1) ]
+	[ - : nil ]
+};
+
+fun := #(
+  #(#START, 'a', #VARIABLE),
+  #(#START, 'b', #VARIABLE),
+  #(#VARIABLE, '+', #OPERATOR),
+  #(#VARIABLE, '-', #OPERATOR),
+  #(#OPERATOR, 'a', #VARIABLE),
+  #(#OPERATOR, 'b', #VARIABLE)
+);
+
+startOf := (subList, list) -> {
+   [ x|subListTail := subList && y|listTail := list  && x = y :
+      startOf(subListTail, listTail);
+   ]
+   [ x|listTail := list  && subList = x : #TRUE ]
+   [ isNil( subList) : #TRUE  ]
+   [        -        : #FALSE ]
+};
+
+
+ok := #(#VARIABLE);
+ea := (start, fun, ok) -> [
+   string -> [
+	zustand := start;
+	eachChar: string do: [ c ->
+		check := #(zustand, c); 
+		zustand := #FEHLER;
+		each: fun do: [ line ->
+			if: startOf(check, line) 
+			then: [zustand := at(line, 3)];	
+		];
+	];
+	indexOf(zustand, ok) > 0;
+   ];
+];
+
+x := ea(#START, fun, ok);
+x('a+b+'););
