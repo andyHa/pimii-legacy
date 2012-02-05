@@ -45,9 +45,9 @@ Highlighter::Highlighter(QTextDocument *parent)
     unknownFormat.setUnderlineColor(Qt::red);
     colonCallFormat.setForeground(Qt::blue);
     colonCallFormat.setFontWeight(QFont::Bold);
-    bracesFormat[0].setForeground(Qt::black);
+    bracesFormat[0].setForeground(Qt::darkGreen);
     bracesFormat[1].setForeground(Qt::darkGray);
-    bracesFormat[2].setForeground(Qt::darkMagenta);
+    bracesFormat[2].setForeground(Qt::darkRed);
     for(int i = 0; i < NUM_BRACE_FORMATS; i++) {
         bracesFormat[i].setFontWeight(QFont::Bold);
     }
