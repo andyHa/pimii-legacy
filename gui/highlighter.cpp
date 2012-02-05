@@ -47,10 +47,29 @@ Highlighter::Highlighter(QTextDocument *parent)
     colonCallFormat.setFontWeight(QFont::Bold);
     xmlFormat.setForeground(Qt::gray);
     xmlFormat.setFontWeight(QFont::Bold);
+    xmlFormat.setForeground(Qt::gray);
+    xmlFormat.setFontWeight(QFont::Bold);
+    bracesFormat[0].setForeground(Qt::black);
+    bracesFormat[1].setForeground(Qt::darkGray);
+    bracesFormat[2].setForeground(Qt::darkMagenta);
+    for(int i = 0; i < NUM_BRACE_FORMATS; i++) {
+        xmlFormat.setFontWeight(QFont::Bold);
+    }
 }
+
+struct BlockData : public QTextBlockUserData
+{
+    int numBraces;
+};
 
 void Highlighter::highlightBlock(const QString &text)
 {
+    BlockData* data = dynamic_cast<BlockData*>(
+                currentBlock().previous().userData());
+    int numberOfOpenBraces = 0;
+    if (data != NULL) {
+        numberOfOpenBraces = data->numBraces;
+    }
     Tokenizer tokenizer(text, false);
     InputToken t = tokenizer.fetch();
     while (t.type != TT_EOF) {
@@ -80,9 +99,35 @@ void Highlighter::highlightBlock(const QString &text)
         case TT_DECIMAL:
            setFormat(t.absolutePos, t.length, decimalFormat);
            break;
+        case TT_LIST_START:
+        case TT_L_BRACE:
+            if (numberOfOpenBraces < 0) {
+                setFormat(t.absolutePos, t.length, unknownFormat);
+            } else {
+                setFormat(t.absolutePos, t.length,
+                          bracesFormat[numberOfOpenBraces % NUM_BRACE_FORMATS]);
+            }
+            numberOfOpenBraces =
+                    numberOfOpenBraces < 0 ? 1 : numberOfOpenBraces + 1;
+            break;
+        case TT_R_BRACE:
+            numberOfOpenBraces--;
+            if (numberOfOpenBraces < 0) {
+                setFormat(t.absolutePos, t.length, unknownFormat);
+            } else {
+                setFormat(t.absolutePos, t.length,
+                          bracesFormat[numberOfOpenBraces % NUM_BRACE_FORMATS]);
+            }
+            break;
         default:
            setFormat(t.absolutePos, t.length, specialCharFormat);
         }
         t = tokenizer.fetch();
     }
+    BlockData* newData = dynamic_cast<BlockData*>(currentBlockUserData());
+    if (newData == NULL) {
+        newData = new BlockData();
+    }
+    newData->numBraces = numberOfOpenBraces;
+    setCurrentBlockUserData(newData);
 }

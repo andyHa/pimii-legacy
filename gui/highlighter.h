@@ -29,6 +29,8 @@ QT_BEGIN_NAMESPACE
 class QTextDocument;
 QT_END_NAMESPACE
 
+const int NUM_BRACE_FORMATS = 3;
+
 //! [0]
 class Highlighter : public QSyntaxHighlighter
 {
@@ -50,7 +52,7 @@ private:
     QTextCharFormat commentFormat;
     QTextCharFormat unknownFormat;
     QTextCharFormat colonCallFormat;
-    QTextCharFormat xmlFormat;
+    QTextCharFormat bracesFormat[NUM_BRACE_FORMATS];
 };
 //! [0]
 
