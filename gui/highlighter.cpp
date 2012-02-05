@@ -45,15 +45,11 @@ Highlighter::Highlighter(QTextDocument *parent)
     unknownFormat.setUnderlineColor(Qt::red);
     colonCallFormat.setForeground(Qt::blue);
     colonCallFormat.setFontWeight(QFont::Bold);
-    xmlFormat.setForeground(Qt::gray);
-    xmlFormat.setFontWeight(QFont::Bold);
-    xmlFormat.setForeground(Qt::gray);
-    xmlFormat.setFontWeight(QFont::Bold);
     bracesFormat[0].setForeground(Qt::black);
     bracesFormat[1].setForeground(Qt::darkGray);
     bracesFormat[2].setForeground(Qt::darkMagenta);
     for(int i = 0; i < NUM_BRACE_FORMATS; i++) {
-        xmlFormat.setFontWeight(QFont::Bold);
+        bracesFormat[i].setFontWeight(QFont::Bold);
     }
 }
 
