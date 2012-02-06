@@ -57,7 +57,7 @@ tail ::= list -> {
 // Param: index - The position of the item which is to be extracted.
 // Returns: The value of the nth (index) element, or nil
 // ---------------------------------------------------------------------------
-at := (list, index) -> {
+at ::= (list, index) -> {
         [ head|tail := list && index = 1 : head ]
         [ head|tail := list && index > 1 : at(tail, index - 1) ]
         [ - : nil ]
@@ -187,7 +187,7 @@ project:with: ::= (list, mapping) -> [
 // Returns: A list where all occurences of key are replaced by the given
 //          replacement
 // ---------------------------------------------------------------------------
-replace:by:in: := (key, replacement, list) -> [
+replace:by:in: ::= (key, replacement, list) -> [
    project: list with: value -> {
       [value = key : replacement]
       [      -     : value]
@@ -202,7 +202,7 @@ replace:by:in: := (key, replacement, list) -> [
 // Returns: The numeric index of the first occurence of key or 0 if it does
 //          not occur.
 // ---------------------------------------------------------------------------
-indexOf := (key, list) -> [
+indexOf ::= (key, list) -> [
     iterator := (pos, list) -> {
         [ h|t := list && h = key : pos ]
         [ h|t := list : iterator(pos + 1, t) ]
@@ -219,7 +219,7 @@ indexOf := (key, list) -> [
 // Returns: The numeric index of the last occurence of key or 0 if it does
 //          not occur.
 // ---------------------------------------------------------------------------
-lastIndexOf := (key, list) -> [
+lastIndexOf ::= (key, list) -> [
     iterator := (lastIndex, pos, list) -> {
         [ h|t := list && h = key : iterator(pos, pos + 1, t)]
         [ h|t := list : iterator(lastIndex, pos + 1, t) ]
@@ -235,7 +235,7 @@ lastIndexOf := (key, list) -> [
 // Param: list - The list which will be used as input.
 // Returns: #TRUE, if the key occurs in the list, #FALSE otherwise.
 // ---------------------------------------------------------------------------
-contains := (key, list) -> indexOf(key, list) > 0;
+contains ::= (key, list) -> indexOf(key, list) > 0;
 
 // ---------------------------------------------------------------------------
 // Checks if the given list starts with the given sub list.
@@ -246,7 +246,7 @@ contains := (key, list) -> indexOf(key, list) > 0;
 //          elements as subList. Also #TRUE if subList is the first element
 //          of list. #FALSE otherwise.
 // ---------------------------------------------------------------------------
-isStartOf := (subList, list) -> {
+isStartOf ::= (subList, list) -> {
    [ x|subListTail := subList && y|listTail := list  && x = y :
       startOf(subListTail, listTail);
    ]
@@ -266,7 +266,7 @@ isStartOf := (subList, list) -> {
 // Returns: A list which contains all lists of "listOfLists" and additionally
 //          child as sub list.
 // ---------------------------------------------------------------------------
-listConcat := (listOfLists, child) -> {
+listConcat ::= (listOfLists, child) -> {
    [ isNil(child) : listOfLists ]
    [ isNil(listOfLists) : #(child) ]
    [      -       : listOfLists & #(child) ]
@@ -280,7 +280,7 @@ listConcat := (listOfLists, child) -> {
 // Returns: A list of sub lists which contain the elements between the given
 //          key.
 // ---------------------------------------------------------------------------
-split := (key, list) -> [
+split ::= (key, list) -> [
     iterator := (collection, currentList, list) -> {
         [ h|t := list && h = key :
             iterator(listConcat(collection, currentList), #(), t)
@@ -297,7 +297,7 @@ split := (key, list) -> [
 // Param: list - The list which will be used as input.
 // Returns: A flat list which contains all items of all sub lists.
 // ---------------------------------------------------------------------------
-flatten := list -> {
+flatten ::= list -> {
    [ isList(list) :
       reverse(
          fold: list
@@ -316,7 +316,7 @@ flatten := list -> {
 // Returns: A list containing the elements of the input list sorted by the
 //          given prediacte.
 // ---------------------------------------------------------------------------
-quicksortBy := (list, predicate) -> {
+quicksortBy ::= (list, predicate) -> {
     [ pivot|rest := list :
         left := collect: rest with: [ x -> predicate(x, pivot) ];
         right := reject: rest with: [ x -> predicate(x, pivot) ];
@@ -328,7 +328,7 @@ quicksortBy := (list, predicate) -> {
 // ---------------------------------------------------------------------------
 // Sorts the given list in ascending order.
 // ---------------------------------------------------------------------------
-sort := list -> quicksortBy(list, [ (x, y) -> x < y ]);
+sort ::= list -> quicksortBy(list, [ (x, y) -> x < y ]);
 
 
 // ---------------------------------------------------------------------------
@@ -436,6 +436,10 @@ eachChar:do: ::= (string, block) -> {
     ]
 };
 
+// ---------------------------------------------------------------------------
+// Returns the first n characters of the given string. If length is negative,
+// the string without the first n characters is returned.
+// ---------------------------------------------------------------------------
 strLeft ::= (string, length) -> {
     [ length >= 0 : strPart(string, 1, length) ]
     [ length <  0 : strPart(string, length * -1 + 1,
@@ -443,13 +447,24 @@ strLeft ::= (string, length) -> {
     ]
 };
 
+// ---------------------------------------------------------------------------
+// Returns the last n characters of the given string. If length is negative,
+// the string without the last n characters is returned.
+// ---------------------------------------------------------------------------
 strRight ::= (string, length) -> {
     [ length >= 0 : strPart(string, strLength(string) - length + 1, length) ]
     [ length <  0 : strPart(string, 1, strLength(string) + length)          ]
 };
 
+// ---------------------------------------------------------------------------
+// Cuts the given prefix off the given string and returns the rest.
+// ---------------------------------------------------------------------------
 strCut ::= (subString, string) -> strLeft(string, strLength(subString) * -1);
 
+// ---------------------------------------------------------------------------
+// Returns the character position of subString within string. If it doesn't
+// occur 0 is returned.
+// ---------------------------------------------------------------------------
 strIndexOf ::= (subString, string) -> [
     iterator := pos -> {
         [ strPart(string, pos, strLength(subString)) = subString : pos ]
@@ -459,7 +474,11 @@ strIndexOf ::= (subString, string) -> [
     iterator(1);
 ];
 
-strLastIndexOf := (subString, string) -> [
+// ---------------------------------------------------------------------------
+// Returns the last character position of subString within string. If it
+// doesn't occur 0 is returned.
+// ---------------------------------------------------------------------------
+strLastIndexOf ::= (subString, string) -> [
     iterator := (lastIndex, pos) -> {
         [ strPart(string, pos, strLength(subString)) = subString :
             iterator(pos, pos + 1)
@@ -470,14 +489,27 @@ strLastIndexOf := (subString, string) -> [
     iterator(0, 1);
 ];
 
+// ---------------------------------------------------------------------------
+// Checks whether the given subString is contained in the given string.
+// ---------------------------------------------------------------------------
 strContains ::= (subString, string) -> strIndexOf(subString, string) > 0;
 
+// ---------------------------------------------------------------------------
+// Checks whether the given string starts with the given subString.
+// ---------------------------------------------------------------------------
 strStartsWith ::= (subString, string) ->
                           subString = strLeft(string, strLength(subString));
 
+// ---------------------------------------------------------------------------
+// Checks whether the given string ends with the given subString.
+// ---------------------------------------------------------------------------
 strEndsWith ::= (subString, string) ->
                           subString = strRight(string, strLength(subString));
 
+// ---------------------------------------------------------------------------
+// Splits the given string into a list of strings at each occurence of the
+// given separator.
+// ---------------------------------------------------------------------------
 strSplit ::= (separator, string) -> [
     result := #();
     iterator := subStr -> {
@@ -494,7 +526,6 @@ strSplit ::= (separator, string) -> [
     // Filter empty strings...
     collect: result with: s -> strLength(s) > 0;
 ];
-
 
 // ---------------------------------------------------------------------------
 // EXTENDED TOOLS

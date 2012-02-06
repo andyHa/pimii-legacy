@@ -29,9 +29,10 @@
 Highlighter::Highlighter(QTextDocument *parent)
     : QSyntaxHighlighter(parent)
 {
+
     specialCharFormat.setForeground(Qt::darkBlue);
     specialCharFormat.setFontWeight(QFont::Bold);
-    variableFormat.setForeground(Qt::darkMagenta);
+    variableFormat.setForeground(QColor(0x26, 0x26, 0x26));
     symbolFormat.setForeground(Qt::darkYellow);
     symbolFormat.setFontWeight(QFont::Bold);
     numberFormat.setForeground(Qt::darkGreen);
@@ -45,9 +46,9 @@ Highlighter::Highlighter(QTextDocument *parent)
     unknownFormat.setUnderlineColor(Qt::red);
     colonCallFormat.setForeground(Qt::blue);
     colonCallFormat.setFontWeight(QFont::Bold);
-    bracesFormat[0].setForeground(Qt::darkGreen);
-    bracesFormat[1].setForeground(Qt::darkGray);
-    bracesFormat[2].setForeground(Qt::darkRed);
+    bracesFormat[0].setForeground(Qt::darkBlue);
+    bracesFormat[1].setForeground(Qt::darkRed);
+    bracesFormat[2].setForeground(Qt::darkGreen);
     for(int i = 0; i < NUM_BRACE_FORMATS; i++) {
         bracesFormat[i].setFontWeight(QFont::Bold);
     }
