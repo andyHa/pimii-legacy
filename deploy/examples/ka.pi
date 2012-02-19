@@ -1,0 +1,39 @@
+nilSave ::= (var, backup) -> { 
+   [ var = nil : backup ]
+   [     -     : var    ]
+};
+
+fun := #(#(#OK,    '(', nil, #OFFEN, nil),
+         #(#OFFEN, '(', nil, #OFFEN, #('(')),
+         #(#OFFEN, '(', '(', #OFFEN, #('(', '(')),
+         #(#OFFEN, ')', '(', #OFFEN, nil),
+         #(#OFFEN, ')', nil, #OK,    nil));
+
+
+ka := (start, fun, ok) -> 
+[
+   string -> 
+   [
+	stapel := nil;
+	zustand := start;
+	eachChar: string do: c -> 
+           [
+              check := #(zustand, c, head(stapel)); 
+              stapel := tail(stapel);              
+              zustand := #FEHLER;
+              each: fun do: line -> 
+              [ 
+                 if: isStartOf(check, line) 
+	      then: [
+                   zustand := at(line, 4);
+                   stapel := at(line, 5) & stapel;
+                 ]
+	   ];
+	];
+	indexOf(zustand, ok) > 0;
+   ]
+];
+
+ok := #(#OK);
+x := ka(#OK, fun, ok);
+x(')(');

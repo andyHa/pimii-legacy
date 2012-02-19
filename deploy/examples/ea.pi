@@ -1,28 +1,32 @@
-strSplit ::= (separator, string) -> [ 
-    result := #();
-    iterator := subStr -> [	
-        idx := strIndexOf(separator, subStr);
-        if: (idx > 0) then: [
-            result := result & strLeft(subStr, idx - 1);            
-            iterator(strLeft(subStr, (idx - 1 + strLength(separator)) * -1));
-        ] else: [
-	  result := result & subStr;
-        ]
-    ];
-    iterator(string);
+fun := #(#(#START,    'a', #VARIABLE),
+         #(#START,    'b', #VARIABLE),
+         #(#VARIABLE, '+', #OPERATOR),
+         #(#VARIABLE, '-', #OPERATOR),
+         #(#OPERATOR, 'a', #VARIABLE),
+         #(#OPERATOR, 'b', #VARIABLE));
 
-    // Filter empty strings...
-    collect: result with: s -> strLength(s) > 0;
+ok := #(#VARIABLE);
+ea := (start, fun, ok) -> 
+[
+   string -> 
+   [
+	zustand := start;
+	eachChar: string do: c -> 
+           [
+              check := #(zustand, c); 
+              zustand := #FEHLER;
+		each: fun do: line -> 
+                       [ 
+                         if: isStartOf(check, line) 
+		  then: [zustand := at(line, 3)]
+		]
+	];
+	indexOf(zustand, ok) > 0;
+   ]
 ];
 
-strSplit('$$', 'a$$b$,c$$d,');ARIABLE)
-);
-
-startOf := (subList, list) -> {
-   [ x|subListTail := subList && y|listTail := list  && x = y :
-      startOf(subListTail, listTail);
-   ]
-   [ x|listTail := list  && subList = x : #TRUE ]
+math := ea(#START, fun, ok);
+math('a+b+b+b--b');istTail := list  && subList = x : #TRUE ]
    [ isNil( subList) : #TRUE  ]
    [        -        : #FALSE ]
 };
@@ -45,4 +49,4 @@ ea := (start, fun, ok) -> [
 ];
 
 x := ea(#START, fun, ok);
-x('a+b+'););
+x('a+b+');

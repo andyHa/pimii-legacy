@@ -21,7 +21,8 @@ public:
     explicit EditorWindow(Engine* engine, QWidget* parent = NULL);
     ~EditorWindow();
     virtual void append(const QString& msg, const QString& pos);
-
+protected:
+    virtual void keyPressEvent(QKeyEvent *);
 private slots:
     void on_actionClear_triggered();
 

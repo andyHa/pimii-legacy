@@ -98,6 +98,7 @@ void Highlighter::highlightBlock(const QString &text)
            break;
         case TT_LIST_START:
         case TT_L_BRACE:
+        case TT_L_BRACKET:
             if (numberOfOpenBraces < 0) {
                 setFormat(t.absolutePos, t.length, unknownFormat);
             } else {
@@ -108,6 +109,7 @@ void Highlighter::highlightBlock(const QString &text)
                     numberOfOpenBraces < 0 ? 1 : numberOfOpenBraces + 1;
             break;
         case TT_R_BRACE:
+        case TT_R_BRACKET:
             numberOfOpenBraces--;
             if (numberOfOpenBraces < 0) {
                 setFormat(t.absolutePos, t.length, unknownFormat);

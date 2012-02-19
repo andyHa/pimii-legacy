@@ -27,8 +27,7 @@ void EditorWindow::append(const QString& msg, const QString& pos) {
     ui->console->insertPlainText(msg);
     ui->console->insertPlainText("\n");
     ui->console->verticalScrollBar()->setSliderPosition(
-        ui->console->verticalScrollBar()->maximum());
-
+    ui->console->verticalScrollBar()->maximum());
 }
 
 void EditorWindow::onEngineStarted() {
@@ -47,7 +46,7 @@ void EditorWindow::onEnginePanic(Atom file,
     ui->console->insertPlainText("\n");
     ui->console->insertPlainText(status);
     ui->console->verticalScrollBar()->setSliderPosition(
-        ui->console->verticalScrollBar()->maximum());
+    ui->console->verticalScrollBar()->maximum());
 }
 
 EditorWindow::~EditorWindow()
@@ -93,8 +92,8 @@ void EditorWindow::on_action_Save_triggered()
 {
     if (!currentFile.isEmpty()) {
         QFile file(currentFile);
-        if (file.open(QFile::ReadWrite | QFile::Text)) {
-            file.write(ui->editor->toPlainText().toUtf8());
+        if (file.open(QFile::ReadWrite | QFile::Text | QFile::Truncate)) {
+            file.write(ui->editor->document()->toPlainText().toUtf8());
         }
     } else {
         on_actionSave_as_triggered();
@@ -110,7 +109,7 @@ void EditorWindow::on_actionSave_as_triggered()
     if (!fileName.isEmpty()) {
         currentFile = fileName;
         QFile file(currentFile);
-        if (file.open(QFile::ReadWrite | QFile::Text)) {
+        if (file.open(QFile::ReadWrite | QFile::Text | QFile::Truncate)) {
             file.write(ui->editor->document()->toPlainText().toUtf8());
         }
     }

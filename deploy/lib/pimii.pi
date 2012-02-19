@@ -33,6 +33,15 @@ isNil ::= x -> (x = nil);
 isNotNil ::= x -> (x != nil);
 
 // ---------------------------------------------------------------------------
+// Ensures that a value is not nil. If the given var is nil, backup is
+// used. Otherwise the value of var will be returned.
+// ---------------------------------------------------------------------------
+nilSave ::= (var, backup) -> {
+   [ var = nil : backup ]
+   [     -     : var    ]
+};
+
+// ---------------------------------------------------------------------------
 // Returns the first element of the given list or nil, if the given value
 // isn't a list or empty.
 // ---------------------------------------------------------------------------
@@ -248,7 +257,7 @@ contains ::= (key, list) -> indexOf(key, list) > 0;
 // ---------------------------------------------------------------------------
 isStartOf ::= (subList, list) -> {
    [ x|subListTail := subList && y|listTail := list  && x = y :
-      startOf(subListTail, listTail);
+      isStartOf(subListTail, listTail);
    ]
    [ x|listTail := list  && subList = x : #TRUE ]
    [ isNil( subList) : #TRUE  ]
