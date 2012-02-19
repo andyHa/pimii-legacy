@@ -20,7 +20,8 @@ SOURCES += main.cpp \
     bif/coreextension.cpp \
     bif/filesextension.cpp \
     tools/logger.cpp \
-    gui/editorwindow.cpp
+    gui/editorwindow.cpp \
+    gui/codeedit.cpp
 
 HEADERS += \
     vm/engine.h \
@@ -39,7 +40,8 @@ HEADERS += \
     tools/logger.h \
     tools/average.h \
     gui/editorwindow.h \
-    vm/array.h
+    vm/array.h \
+    gui/codeedit.h
 
 OTHER_FILES += \
     example.pi \
@@ -58,11 +60,13 @@ OTHER_FILES += \
     deploy/examples/example.pi
 
 FORMS += \
-    gui/webwindow.ui \
     gui/editorwindow.ui
 
 RESOURCES += \
     gui/resources.qrc
+
+
+
 
 
 

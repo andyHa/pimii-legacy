@@ -2,7 +2,7 @@
 #include <QKeyEvent>
 
 
-CodeEdit::CodeEdit(QWidget *parent) : QPlainTextEdit(parent) {
+CodeEdit::CodeEdit(QWidget *parent) : QTextEdit(parent) {
 
 }
 
@@ -17,6 +17,6 @@ void CodeEdit::keyPressEvent(QKeyEvent* event) {
                               Qt::NoModifier,
                               "   ");
     }
-    QPlainTextEdit::keyPressEvent(event);
+    QTextEdit::keyPressEvent(event);
 }
 

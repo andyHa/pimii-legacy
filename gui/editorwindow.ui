@@ -26,7 +26,7 @@
      <number>0</number>
     </property>
     <item row="0" column="0">
-     <widget class="QTextEdit" name="editor">
+     <widget class="CodeEdit" name="editor">
       <property name="font">
        <font>
         <family>Consolas</family>
@@ -682,6 +682,13 @@
    </property>
   </action>
  </widget>
+ <customwidgets>
+  <customwidget>
+   <class>CodeEdit</class>
+   <extends>QTextEdit</extends>
+   <header location="global">gui/codeedit.h</header>
+  </customwidget>
+ </customwidgets>
  <resources>
   <include location="resources.qrc"/>
  </resources>

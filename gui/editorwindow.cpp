@@ -124,7 +124,7 @@ void EditorWindow::on_action_Open_triggered()
     if (!fileName.isEmpty()) {
         QFile file(fileName);
         if (file.open(QFile::ReadOnly | QFile::Text)) {
-            ui->editor->setPlainText(file.readAll());
+            ui->editor->setPlainText(file.readAll().replace("\t", "   "));
         }
         currentFile = fileName;
     }

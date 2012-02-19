@@ -1,9 +1,9 @@
 #ifndef CODEEDIT_H
 #define CODEEDIT_H
 
-#include <QPlainTextEdit>
+#include <QTextEdit>
 
-class CodeEdit : public QPlainTextEdit
+class CodeEdit : public QTextEdit
 {
     Q_OBJECT
 public:
