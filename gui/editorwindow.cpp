@@ -2,6 +2,7 @@
 #include "ui_editorwindow.h"
 
 #include <QFileDialog>
+#include <QTextLayout>
 #include <QScrollBar>
 
 EditorWindow::EditorWindow(Engine* engine, QWidget *parent) :
@@ -128,4 +129,41 @@ void EditorWindow::on_action_Open_triggered()
         }
         currentFile = fileName;
     }
+}
+
+QString replaceLatexChars(QString input) {
+    return input.replace("{","\\{").replace("}","\\}").replace("#","\\#").replace("&","\\&");
+}
+
+void EditorWindow::on_action_Export_triggered()
+{
+    ui->console->clear();
+    QRegExp spaces(" +");
+    QString output = "{\\ttfamily\n";
+    QTextBlock b = ui->editor->document()->begin();
+    while(b.length() > 0) {
+        int lastEnd = 0;
+        foreach(QTextLayout::FormatRange r, b.layout()->additionalFormats()) {
+            if (r.start != lastEnd) {
+                QString line = b.text().mid(lastEnd, r.start - lastEnd);
+                if (spaces.exactMatch(line)) {
+                    output += "\\verb+"+line+"+";
+                } else {
+                    output += replaceLatexChars(line);
+                }
+            }
+            if (r.format.fontWeight() == QFont::Bold) {
+                output += "\\textbf{" + replaceLatexChars(b.text().mid(r.start, r.length))+"}";
+            } else if (r.format.fontItalic()){
+                output += "\\textit{" + replaceLatexChars(b.text().mid(r.start, r.length))+"}";
+            } else {
+                output += replaceLatexChars(b.text().mid(r.start, r.length));
+            }
+            lastEnd = r.start + r.length;
+        }
+        b = b.next();
+        output +=" \\\\\n";
+    }
+    output += "}";
+    append(output,"");
 }

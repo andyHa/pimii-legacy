@@ -34,7 +34,7 @@ Highlighter::Highlighter(QTextDocument *parent)
     specialCharFormat.setFontWeight(QFont::Bold);
     variableFormat.setForeground(QColor(0x26, 0x26, 0x26));
     symbolFormat.setForeground(Qt::darkYellow);
-    symbolFormat.setFontWeight(QFont::Bold);
+    symbolFormat.setFontItalic(true);
     numberFormat.setForeground(Qt::darkGreen);
     decimalFormat.setForeground(Qt::darkGreen);
     decimalFormat.setFontItalic(true);

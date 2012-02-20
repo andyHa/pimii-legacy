@@ -43,6 +43,8 @@ private slots:
 
     void on_action_Open_triggered();
 
+    void on_action_Export_triggered();
+
 private:
     Ui::EditorWindow* ui;
     Highlighter* highlighter;
