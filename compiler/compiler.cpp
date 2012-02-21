@@ -481,18 +481,35 @@ void Compiler::factorExp() {
 
 void Compiler::inlineList() {
     tokenizer.fetch(); // #(
-    addCode(SYMBOL_OP_NIL);
-    bool useChain = false;
-    while(!tokenizer.isCurrent(TT_R_BRACE) && !tokenizer.isCurrent(TT_EOF)) {
-        expression();
-        addCode(SYMBOL_OP_CHAIN);
-        useChain = true;
-        if (tokenizer.isCurrent(TT_KOMMA)) {
-            tokenizer.fetch();
-        }
+    if (tokenizer.isCurrent(TT_R_BRACE)) {
+        // #() is nil
+        tokenizer.fetch(); // )
+        addCode(SYMBOL_OP_NIL);
+        return;
     }
-    if (useChain) {
-        addCode(SYMBOL_OP_CHAIN_END);
+
+    if (tokenizer.isLookahead(TT_DOT)) {
+        Atom car = compileLiteral();
+        tokenizer.fetch(); // .
+        Atom cdr = compileLiteral();
+        addCode(SYMBOL_OP_LDC);
+        addCode(engine->storage.makeCons(car, cdr));
+    } else {
+        addCode(SYMBOL_OP_NIL);
+        bool useChain = false;
+        while(!tokenizer.isCurrent(TT_R_BRACE) &&
+              !tokenizer.isCurrent(TT_EOF))
+        {
+            expression();
+            addCode(SYMBOL_OP_CHAIN);
+            useChain = true;
+            if (tokenizer.isCurrent(TT_KOMMA)) {
+                tokenizer.fetch();
+            }
+        }
+        if (useChain) {
+            addCode(SYMBOL_OP_CHAIN_END);
+        }
     }
     expect(TT_R_BRACE, ")");
 }

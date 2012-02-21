@@ -4,6 +4,7 @@
 #include <QFileDialog>
 #include <QTextLayout>
 #include <QScrollBar>
+#include <QClipboard>
 
 EditorWindow::EditorWindow(Engine* engine, QWidget *parent) :
     QMainWindow(parent),
@@ -135,7 +136,7 @@ QString replaceLatexChars(QString input) {
     return input.replace("{","\\{").replace("}","\\}").replace("#","\\#").replace("&","\\&");
 }
 
-void EditorWindow::on_action_Export_triggered()
+void EditorWindow::on_actionLaTex_triggered()
 {
     ui->console->clear();
     QRegExp spaces(" +");
@@ -162,8 +163,10 @@ void EditorWindow::on_action_Export_triggered()
             lastEnd = r.start + r.length;
         }
         b = b.next();
+
         output +=" \\\\\n";
     }
     output += "}";
     append(output,"");
+    QApplication::clipboard()->setText(output);
 }

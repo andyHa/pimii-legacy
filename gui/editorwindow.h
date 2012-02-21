@@ -43,7 +43,7 @@ private slots:
 
     void on_action_Open_triggered();
 
-    void on_action_Export_triggered();
+    void on_actionLaTex_triggered();
 
 private:
     Ui::EditorWindow* ui;

@@ -274,9 +274,19 @@ private:
     void opCAR();
 
     /**
+      Changes the CAR field of the stack top.
+      */
+    void opRPLCAR();
+
+    /**
       Returns the CDR field of the stack top.
       */
     void opCDR();
+
+    /**
+      Changes the CDR field of the stack top.
+      */
+    void opRPLCDR();
 
     /**
       Generates a new cell.

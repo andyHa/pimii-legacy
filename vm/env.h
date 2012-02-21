@@ -418,10 +418,20 @@ const Atom SYMBOL_OP_FILE = SYMBOL(OP_CODE_INDEX + 34);
 const Atom SYMBOL_OP_LINE = SYMBOL(OP_CODE_INDEX + 35);
 
 /**
+  Op code: Changes the CAR value of the stack top
+  */
+const Atom SYMBOL_OP_RPLCAR = SYMBOL(OP_CODE_INDEX + 36);
+
+/**
+  Op code: Changes the CDR value of the stack top
+  */
+const Atom SYMBOL_OP_RPLCDR = SYMBOL(OP_CODE_INDEX + 37);
+
+/**
   Can be used to easily set the offset for all value symbols.
   These symbols are used by the setValue/getValue management extensions.
   */
-const Word VALUE_INDEX = OP_CODE_INDEX + 36;
+const Word VALUE_INDEX = OP_CODE_INDEX + 38;
 
 /**
   Used to set/get the home path of the pimii installation.

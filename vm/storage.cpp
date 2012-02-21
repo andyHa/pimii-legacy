@@ -86,6 +86,8 @@ void Storage::initializeSymbols() {
     declaredFixedSymbol(SYMBOL_OP_CHAIN_END, "CHAINEND");
     declaredFixedSymbol(SYMBOL_OP_FILE, "FILE");
     declaredFixedSymbol(SYMBOL_OP_LINE, "LINE");
+    declaredFixedSymbol(SYMBOL_OP_RPLCAR, "RPLCAR");
+    declaredFixedSymbol(SYMBOL_OP_RPLCDR, "RPLCDR");
     declaredFixedSymbol(SYMBOL_VALUE_HOME_PATH, "HOME_PATH");
     declaredFixedSymbol(SYMBOL_VALUE_OP_COUNT, "OP_COUNT");
     declaredFixedSymbol(SYMBOL_VALUE_GC_COUNT, "GC_COUNT");

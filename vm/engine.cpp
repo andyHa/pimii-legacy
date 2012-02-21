@@ -280,6 +280,28 @@ void Engine::opCAR() {
     push(s, cons.car);
 }
 
+void Engine::opRPLCAR() {
+    Atom car = pop(s);
+    Atom atom = pop(s);
+    expect(isCons(atom),
+           "#RPLCAR: stack top was not a cons!",
+           __FILE__,
+           __LINE__);
+    storage.setCAR(atom, car);
+    push(s, atom);
+}
+
+void Engine::opRPLCDR() {
+    Atom cdr = pop(s);
+    Atom atom = pop(s);
+    expect(isCons(atom),
+           "#RPLCDR: stack top was not a cons!",
+           __FILE__,
+           __LINE__);
+    storage.setCDR(atom, cdr);
+    push(s, atom);
+}
+
 void Engine::opCDR() {
     Atom atom = pop(s);
     expect(isCons(atom),
@@ -800,6 +822,12 @@ void Engine::dispatch(Atom opcode) {
         return;
     case SYMBOL_OP_CDR:
         opCDR();
+        return;
+    case SYMBOL_OP_RPLCAR:
+        opRPLCAR();
+        return;
+    case SYMBOL_OP_RPLCDR:
+        opRPLCDR();
         return;
     case SYMBOL_OP_CONS:
         opCONS();
