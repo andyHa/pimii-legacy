@@ -139,11 +139,13 @@ QString replaceLatexChars(QString input) {
 void EditorWindow::on_actionLaTex_triggered()
 {
     ui->console->clear();
-    QRegExp spaces(" +");
+    QRegExp spaces(" \\d{2,}");
     QString output = "{\\ttfamily\n";
     QTextBlock b = ui->editor->document()->begin();
+    int line = 1;
     while(b.length() > 0) {
         int lastEnd = 0;
+        output += "\\verb+" + QString("%1").arg(line++, 2, 10) + "   +";
         foreach(QTextLayout::FormatRange r, b.layout()->additionalFormats()) {
             if (r.start != lastEnd) {
                 QString line = b.text().mid(lastEnd, r.start - lastEnd);
