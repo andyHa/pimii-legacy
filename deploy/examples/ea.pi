@@ -10,43 +10,20 @@ ea := (start, fun, ok) ->
 [
    string -> 
    [
-	zustand := start;
-	eachChar: string do: c -> 
-           [
+      zustand := start;
+      eachChar: string do: c -> 
+      [
               check := #(zustand, c); 
               zustand := #FEHLER;
-		each: fun do: line -> 
-                       [ 
-                         if: isStartOf(check, line) 
-		  then: [zustand := at(line, 3)]
-		]
-	];
-	indexOf(zustand, ok) > 0;
+              each: fun do: line -> 
+              [ 
+                 if: isStartOf(check, line) 
+                 then: [zustand := at(line, 3)]
+              ]
+      ];
+      indexOf(zustand, ok) > 0;
    ]
 ];
 
 math := ea(#START, fun, ok);
-math('a+b+b+b--b');istTail := list  && subList = x : #TRUE ]
-   [ isNil( subList) : #TRUE  ]
-   [        -        : #FALSE ]
-};
-
-
-ok := #(#VARIABLE);
-ea := (start, fun, ok) -> [
-   string -> [
-	zustand := start;
-	eachChar: string do: [ c ->
-		check := #(zustand, c); 
-		zustand := #FEHLER;
-		each: fun do: [ line ->
-			if: startOf(check, line) 
-			then: [zustand := at(line, 3)];	
-		];
-	];
-	indexOf(zustand, ok) > 0;
-   ];
-];
-
-x := ea(#START, fun, ok);
-x('a+b+');
+math('a+b+b+b-b');

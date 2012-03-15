@@ -72,9 +72,16 @@
     </property>
     <addaction name="actionClear"/>
    </widget>
+   <widget class="QMenu" name="menuExport">
+    <property name="title">
+     <string>Export</string>
+    </property>
+    <addaction name="actionLaTex"/>
+   </widget>
    <addaction name="menuFile"/>
    <addaction name="menuInterpreter"/>
    <addaction name="menuConsole"/>
+   <addaction name="menuExport"/>
   </widget>
   <widget class="QStatusBar" name="statusbar"/>
   <widget class="QToolBar" name="toolBar">
@@ -679,6 +686,14 @@
    </property>
    <property name="shortcut">
     <string>F8</string>
+   </property>
+  </action>
+  <action name="actionLaTex">
+   <property name="text">
+    <string>LaTex</string>
+   </property>
+   <property name="shortcut">
+    <string>Ctrl+L</string>
    </property>
   </action>
  </widget>

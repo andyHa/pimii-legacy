@@ -17,7 +17,7 @@
 // Param: x - The value to be checked
 // Returns: #TRUE is the given argument is a list, #FALSE otherwise.
 // ---------------------------------------------------------------------------
-isList ::= x -> sys::typeOf(x) = #TYPE_CONS;
+isList ::= x -> typeOf(x) = #TYPE_CONS;
 
 // ---------------------------------------------------------------------------
 // Checks if the given argument is NIL.
@@ -60,6 +60,19 @@ tail ::= list -> {
 };
 
 // ---------------------------------------------------------------------------
+// Sets the head of the given cell. This method is written in inline
+// assembler since there is only an op code and no BIF.
+// ---------------------------------------------------------------------------
+setHead := #(#(#LD #(1 . 1) #LD #(1 . 2) #RPLCAR #RTN));
+
+// ---------------------------------------------------------------------------
+// Sets the tail of the given cell. This method is written in inline
+// assembler since there is only an op code and no BIF.
+// ---------------------------------------------------------------------------
+setTail := #(#(#LD #(1 . 1) #LD #(1 . 2) #RPLCDR #RTN));
+
+
+// ---------------------------------------------------------------------------
 // Returns the nth (index) element, of the given list.
 //
 // Param: list  - The list from which the item should be extracted.
@@ -67,9 +80,23 @@ tail ::= list -> {
 // Returns: The value of the nth (index) element, or nil
 // ---------------------------------------------------------------------------
 at ::= (list, index) -> {
-        [ head|tail := list && index = 1 : head ]
-        [ head|tail := list && index > 1 : at(tail, index - 1) ]
-        [ - : nil ]
+    [ head|tail := list && index = 1 : head ]
+    [ head|tail := list && index > 1 : at(tail, index - 1) ]
+    [ - : nil ]
+};
+
+// ---------------------------------------------------------------------------
+// Sets the nth (index) element, of the given list.
+//
+// Param: list  - The list from which the item should be set.
+// Param: index - The position of the item which is to be set.
+// Param: value - The value to be set
+// Returns: The value of the nth (index) element, or nil
+// ---------------------------------------------------------------------------
+set := (list, index, value) -> {
+    [ isList(list) && index = 1 : setHead(list, value) ]
+    [ head|tail := list && index > 1 : set(tail, index - 1, value) ]
+    [ - : nil ]
 };
 
 // ---------------------------------------------------------------------------
