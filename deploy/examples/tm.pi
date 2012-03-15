@@ -1,0 +1,46 @@
+tm := (start, fun, ok, band) -> 
+[
+   band ->
+   [
+      kopf := #OK;
+      index := 1;
+      zustand := start;
+      while: [ kopf != #HALT && kopf != nil ] do: 
+      [
+         wert := at(band, index);
+         check := #(zustand, wert);
+         zustand := #FEHLER;
+         kopf := #HALT;
+         each: fun do: line -> 
+         [ 
+            if: isStartOf(check, line) then: 
+            [
+               zustand := at(line, 3);
+               set(band, index, at(line, 4));
+               kopf := at(line, 5);
+            ]
+         ];
+         if: kopf = #LINKS then: [ index := index - 1 ];
+         if: kopf = #RECHTS then: [ index := index + 1 ];
+      ];
+   
+      indexOf(zustand, ok) > 0;
+   ]
+];
+
+fun := #(
+   #(#FLIP, 0, #FLIP, 1,  #RECHTS),
+   #(#FLIP, 1, #FLIP, 0,  #RECHTS),
+   #(#FLIP, nil, #INC, nil,  #LINKS),
+   #(#INC, 0, #INC, 1,  #HALT),
+   #(#INC, 1, #INC, 0,  #LINKS),
+   #(#INC, nil, #INC, nil,  #HALT)
+);
+
+ok := #(#INC);
+x := tm(#FLIP, fun, ok);
+
+band := #(1 0 0 0);
+c := x(band);
+log(c);
+log(band);
