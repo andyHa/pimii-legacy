@@ -139,7 +139,7 @@ QString replaceLatexChars(QString input) {
 void EditorWindow::on_actionLaTex_triggered()
 {
     ui->console->clear();
-    QRegExp spaces(" \\d{2,}");
+    QRegExp spaces(" {2,}");
     QString output = "{\\ttfamily\n";
     QTextBlock b = ui->editor->document()->begin();
     int line = 1;
