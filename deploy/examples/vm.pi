@@ -1,0 +1,31 @@
+vm := code -> [
+   s := nil;
+   e := nil;
+   c := code;
+   d := nil;
+
+   popC := {
+      [h|t := c : c := t; h]
+      [    -    : nil      ]  
+   };
+
+   popS := {
+      [h|t := s : s := t; h]
+      [    -    : nil      ]  
+   };
+
+   pushS := val -> [
+      s := val & s;
+   ];
+
+
+   
+   step := op -> {
+      [ #LDC : pushS(popC()) ]
+   };
+   
+   while: [c != nil] do: [ step(popC()); log(c); ];
+   log(s);
+];
+
+vm(#(#LDC, #TEST));

@@ -1,0 +1,40 @@
+find := (list, key) -> {
+   [ head(list) = key : head(tail(list)) ]
+   [ list = nil : nil]
+   [ - : find(tail(tail(list)), key)]
+};
+
+Object := #(nil, 
+           #(
+               #print, (obj, params) -> log(tail(obj))
+            )
+);
+ValueHolder := #(Object, 
+           #(
+               #push, (obj, params) -> set(obj, 2, at(params, 1)),
+               #pop, (obj, params) -> at(obj, 2),
+            )
+);
+
+send:to:with: := (message,instance, params) -> [
+   call := class -> [
+      method := find(at(class, 2), message);
+      if: method = nil then: 
+      [
+         if: at(class, 1) = nil 
+         then: [log('Unkown method: ' & message);]
+         else: [call(at(class, 1)) ]
+      ]
+      else:
+      [
+         method(instance, params);
+      ]
+   ];
+   call(at(instance, 1));
+];
+
+obj := #(ValueHolder, nil);
+
+send: #print to: obj with: nil;
+send: #push to: obj with: 'Hallo Welt';
+send: #print to: obj with: nil;
