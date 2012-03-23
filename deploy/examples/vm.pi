@@ -1,31 +1,31 @@
-vm := code -> [
-   s := nil;
-   e := nil;
-   c := code;
-   d := nil;
+makeStack := initialValue -> #(initialValue);
+popStack := stack -> {
+      [h|t := head(stack) : setHead(stack, t); h]
+};
 
-   popC := {
-      [h|t := c : c := t; h]
-      [    -    : nil      ]  
-   };
+peekStack := stack -> {
+      [h|t := head(stack) : h]
+};
 
-   popS := {
-      [h|t := s : s := t; h]
-      [    -    : nil      ]  
-   };
-
-   pushS := val -> [
-      s := val & s;
-   ];
-
-
-   
-   step := op -> {
-      [ #LDC : pushS(popC()) ]
-   };
-   
-   while: [c != nil] do: [ step(popC()); log(c); ];
-   log(s);
+pushStack := (stack, value) -> [
+   setHead(stack, #(value) & head(stack));
 ];
 
-vm(#(#LDC, #TEST));
+vm := code -> [
+   s := makeStack();
+   e := makeStack();
+   c := makeStack(code);
+   d := makeStack();
+   
+   step := op -> {
+      [op = #LDC : pushStack(s, popStack(c)) ]
+      [op = #ADD : pushStack(s, popStack(s) + popStack(s)) ]
+   };
+
+  
+   while: [peekStack(c) != nil] do: [ step(popStack(c));  ];
+   popStack(s);
+];
+
+x := vm(#(#LDC, 1, #LDC 3, #ADD, #LDC, 5, #ADD));
+log(x);

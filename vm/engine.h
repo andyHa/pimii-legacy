@@ -378,12 +378,24 @@ private:
     /**
       Converts the given list into a string.
       */
-    QString printList(Atom atom);
+    QString printList(std::set<Atom>& visitedCells, Atom atom);
 
     /**
       Converts the given array into a string.
       */
-    QString printArray(Atom atom);
+    QString printArray(std::set<Atom>& visitedCells, Atom atom);
+
+    /**
+      Converts the given value to a string, while ignoring all visited cells
+      (to break on cycles)
+      */
+    QString toString(std::set<Atom>& visitedCells, Atom atom);
+
+    /**
+      Same as toString but with more friendly visualizations.
+      */
+    QString toSimpleString(std::set<Atom>& visitedCells, Atom atom);
+
 
     /**
       Compiles the given stream and handles all errors.

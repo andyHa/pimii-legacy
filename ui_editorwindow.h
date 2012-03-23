@@ -1,7 +1,7 @@
 /********************************************************************************
 ** Form generated from reading UI file 'editorwindow.ui'
 **
-** Created: Sun 19. Feb 20:11:44 2012
+** Created: Sun 18. Mar 21:36:55 2012
 **      by: Qt User Interface Compiler version 4.7.4
 **
 ** WARNING! All changes made in this file will be lost when recompiling UI file!
@@ -24,6 +24,7 @@
 #include <QtGui/QTextEdit>
 #include <QtGui/QToolBar>
 #include <QtGui/QWidget>
+#include <gui/codeedit.h>
 
 QT_BEGIN_NAMESPACE
 
@@ -39,13 +40,15 @@ public:
     QAction *action_Inspect_Selection;
     QAction *action_Terminate_Execution;
     QAction *actionClear;
+    QAction *actionLaTex;
     QWidget *centralwidget;
     QGridLayout *gridLayout_2;
-    QTextEdit *editor;
+    CodeEdit *editor;
     QMenuBar *menubar;
     QMenu *menuFile;
     QMenu *menuInterpreter;
     QMenu *menuConsole;
+    QMenu *menuExport;
     QStatusBar *statusbar;
     QToolBar *toolBar;
     QDockWidget *consoleDock;
@@ -103,13 +106,15 @@ public:
         QIcon icon8;
         icon8.addFile(QString::fromUtf8(":/pimii/window_black.png"), QSize(), QIcon::Normal, QIcon::Off);
         actionClear->setIcon(icon8);
+        actionLaTex = new QAction(EditorWindow);
+        actionLaTex->setObjectName(QString::fromUtf8("actionLaTex"));
         centralwidget = new QWidget(EditorWindow);
         centralwidget->setObjectName(QString::fromUtf8("centralwidget"));
         gridLayout_2 = new QGridLayout(centralwidget);
         gridLayout_2->setSpacing(0);
         gridLayout_2->setContentsMargins(0, 0, 0, 0);
         gridLayout_2->setObjectName(QString::fromUtf8("gridLayout_2"));
-        editor = new QTextEdit(centralwidget);
+        editor = new CodeEdit(centralwidget);
         editor->setObjectName(QString::fromUtf8("editor"));
         QFont font;
         font.setFamily(QString::fromUtf8("Consolas"));
@@ -128,6 +133,8 @@ public:
         menuInterpreter->setObjectName(QString::fromUtf8("menuInterpreter"));
         menuConsole = new QMenu(menubar);
         menuConsole->setObjectName(QString::fromUtf8("menuConsole"));
+        menuExport = new QMenu(menubar);
+        menuExport->setObjectName(QString::fromUtf8("menuExport"));
         EditorWindow->setMenuBar(menubar);
         statusbar = new QStatusBar(EditorWindow);
         statusbar->setObjectName(QString::fromUtf8("statusbar"));
@@ -236,6 +243,7 @@ public:
         menubar->addAction(menuFile->menuAction());
         menubar->addAction(menuInterpreter->menuAction());
         menubar->addAction(menuConsole->menuAction());
+        menubar->addAction(menuExport->menuAction());
         menuFile->addAction(action_New);
         menuFile->addSeparator();
         menuFile->addAction(action_Open);
@@ -247,6 +255,7 @@ public:
         menuInterpreter->addAction(action_Inspect_Selection);
         menuInterpreter->addAction(action_Terminate_Execution);
         menuConsole->addAction(actionClear);
+        menuExport->addAction(actionLaTex);
         toolBar->addAction(action_New);
         toolBar->addAction(action_Save);
         toolBar->addAction(actionSave_as);
@@ -281,9 +290,12 @@ public:
         action_Terminate_Execution->setShortcut(QApplication::translate("EditorWindow", "F7", 0, QApplication::UnicodeUTF8));
         actionClear->setText(QApplication::translate("EditorWindow", "Clear", 0, QApplication::UnicodeUTF8));
         actionClear->setShortcut(QApplication::translate("EditorWindow", "F8", 0, QApplication::UnicodeUTF8));
+        actionLaTex->setText(QApplication::translate("EditorWindow", "LaTex", 0, QApplication::UnicodeUTF8));
+        actionLaTex->setShortcut(QApplication::translate("EditorWindow", "Ctrl+L", 0, QApplication::UnicodeUTF8));
         menuFile->setTitle(QApplication::translate("EditorWindow", "File", 0, QApplication::UnicodeUTF8));
         menuInterpreter->setTitle(QApplication::translate("EditorWindow", "Interpreter", 0, QApplication::UnicodeUTF8));
         menuConsole->setTitle(QApplication::translate("EditorWindow", "Console", 0, QApplication::UnicodeUTF8));
+        menuExport->setTitle(QApplication::translate("EditorWindow", "Export", 0, QApplication::UnicodeUTF8));
         toolBar->setWindowTitle(QApplication::translate("EditorWindow", "toolBar", 0, QApplication::UnicodeUTF8));
         consoleDock->setWindowTitle(QApplication::translate("EditorWindow", "Console", 0, QApplication::UnicodeUTF8));
     } // retranslateUi

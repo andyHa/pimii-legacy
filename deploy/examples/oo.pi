@@ -4,37 +4,68 @@ find := (list, key) -> {
    [ - : find(tail(tail(list)), key)]
 };
 
-Object := #(nil, 
-           #(
-               #print, (obj, params) -> log(tail(obj))
-            )
-);
-ValueHolder := #(Object, 
-           #(
-               #push, (obj, params) -> set(obj, 2, at(params, 1)),
-               #pop, (obj, params) -> at(obj, 2),
-            )
-);
+getInstVar := (obj, nr) -> at(obj, nr + 1);
+setInstVar := (obj, nr, value) -> set(obj, nr + 1, value);
+
 
 send:to:with: := (message,instance, params) -> [
    call := class -> [
-      method := find(at(class, 2), message);
+      method := find(getInstVar(class, 1), message);
       if: method = nil then: 
       [
-         if: at(class, 1) = nil 
+         if: getInstVar(class, 2) = nil 
          then: [log('Unkown method: ' & message);]
-         else: [call(at(class, 1)) ]
+         else: [call(getInstVar(class, 2)) ]
       ]
       else:
       [
          method(instance, params);
       ]
    ];
+
    call(at(instance, 1));
 ];
 
-obj := #(ValueHolder, nil);
+send:to: := (message, instance) -> [
+   send: message to: instance with: nil;
+];
 
-send: #print to: obj with: nil;
-send: #push to: obj with: 'Hallo Welt';
-send: #print to: obj with: nil;
+
+Class := #(nil, #(
+   #subclass,  (obj, params) -> #(Class, #(), obj, params, #()), 
+   #addMethod, (obj, params) -> set(obj, 2, at(obj, 2) & params)
+   #print, (obj, params) -> log(getInstVar(obj, 3))
+), nil, #Class, #('methods', 'superclass', 'name', 'fields'));
+
+set(Class, 1, Class);
+
+Object := send: #subclass to: Class with: #Object;
+setInstVar(Class, 2, Object);
+send: #addMethod to: Object with: #(#print, (obj, params) -> log('Instance<' & getInstVar(at(obj, 1), 3) &'>'));
+send: #addMethod to: Object with: #(#class, (obj, params) -> at(obj, 1));
+send: #addMethod to: Object with: #(#make, (obj, params) -> #(obj) & params);
+
+//Object := #(Class,
+//           #(
+//               #class, (obj, params) -> at(obj, 1),
+//               #make, (obj, params) -> #(obj) & params,
+//               #print, (obj, params) -> log('Instance<' & getInstVar(at(obj, 1), 3) &'>')
+//            ), nil, #Object
+//);
+
+
+ValueHolder := send: #subclass to: Object with: #ValueHolder;
+send: #addMethod to: ValueHolder with: #(#read, (obj, params) -> getInstVar(obj, 1));
+send: #addMethod to: ValueHolder with: #(#write, (obj, params) -> setInstVar(obj, 1, params));
+send: #addMethod to: ValueHolder with: #(#print, (obj, params) -> log(getInstVar(obj, 1)));
+
+
+send: #print to: ValueHolder;
+x := send: #make to: ValueHolder with: 'Test';
+send: #print to: x;
+send: #write to: x with: 'Hallo';
+log(send: #read to: x);
+send: #print to: x;
+
+VH := Object subclass: #ValueHolder;
+VH addMethod: #print with: this -> log($value);

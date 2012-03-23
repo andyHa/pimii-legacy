@@ -153,7 +153,7 @@ void Compiler::expression() {
         inlineDefinition();
     } else if (tokenizer.isCurrent(TT_L_CURLY))
     {
-        generateGuardedFunctionCode();
+        directGuardedDefinition();
     } else {
         basicExp();
     }
@@ -277,6 +277,14 @@ void Compiler::inlineDefinition() {
     symbolTable.insert(symbolTable.begin(), symbols);
     addCode(SYMBOL_OP_LDF);
     generateFunctionCode(true, true);
+    symbolTable.erase(symbolTable.begin());
+    delete symbols;
+}
+
+void Compiler::directGuardedDefinition() {
+    std::vector<QString>* symbols = new std::vector<QString>();
+    symbolTable.insert(symbolTable.begin(), symbols);
+    generateGuardedFunctionCode();
     symbolTable.erase(symbolTable.begin());
     delete symbols;
 }

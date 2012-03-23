@@ -1098,35 +1098,35 @@ void Engine::call(Atom list) {
     push(p, storage.makeCons(currentFile, storage.makeNumber(currentLine)));
 }
 
-QString Engine::printList(Atom atom) {
+QString Engine::printList(std::set<Atom>& visitedCells, Atom atom) {
     QString sb("");
     Cell cons = storage.getCons(atom);
-    sb += QString("(") + toString(cons.car);
+    sb += QString("(") + toString(visitedCells, cons.car);
     if (isCons(cons.cdr) || isNil(cons.cdr)) {
         Atom val = cons.cdr;
         while (isCons(val)) {
             cons = storage.getCons(val);
-            sb += " " + toString(cons.car);
+            sb += " " + toString(visitedCells, cons.car);
             val = cons.cdr;
         }
         if (!isCons(val) && !isNil(val)) {
-            sb += " " + toString(val);
+            sb += " " + toString(visitedCells, val);
         }
     } else {
-        sb += "." + toString(cons.cdr);
+        sb += "." + toString(visitedCells, cons.cdr);
     }
     sb += ")";
     return sb;
 }
 
-QString Engine::printArray(Atom atom) {
+QString Engine::printArray(std::set<Atom>& visitedCells, Atom atom) {
     QString sb("");
     Array* array = storage.getArray(atom);
     sb += QString("[");
     if (array->length() > 0) {
-        sb += toString(array->at(1));
+        sb += toString(visitedCells, array->at(1));
         for(int i = 2; i <= array->length(); i++) {
-            sb += " " + toString(array->at(i));
+            sb += " " + toString(visitedCells, array->at(i));
         }
     }
     sb += "]";
@@ -1134,6 +1134,10 @@ QString Engine::printArray(Atom atom) {
 }
 
 QString Engine::toString(Atom atom) {
+    std::set<Atom> visited;
+    return toString(visited, atom);
+}
+QString Engine::toString(std::set<Atom>& visitedCells, Atom atom) {
     if (isNil(atom)) {
         return QString("NIL");
     }
@@ -1156,9 +1160,19 @@ QString Engine::toString(Atom atom) {
     case TAG_TYPE_SYMBOL:
         return QString("#") + storage.getSymbolName(atom);
     case TAG_TYPE_CONS:
-        return printList(atom);
+        if (visitedCells.find(atom) != visitedCells.end()) {
+            return " <<LOOP!>> ";
+        } else {
+            visitedCells.insert(atom);
+        }
+        return printList(visitedCells, atom);
     case TAG_TYPE_ARRAY:
-        return printArray(atom);
+        if (visitedCells.find(atom) != visitedCells.end()) {
+            return " <<LOOP!>> ";
+        } else {
+            visitedCells.insert(atom);
+        }
+        return printArray(visitedCells, atom);
     case TAG_TYPE_REFERENCE:
         return storage.getReference(atom)->toString();
     default:
@@ -1167,6 +1181,10 @@ QString Engine::toString(Atom atom) {
 }
 
 QString Engine::toSimpleString(Atom atom) {
+    std::set<Atom> visited;
+    return toSimpleString(visited, atom);
+}
+QString Engine::toSimpleString(std::set<Atom>& visitedCells, Atom atom) {
     if (isNil(atom)) {
         return QString("");
     }
@@ -1189,9 +1207,19 @@ QString Engine::toSimpleString(Atom atom) {
     case TAG_TYPE_SYMBOL:
         return storage.getSymbolName(atom);
     case TAG_TYPE_CONS:
-        return printList(atom);
+        if (visitedCells.find(atom) != visitedCells.end()) {
+            return " <<LOOP!>> ";
+        } else {
+            visitedCells.insert(atom);
+        }
+        return printList(visitedCells, atom);
     case TAG_TYPE_ARRAY:
-        return printArray(atom);
+        if (visitedCells.find(atom) != visitedCells.end()) {
+            return " <<LOOP!>> ";
+        } else {
+            visitedCells.insert(atom);
+        }
+        return printArray(visitedCells, atom);
     case TAG_TYPE_REFERENCE:
         return storage.getReference(atom)->toString();
     default:

@@ -258,6 +258,11 @@ private:
     void inlineDefinition();
 
     /**
+      Compiles a guarded function w/o parameters:  f := { [x > 3 : ...] };
+      */
+    void directGuardedDefinition();
+
+    /**
       Compiles a guarded function: {[x > 3 : ...]}
       */
     void generateGuardedFunctionCode();
