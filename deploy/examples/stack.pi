@@ -1,0 +1,28 @@
+makeStack := [
+   #(nil)
+];
+
+popStack := stack -> {
+   [h|t := head(stack) : setHead(stack, t); h ]
+   [       -           : nil                  ]
+};
+
+pushStack := (stack, value) -> [
+   setHead(stack, #(value) & head(stack));
+];
+
+s := makeStack();
+pushStack(s, 3);
+pushStack(s, 1);
+pushStack(s, 2);
+
+log(popStack(s));
+log(popStack(s));
+log(popStack(s));
+log(popStack(s));
+log(popStack(s));
+
+pushStack(s, 2);
+
+log(popStack(s));
+log(popStack(s));

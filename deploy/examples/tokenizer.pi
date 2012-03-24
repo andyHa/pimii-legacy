@@ -1,0 +1,109 @@
+isUpperCase := s -> s >= 'A' && s <= 'Z';
+
+isLowerCase := s -> s >= 'a' && s <= 'z';
+
+isDigit := s -> s >= '0' && s <= '9';
+
+isChar := s -> isLowerCase(s) || isUpperCase(s);
+
+isCharOrDigit := s -> isChar(s) || isDigit(s);
+
+
+tokenizer := text -> [
+   index := 1;
+   length := strLength(text);
+   currentChar := strPart(text, index, 1);
+   
+   nextChar := {
+      [ index <= length : 
+           index := index + 1; 
+           currentChar := strPart(text, index, 1) 
+      ]
+      [ - : currentChar := '' ]
+   };
+
+   atEnd := [ currentChar = '' ];
+
+   tokenize := {
+      [ currentChar = '+' : nextChar(); #(#PLUS, '+') ]
+      [ currentChar = '-' : nextChar(); #(#MINUS, '-') ]
+      [ currentChar = '*' : nextChar(); #(#TIME, '*') ]
+      [ currentChar = '/' : nextChar(); #(#DIV, '/') ]
+      [ currentChar = '(' : nextChar(); #(#OPEN, '(') ]
+      [ currentChar = ')' : nextChar(); #(#CLOSE, ')') ]
+      [ isDigit(currentChar) : 
+           token := currentChar;
+           while: [ isDigit(nextChar()) ] 
+              do: [ token := token & currentChar ];
+           #(#NUMBER, parse(token)); 
+      ]
+      [ isChar(currentChar) : 
+           token := currentChar;
+           while: [ nextChar() != ' ' && !atEnd() ] 
+              do: [ token := token & currentChar ];
+           #(#IDENTIFIER, token); 
+      ]
+      [ currentChar = '"' : 
+           token := '';
+           while: [ nextChar() != '"' && !atEnd() ] 
+              do: [ token := token & currentChar ];
+           nextChar();
+           #(#STRING, token); 
+      ]
+      [  - : 
+            lastChar := currentChar; 
+            nextChar(); 
+            #(#UNKNOWN, lastChar) 
+      ]      
+   };
+
+   tokens := #();
+   result := #(tokens);
+
+   while: [ currentChar != '' ] do: [
+      // Skip whitespaces..
+      while: [ currentChar = ' ' ] 
+         do: [ nextChar() ]; 
+      // Append next token to list...
+      tokens := append(tokens, tokenize());
+   ];
+
+   tokens;
+];
+
+x := tokenizer('print-it (+ 4 5)');
+
+transform := tokens -> [
+   current := #();
+   stack := #(current);
+
+   each: tokens do: t -> {
+       [ head(t) = #OPEN : 
+            stack := prepend(current, stack); 
+            current := #() 
+       ]  
+       [ head(t) = #CLOSE && top|rest := stack : 
+            current := append(top, current); 
+            stack := rest 
+       ]  
+       [ - : current := append(current, t) ]  
+   };
+
+   current;
+];
+
+transform(x);
+
+compileList := (name, params, n, c) -> {
+   [ name = '+' : 
+};
+
+compile := (e, n, c) := {
+   [ head(e) = #NUMBER || head(e) = #STRING : at(e, 2) & #LDC & c ]
+   [ head(e) = #IDENTIFIER : index(e, n) & #LD & c ]  
+   [ isList(e) : 
+      name := head(head(e));
+      params := tail(e);
+      compileList(name, params, n, c);
+   ]
+}

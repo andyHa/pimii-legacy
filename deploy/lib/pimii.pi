@@ -292,20 +292,35 @@ isStartOf ::= (subList, list) -> {
 };
 
 // ---------------------------------------------------------------------------
-// Adds a list to a list of lists. Unlike the & operator, this won't return
-// a list, which contains all items of both given lists, but returns a list
-// with one new child, which is the given list.
+// Appends the given child to the given list. Unlike the & operator, this won't
+// return join them if both parameters were lists, but still add the list child
+// as last element of the given list.
 //
-// Param: listOfLists  - The given collection of lists.
-// Param: child        - The list which is to be appended to the given
-//                       list of lists.
-// Returns: A list which contains all lists of "listOfLists" and additionally
-//          child as sub list.
+// Param: list  - The given list to append child to.
+// Param: child - The child which will be appended to the list.
+// Returns: A list which contains all items of "list" and additionally
+//          child as last item.
 // ---------------------------------------------------------------------------
-listConcat ::= (listOfLists, child) -> {
-   [ isNil(child) : listOfLists ]
-   [ isNil(listOfLists) : #(child) ]
-   [      -       : listOfLists & #(child) ]
+append ::= (list, child) -> {
+   [ isNil(child) : list ]
+   [ isNil(list) : #(child) ]
+   [      -       : list & #(child) ]
+};
+
+// ---------------------------------------------------------------------------
+// Prepends the given child to the given list. Unlike the & operator, this won't
+// return join them if both parameters were lists, but still add the list child
+// as first element of the given list.
+//
+// Param: list  - The given list to prepend child to.
+// Param: child - The child which will be prepended to the list.
+// Returns: A list which contains all items of "list" and additionally
+//          child as first item.
+// ---------------------------------------------------------------------------
+prepend ::= (child, list) -> {
+    [ isNil(child) : list ]
+    [ isNil(list) : #(child) ]
+    [      -       : #(child) & list ]
 };
 
 // ---------------------------------------------------------------------------
@@ -319,10 +334,10 @@ listConcat ::= (listOfLists, child) -> {
 split ::= (key, list) -> [
     iterator := (collection, currentList, list) -> {
         [ h|t := list && h = key :
-            iterator(listConcat(collection, currentList), #(), t)
+            iterator(append(collection, currentList), #(), t)
         ]
         [ h|t := list :  iterator(collection, currentList & h, t) ]
-        [ - : listConcat(collection, currentList) ]
+        [ - : append(collection, currentList) ]
     };
     iterator(#(), #(), list);
 ];
