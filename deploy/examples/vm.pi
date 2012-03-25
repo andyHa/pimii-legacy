@@ -1,15 +1,4 @@
-makeStack := initialValue -> #(initialValue);
-popStack := stack -> {
-      [h|t := head(stack) : setHead(stack, t); h]
-};
-
-peekStack := stack -> {
-      [h|t := head(stack) : h]
-};
-
-pushStack := (stack, value) -> [
-   setHead(stack, #(value) & head(stack));
-];
+include('lib/stack.pi');
 
 vm := code -> [
    s := makeStack();
@@ -18,14 +7,56 @@ vm := code -> [
    d := makeStack();
    
    step := op -> {
-      [op = #LDC : pushStack(s, popStack(c)) ]
-      [op = #ADD : pushStack(s, popStack(s) + popStack(s)) ]
+      [op = #NIL  : pushStack(s, nil) ]
+      [op = #LDC  : pushStack(s, popStack(c)) ]
+      [op = #LD   : 
+         location := popStack(c);
+         pushStack(s, at(tail(location), at(head(location), e))); 
+      ]
+      [op = #ADD  : pushStack(s, popStack(s) + popStack(s)) ]
+      [op = #SUB  : pushStack(s, popStack(s) - popStack(s)) ]
+      [op = #EQ  : pushStack(s, popStack(s) = popStack(s)) ]
+      [op = #NE  : pushStack(s, popStack(s) != popStack(s)) ]
+      [op = #CAR  : pushStack(s, head(popStack(s))) ]
+      [op = #CDR  : pushStack(s, tail(popStack(s))) ]
+      [op = #CONS : pushStack(s, makePair(popStack(s), popStack(s))) ]
+      [op = #SEL  : 
+         ct := popStack(c);
+         cf := popStack(c);
+         pushStack(d, c);
+         if: popStack(s) then: [ c := makeStack(ct) ]
+                         else: [ c := makeStack(cf) ]
+      ]
+      [op = #JOIN : c := popStack(d) ]
+      [op = #LDF  : 
+         f := popStack(c);
+         pushStack(s, makePair(f, e));
+      ]
+      [op = #AP   : 
+         f := popStack(s);
+         p := popStack(s);
+         pushStack(d, c);
+         pushStack(d, e);
+         pushStack(d, s);
+         s := makeStack();
+         e := makeStack(prepend(p, tail(f))); 
+         c := makeStack(head(f));
+      ]
+      [op = #RTN   : 
+         r := popStack(s);
+         s := popStack(d);
+         e := popStack(d);
+         c := popStack(d);
+         pushStack(s, r);
+      ]
+      [op = #STOP : c := makeStack(); ]
+      [op = #LOG  : log(popStack(s)); ]
    };
-
   
-   while: [peekStack(c) != nil] do: [ step(popStack(c));  ];
+   while: [ peekStack(c) != nil ]
+      do: [ step(popStack(c))   ];
+
    popStack(s);
 ];
 
-x := vm(#(#LDC, 1, #LDC 3, #ADD, #LDC, 5, #ADD));
-log(x);
+x := vm(#(#LDC, 1, #LDC 3, #NE, #SEL, #(#LDC, 5, #JOIN), #(#LDC, 8, #JOIN), #LOG));
