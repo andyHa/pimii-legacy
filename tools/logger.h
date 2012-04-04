@@ -84,10 +84,6 @@ private:
       Contains all know appenders.
       */
     static std::set<Appender*> appenders;
-    /**
-     Maps names to all known loggers.
-     */
-    static std::map<QString, Logger*> instances;
 
     /**
       A Logger cannot be copied.
@@ -95,10 +91,12 @@ private:
     Logger(const Logger&);
     Logger& operator =(const Logger&);
 public:
+
     /**
-      Represents the level of this logger.
+      Represents the level of the logging-system
       */
-    Level level;
+    static Level level;
+
     /**
       Contains the name of this logger.
       */
@@ -122,12 +120,12 @@ public:
     /**
       Sets the level of the given logger.
       */
-    static void setLevel(const QString& name, Level level);
+    static void setLevel(Level level);
 
     /**
       Determines the level of the given logger.
       */
-    static Level getLevel(const QString& name);
+    static Level getLevel();
 
     /**
       Creates a new logger.

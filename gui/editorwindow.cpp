@@ -25,7 +25,7 @@ EditorWindow::EditorWindow(Engine* engine, QWidget *parent) :
             this, SLOT(onEnginePanic(Atom,Word,QString,QString)));
 }
 
-void EditorWindow::append(const QString& msg, const QString& pos) {
+void EditorWindow::append(const QString& msg, const QString&) {
     ui->console->insertPlainText(msg);
     ui->console->insertPlainText("\n");
     ui->console->verticalScrollBar()->setSliderPosition(
@@ -40,8 +40,8 @@ void EditorWindow::onEngineStopped() {
     status->setText(" STOPPED ");
 }
 
-void EditorWindow::onEnginePanic(Atom file,
-                                 Word line,
+void EditorWindow::onEnginePanic(Atom,
+                                 Word,
                                  const QString &error,
                                  const QString &status) {
     ui->console->insertPlainText(error);

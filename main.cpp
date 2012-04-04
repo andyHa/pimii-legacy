@@ -77,8 +77,6 @@ int main(int argc, char *argv[])
     window->show();
     engine.initialize();
 
-    Logger::setLevel("STORE", INFO);
-
     // Tries to find and load the "start.pi" file.
     loadStartupScript(engine);
 

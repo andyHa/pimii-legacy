@@ -1232,7 +1232,7 @@ void Engine::initializeBIF() {
     FilesExtension::INSTANCE->registerBuiltInFunctions(this);
 }
 
-void Engine::setValue(Atom name, Atom value) {
+void Engine::setValue(Atom, Atom) {
 
 }
 

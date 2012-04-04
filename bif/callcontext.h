@@ -194,6 +194,7 @@ public:
                       intToString(currentIndex),
                       QString(file),
                       intToString(line)));
+            return 0.0;
         }
     }
 

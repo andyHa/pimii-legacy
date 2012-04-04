@@ -23,8 +23,7 @@
 #include <iostream>
 
 std::set<Appender*> Logger::appenders;
-std::map<QString, Logger*> Logger::instances;
-
+Level Logger::level;
 void Logger::log(const QString& msg, const QString& pos) {
     for(std::set<Appender*>::iterator
         iter = appenders.begin();
@@ -47,29 +46,17 @@ void Logger::removeAppender(Appender* a) {
     appenders.erase(a);
 }
 
-void Logger::setLevel(const QString& name, Level level) {
-    std::map<QString, Logger*>::iterator i = instances.find(name);
-    if (i != instances.end()) {
-        (*i).second->level = level;
-    }
+void Logger::setLevel(Level newlevel) {
+    level = newlevel;
 }
 
-Level Logger::getLevel(const QString& name) {
-    std::map<QString, Logger*>::iterator i = instances.find(name);
-    if (i != instances.end()) {
-        return (*i).second->level;
-    }
-    return ERROR;
+Level Logger::getLevel() {
+    return level;
 }
 
 Logger::Logger(const QString& loggerName) : name(loggerName) {
-    level = INFO;
-    instances[name] = this;
 }
 
 Logger::~Logger() {
-    std::map<QString, Logger*>::iterator i = instances.find(name);
-    if (i != instances.end()) {
-        instances.erase(i);
-    }
+
 }

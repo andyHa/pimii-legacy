@@ -49,7 +49,7 @@ typedef Word Atom;
 /**
   Used to extract the tag from an atom.
   */
-const Word TAG_MASK        = 0b1111;
+const Word TAG_MASK        = 0xF;
 
 /**
   Used for bit shifting when tagging and untagging atoms.
@@ -70,66 +70,66 @@ const Word EFFECTIVE_BITS = NUMBER_OF_BITS - TAG_LENGTH;
 /**
   This type is only used once for the constant NIL pointer.
   */
-const Word TAG_TYPE_NIL    = 0b0000;
+const Word TAG_TYPE_NIL    = 0x0;
 
 /**
   Declares that the data part of the atom is a pointer into the symbol
   table.
   */
-const Word TAG_TYPE_SYMBOL = 0b0001;
+const Word TAG_TYPE_SYMBOL = 0x1;
 
 /**
   Declares that the data part of the atom is a n-bit (see below)
   signed integer
   */
-const Word TAG_TYPE_NUMBER = 0b0010;
+const Word TAG_TYPE_NUMBER = 0x2;
 
 /**
   Declares that the data part of the atom is a pointer into a cell space.
   */
-const Word TAG_TYPE_CONS   = 0b0011;
+const Word TAG_TYPE_CONS   = 0x3;
 
 /**
   Declares that the data part of the atom is a pointer into the bif
   (built in functions) table.
   */
-const Word TAG_TYPE_BIF    = 0b0100;
+const Word TAG_TYPE_BIF    = 0x4;
 
 /**
   Declares that the data part of the atom is a pointer into the globals
   table.
   */
-const Word TAG_TYPE_GLOBAL = 0b0101;
+const Word TAG_TYPE_GLOBAL = 0x5;
 
 /**
   Declares that the data part of the atom is a pointer into the string
   table.
   */
-const Word TAG_TYPE_STRING  = 0b0110;
+const Word TAG_TYPE_STRING  = 0x6;
 
 /**
   Declares that the data part of the atom is a pointer into the large number
   table.
   */
-const Word TAG_TYPE_LARGE_NUMBER  = 0b0111;
+const Word TAG_TYPE_LARGE_NUMBER  = 0x7;
 
 /**
   Declares that the data part of the atom is a pointer into the decimal
   number table.
   */
-const Word TAG_TYPE_DECIMAL_NUMBER  = 0b1000;
+const Word TAG_TYPE_DECIMAL_NUMBER  = 0x8;
 
 /**
   Declares that the data part of the atom is a pointer into the
   reference table.
   */
-const Word TAG_TYPE_REFERENCE  = 0b1001;
+const Word TAG_TYPE_REFERENCE  = 0x9;
 
 /**
   Declares that the data part of the atom is a pointer into the
   reference table.
   */
-const Word TAG_TYPE_ARRAY  = 0b1010;
+const Word TAG_TYPE_ARRAY  = 0xA;
 
 /**
   Contains the highest table index for symbols, bifs, globals and values.
