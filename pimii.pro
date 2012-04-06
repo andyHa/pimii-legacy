@@ -65,6 +65,8 @@ FORMS += \
 RESOURCES += \
     gui/resources.qrc
 
+ICON = gui/pimii.icns
+
 
 
 

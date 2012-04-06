@@ -11,6 +11,7 @@
 
 // Output some info...
 log('pimii ' & wordsize() & 'bit VM - Version: ' & version());
+
 // Load the main library by default.
 log('Loading: lib/pimii.pi');
 include('lib/pimii.pi');

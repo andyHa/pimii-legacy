@@ -72,6 +72,9 @@ int main(int argc, char *argv[])
 {    
     QApplication a(argc, argv);
     QSettings settings("pimii","pimii");
+
+    Logger::setLevel(INFO);
+
     Engine engine(&settings);
     window = new EditorWindow(&engine);
     window->show();
