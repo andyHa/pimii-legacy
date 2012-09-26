@@ -67,6 +67,7 @@ void Highlighter::highlightBlock(const QString &text)
     if (data != NULL) {
         numberOfOpenBraces = data->numBraces;
     }
+
     Tokenizer tokenizer(text, false);
     InputToken t = tokenizer.fetch();
     while (t.type != TT_EOF) {
