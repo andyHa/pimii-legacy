@@ -585,6 +585,43 @@ strSplit ::= (separator, string) -> [
 ];
 
 // ---------------------------------------------------------------------------
+// Determines if the first character of the given string is a digit (0..9)
+// ---------------------------------------------------------------------------
+isDigit ::= char -> '0' <= char <= '9';
+
+// ---------------------------------------------------------------------------
+// Determines if the first character of the given string is a lower case
+// letter (a..z)
+// ---------------------------------------------------------------------------
+isLower ::= char -> 'a' <= char <= 'z';
+
+// ---------------------------------------------------------------------------
+// Determines if the first character of the given string is a upper case
+// letter (A..Z)
+// ---------------------------------------------------------------------------
+isUpper ::= char -> 'A' <= char <= 'Z';
+
+// ---------------------------------------------------------------------------
+// Determines if the first character of the given string is a whitespace,
+// which is a space, a tab or a linebreak.
+// ---------------------------------------------------------------------------
+isWhitespace ::= char -> char = ' ' ||
+                 ascii(char) = 13 ||
+                 ascii(char) = 10 ||
+                 ascii(char) = 9;
+
+// ---------------------------------------------------------------------------
+// Determines if the first character of the given string is a letter
+// ---------------------------------------------------------------------------
+isLetter ::= char -> isLower(char) || isUpper(char);
+
+// ---------------------------------------------------------------------------
+// Determines if the first character of the given string is a
+// letter or a digit.
+// ---------------------------------------------------------------------------
+isLetterOrDigit ::= char -> isCharacter(char) || isDigit(char);
+
+// ---------------------------------------------------------------------------
 // EXTENDED TOOLS
 // ---------------------------------------------------------------------------
 

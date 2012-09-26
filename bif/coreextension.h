@@ -199,6 +199,23 @@ private:
     static void bif_writeSetting(const CallContext& ctx);
 
     /**
+      Returns the numeric acsii code
+      for the first character in the given String
+
+        ascii := (char : String) -> Integer
+
+     */
+    static void bif_ascii(const CallContext& ctx);
+
+    /**
+      Returns the character for the given ascii code
+
+        char := (code : Integer) -> String
+
+     */
+    static void bif_char(const CallContext& ctx);
+
+    /**
       Fetches a QVariant from the given context.
       */
     static QVariant fetchQVariant(const CallContext& ctx,

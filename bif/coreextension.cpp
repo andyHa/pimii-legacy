@@ -35,7 +35,8 @@ void CoreExtension::registerBuiltInFunctions(Engine* engine) {
     // String functions
     engine->makeBuiltInFunction("strLength", bif_strlen);
     engine->makeBuiltInFunction("strPart", bif_substr);
-    //Split, Explode, Implode
+    engine->makeBuiltInFunction("ascii", bif_ascii);
+    engine->makeBuiltInFunction("char", bif_char);
 
     // Maths
     //cos sin sqrt round floor ceil pow
@@ -139,6 +140,14 @@ void CoreExtension::bif_typeOf(const CallContext& ctx) {
 
 void CoreExtension::bif_symbol(const CallContext& ctx) {
     ctx.setResult(ctx.storage->makeSymbol(ctx.fetchString(BIF_INFO)));
+}
+
+void CoreExtension::bif_ascii(const CallContext& ctx) {
+    ctx.setNumberResult(ctx.fetchString(BIF_INFO).at(0).toAscii());
+}
+
+void CoreExtension::bif_char(const CallContext& ctx) {
+    ctx.setStringResult(QString(QChar(ctx.fetchNumber(BIF_INFO))));
 }
 
 void CoreExtension::bif_asString(const CallContext& ctx) {
