@@ -1,0 +1,21 @@
+include('lib/pimii.pi');
+
+ignoreWhitespace := s -> [
+   while: [strLength(s) > 0 && (strStartsWith(' ',s)  || 
+                                strStartsWith('\n',s) || 
+                                strStartsWith('\r',s) || 
+                                strStartsWith('\t',s))] 
+   do: [
+      s := strLeft(s, -1);
+   ];
+   s;
+];
+
+tokenize := s -> [
+   list := #();
+   while: [strLength(s) > 0] do: [
+      s := ignoreWhitepsace(s);
+   ];
+];
+
+s := ignoreWhitespace('   (+ 1 1)');
