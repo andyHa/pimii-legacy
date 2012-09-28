@@ -14,7 +14,11 @@ vm := code -> [
          pushStack(s, at(tail(location), at(head(location), e))); 
       ]
       [op = #ADD  : pushStack(s, popStack(s) + popStack(s)) ]
-      [op = #SUB  : pushStack(s, popStack(s) - popStack(s)) ]
+      [op = #SUB  : 
+         b := popStack(s);
+         a := popStack(s);
+         pushStack(s, a - b) 
+      ]
       [op = #EQ  : pushStack(s, popStack(s) = popStack(s)) ]
       [op = #NE  : pushStack(s, popStack(s) != popStack(s)) ]
       [op = #CAR  : pushStack(s, head(popStack(s))) ]
@@ -59,4 +63,14 @@ vm := code -> [
    popStack(s);
 ];
 
-x := vm(#(#LDC, 1, #LDC 3, #NE, #SEL, #(#LDC, 5, #JOIN), #(#LDC, 8, #JOIN), #LOG));
+s := '+ (- 14 2) 3';
+
+t := tokenize(s);
+
+log(t);
+
+c := comp(t);
+
+
+log(c);
+x := vm(c & #LOG);

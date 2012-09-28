@@ -1,21 +1,90 @@
 include('lib/pimii.pi');
+include('lib/stack.pi');
 
-ignoreWhitespace := s -> [
-   while: [strLength(s) > 0 && (strStartsWith(' ',s)  || 
-                                strStartsWith('\n',s) || 
-                                strStartsWith('\r',s) || 
-                                strStartsWith('\t',s))] 
-   do: [
-      s := strLeft(s, -1);
-   ];
-   s;
-];
+
+detectTokenType := c -> {
+  [ isLetter(c) : #IDENT ]
+  [ isDigit(c) : #NUMBER ]
+  [ isWhitespace(c) : #SEEK ]
+  [ c = '(' : #L ]
+  [ c = '"' : #STRING ]
+  [ c = ')' : #R ]
+  [ c = '+' : #ADD ]
+  [ c = '-' : #SUB ]
+  [ c = '*' : #MUL ]
+  [ c = '/' : #DIV ]
+  [ - : #SPECIAL ]
+};
+
+initToken := (mode, c) -> {
+  [ mode = #STRING : '' ]
+  [ - : c ]
+};
+
+convert := (mode, c) -> {
+  [ mode = #NUMBER : #(mode, parse(c)) ]
+  [ - : #(mode, c) ]
+};
+
 
 tokenize := s -> [
-   list := #();
-   while: [strLength(s) > 0] do: [
-      s := ignoreWhitepsace(s);
-   ];
+
+   mode := #SEEK;
+   result := makeStack(#());
+   token := '';
+
+   output := {
+      [ mode = #L : pushStack(result, #()) ]
+      [ mode = #R :
+         sublist := popStack(result);
+         pushStack(result, append(popStack(result), sublist));
+      ] 
+      [ mode != #SEEK : pushStack(result, append(popStack(result), convert(mode, token))) ]
+   };
+
+   eachChar: s do: c -> {
+     [ mode = #STRING && '"' != c : token := token & c ]
+     [ mode = #STRING && '"' = c : output(); mode := #SEEK ]
+     [ mode = #IDENT && isLetter(c) : token := token & c]
+     [ mode = #NUMBER && isDigit(c) : token := token & c ]
+     [ - : 
+        output();
+        mode := detectTokenType(c);
+        token := initToken(mode, c);
+     ]
+   };
+   output();
+   popStack(result);
 ];
 
-s := ignoreWhitespace('   (+ 1 1)');
+s := '+ (* 2 2) 3';
+
+c := tokenize(s);
+
+comp := code -> [
+   bytecode := #();
+   
+   compileList := #();
+
+   compileAtom := code -> {
+      [ isList(head(code)) : compileList(head(code), tail(code))]
+      [ head(code) = #IDENT : lookup(code) ]
+      [ - : bytecode := bytecode & #LDC & tail(code)]
+   };   
+
+   compileList := (h, t) -> [
+      log('ex');
+      each: t do: sub -> compileAtom(sub);
+      log(h);
+      bytecode := bytecode & head(h);
+   ];
+
+   compileAtom(code);
+
+bytecode;
+];
+
+
+comp(c);
+
+
