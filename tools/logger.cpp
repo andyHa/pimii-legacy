@@ -32,8 +32,8 @@ void Logger::log(const QString& msg, const QString& pos) {
     {
         (*iter)->append(msg, pos);
     }
-    std::wcout << msg.toStdWString() <<
-                  " (" << pos.toStdWString() << ")" <<
+    std::cout << msg.toStdString().c_str()<<
+                  " (" << pos.toStdString().c_str()<< ")" <<
                   std::endl;
 }
 

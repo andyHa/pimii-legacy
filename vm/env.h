@@ -33,11 +33,16 @@
 #include <QMetaType>
 
 /**
+  Represents an integer number. Should match the definition of Word.
+  */
+typedef long Number;
+
+/**
   Represents a machine word. According to the C++ standard, int should be
   one word in size. If not, only this type needs to be redefined but all
   uses remain valid.
   */
-typedef unsigned int Word;
+typedef unsigned long Word;
 
 /**
   An atom is the memory unit with the finest granularity. This value is
@@ -134,17 +139,17 @@ const Word TAG_TYPE_ARRAY  = 0xA;
 /**
   Contains the highest table index for symbols, bifs, globals and values.
   */
-const Word MAX_INDEX_SIZE =  1 << EFFECTIVE_BITS;
+const Word MAX_INDEX_SIZE =  static_cast<Word>(1) << EFFECTIVE_BITS;
 
 /**
   Computes the upper limit of number which can be stored in atoms.
   */
-const int MAX_SMALL_INT_SIZE = (1 << (EFFECTIVE_BITS - 1)) - 1;
+const Number MAX_SMALL_INT_SIZE = (static_cast<Number>(1) << (EFFECTIVE_BITS - 1)) - static_cast<Number>(1);
 
 /**
   Computes the lower limit of number which can be stored in atoms.
   */
-const int MIN_SMALL_INT_SIZE = (1 << (EFFECTIVE_BITS - 1)) * -1;
+const Number MIN_SMALL_INT_SIZE = (static_cast<Number>(1) << (EFFECTIVE_BITS - 1)) * static_cast<Number>(-1);
 
 /**
   Generates a data check pattern which is used to prevent (or warn on)
@@ -160,7 +165,7 @@ const Word LOST_BITS = BIT_CHECK_MASK << (NUMBER_OF_BITS - TAG_LENGTH - 1);
 /**
   Sets the highest bit to 1 in order to check if a value is negative.
   */
-const Word SIGN_CHECK_BIT = 1 << (NUMBER_OF_BITS - 1);
+const Word SIGN_CHECK_BIT = static_cast<Word>(1) << (NUMBER_OF_BITS - 1);
 
 /**
   Defines the constant for the NIL atom, not to be confused with the NIL
@@ -672,9 +677,9 @@ inline Atom tagIndex(Word index, Word type) {
 }
 
 /**
-  Converts an int to a QString
+  Converts an number to a QString
   */
-inline QString intToString(int value) {
+inline QString numberToString(Number value) {
     std::stringstream ss;
     ss << value;
     return QString::fromStdString(ss.str());

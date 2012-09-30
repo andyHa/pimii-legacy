@@ -115,7 +115,7 @@ class Storage
     /**
       Contains the table of large numbers.
       */
-    ValueTable <Word, long> largeNumberTable;
+    ValueTable <Word, Number> largeNumberTable;
 
     /**
       Contains the table of decimal numbers.
@@ -279,12 +279,12 @@ public:
     /**
       Returns the number value to which the given atom points.
       */
-    long getNumber(Atom atom);
+    Number getNumber(Atom atom);
 
     /**
       Generates a value atom, pointing to the given string.
       */
-    Atom makeNumber(long value);
+    Atom makeNumber(Number value);
 
     /**
       Returns the double value to which the given atom points.

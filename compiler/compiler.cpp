@@ -534,7 +534,7 @@ Atom Compiler::compileLiteral() {
                 mid(1, tokenizer.getCurrent().length - 2));
     } else if (tokenizer.isCurrent(TT_NUMBER)) {
         result = engine->storage.makeNumber(
-                tokenizer.getCurrentString().toLong());
+                tokenizer.getCurrentString().toInt());
     } else if (tokenizer.isCurrent(TT_DECIMAL)) {
         result = engine->storage.makeDecimal(
                 tokenizer.getCurrentString().toDouble());

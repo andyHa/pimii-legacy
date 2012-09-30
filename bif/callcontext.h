@@ -126,15 +126,15 @@ public:
             if (currentIndex == 1) {
                 engine->panic(QString("The built in function: %1 requires at least one argument! (%3:%4)").
                       arg(QString(bifName),
-                          intToString(currentIndex),
+                          numberToString(currentIndex),
                           QString(file),
-                          intToString(line)));
+                          numberToString(line)));
             } else {
                 engine->panic(QString("The built in function: %1 requires at least %2 argument(s)! (%3:%4)").
                       arg(QString(bifName),
-                          intToString(currentIndex),
+                          numberToString(currentIndex),
                           QString(file),
-                          intToString(line)));
+                          numberToString(line)));
             }
         }
         Cell cons = storage->getCons(currentParam);
@@ -152,9 +152,9 @@ public:
         if (!isString(result)) {
             engine->panic(QString("The %2. argument of %1 must be a string! (%3:%4)").
                   arg(QString(bifName),
-                      intToString(currentIndex),
+                      numberToString(currentIndex),
                       QString(file),
-                      intToString(line)));
+                      numberToString(line)));
         }
         return storage->getString(result);
     }
@@ -169,9 +169,9 @@ public:
         if (!isNumber(result)) {
             engine->panic(QString("The %2. argument of %1 must be a number! (%3:%4)").
                   arg(QString(bifName),
-                      intToString(currentIndex),
+                      numberToString(currentIndex),
                       QString(file),
-                      intToString(line)));
+                      numberToString(line)));
         }
         return storage->getNumber(result);
     }
@@ -191,9 +191,9 @@ public:
         } else {
             engine->panic(QString("The %2. argument of %1 must be a number! (%3:%4)").
                   arg(QString(bifName),
-                      intToString(currentIndex),
+                      numberToString(currentIndex),
                       QString(file),
-                      intToString(line)));
+                      numberToString(line)));
             return 0.0;
         }
     }
@@ -208,9 +208,9 @@ public:
         if (!isArray(result)) {
             engine->panic(QString("The %2. argument of %1 must be an array! (%3:%4)").
                   arg(QString(bifName),
-                      intToString(currentIndex),
+                      numberToString(currentIndex),
                       QString(file),
-                      intToString(line)));
+                      numberToString(line)));
         }
         return storage->getArray(result);
     }
@@ -229,9 +229,9 @@ public:
        if (!isReference(result)) {
            engine->panic(QString("The %2. argument of %1 must be a reference! (%3:%4)").
                  arg(QString(bifName),
-                     intToString(currentIndex),
+                     numberToString(currentIndex),
                      QString(file),
-                     intToString(line)));
+                     numberToString(line)));
        }
        return storage->getReference(result);
    }
@@ -255,9 +255,9 @@ public:
         if (result == NULL) {
             engine->panic(QString("The %2. argument of %1 must be a '%5'! (%3:%4)").
                   arg(QString(bifName),
-                      intToString(currentIndex),
+                      numberToString(currentIndex),
                       QString(file),
-                      intToString(line), demangle<R>()));
+                      numberToString(line), demangle<R>()));
         }
         return result;
     }
@@ -272,9 +272,9 @@ public:
         if (!isCons(result)) {
             engine->panic(QString("The %2. argument of  %1 must be a reference! (%3:%4)").
                   arg(QString(bifName),
-                      intToString(currentIndex),
+                      numberToString(currentIndex),
                       QString(file),
-                      intToString(line)));
+                      numberToString(line)));
         }
         return storage->getCons(result);
     }
@@ -288,9 +288,9 @@ public:
         if (!isCons(result)) {
             engine->panic(QString("The %2. argument of  %1 must be a reference! (%3:%4)").
                   arg(QString(bifName),
-                      intToString(currentIndex),
+                      numberToString(currentIndex),
                       QString(file),
-                      intToString(line)));
+                      numberToString(line)));
         }
         return result;
     }

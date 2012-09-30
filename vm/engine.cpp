@@ -228,7 +228,7 @@ void Engine::opAP(bool hasArguments) {
            QString("'%1' is neither a closure nor a built in function (%2:%3)")
                         .arg(storage.getSymbolName(name.atom()),
                              QString(__FILE__),
-                             intToString(__LINE__)));
+                             numberToString(__LINE__)));
         }
         Cell funPair = storage.getCons(fun.atom());
         if ((head(c) == SYMBOL_OP_RTN) && (funPair.car == head(d))) {
@@ -580,8 +580,8 @@ void Engine::dispatchArithmetic(Atom opcode) {
            __FILE__,
            __LINE__);
     if (isNumber(atomb) && isNumber(atoma)) {
-        long b = storage.getNumber(atomb);
-        long a = storage.getNumber(atoma);
+        Number b = storage.getNumber(atomb);
+        Number a = storage.getNumber(atoma);
         switch(opcode) {
         case SYMBOL_OP_ADD:
             push(s, storage.makeNumber(a + b));
@@ -637,12 +637,12 @@ Atom Engine::locate(Atom pos) {
            "locate: car is not a number!",
            __FILE__,
            __LINE__);
-    long i = storage.getNumber(cons.car);
+    Number i = storage.getNumber(cons.car);
     expect(isNumber(cons.car),
            "locate: cdr is not a number!",
            __FILE__,
            __LINE__);
-    long j = storage.getNumber(cons.cdr);
+    Number j = storage.getNumber(cons.cdr);
     Atom env = e->atom();
     while (i > 1) {
         if (!isCons(env)) {
@@ -682,12 +682,12 @@ void Engine::store(Atom pos, Atom value) {
            "store: car is not a number!",
            __FILE__,
            __LINE__);
-    long i = storage.getNumber(cons.car);
+    Number i = storage.getNumber(cons.car);
     expect(isNumber(cons.car),
            "store: cdr is not a number!",
            __FILE__,
            __LINE__);
-    long j = storage.getNumber(cons.cdr);
+    Number j = storage.getNumber(cons.cdr);
     AtomRef env(&storage, e->atom());
     while (i > 1) {
         if (!isCons(env.atom())) {
@@ -974,7 +974,7 @@ QString Engine::stackDump() {
     buffer += "--------------------------------------------\n";
     buffer += toSimpleString(currentFile) +
               ":" +
-              intToString(currentLine) +
+              numberToString(currentLine) +
               "\n";
     Atom pos = pop(p);
     while(isCons(pos)) {
@@ -1019,7 +1019,7 @@ QString Engine::lookupSource(const QString& fileName) {
               QString(" (") +
               QString(__FILE__) +
               QString(":") +
-              intToString(__LINE__) +
+              numberToString(__LINE__) +
               QString(")"));
     }
     return file.absoluteFilePath();
@@ -1055,9 +1055,9 @@ Atom Engine::compileSource(const QString& file,
                 i++)
             {
                 CompilationError e = *i;
-                buf += intToString(e.line)
+                buf += numberToString(e.line)
                        + ":"
-                       + intToString(e.pos)
+                       + numberToString(e.pos)
                        + ": "
                        + e.error
                        + "\n";

@@ -73,9 +73,7 @@ comp := code -> [
    };   
 
    compileList := (h, t) -> [
-      log('ex');
       each: t do: sub -> compileAtom(sub);
-      log(h);
       bytecode := bytecode & head(h);
    ];
 

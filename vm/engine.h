@@ -481,7 +481,7 @@ public:
                   QString(" (") +
                   QString(file) +
                   QString(":") +
-                  intToString(line) +
+                  numberToString(line) +
                   QString(")"));
         }
     }

@@ -492,9 +492,9 @@ QString Storage::getString(Atom atom) {
     return stringTable.get(index);
 }
 
-Atom Storage::makeNumber(long value) {
+Atom Storage::makeNumber(Number value) {
     if ((value & LOST_BITS) == 0 || (value & LOST_BITS) == LOST_BITS) {
-        return value << TAG_LENGTH | TAG_TYPE_NUMBER;
+        return static_cast<Word>(value) << TAG_LENGTH | TAG_TYPE_NUMBER;
     } else {
         Word index = largeNumberTable.allocate(value);
         assert(index < MAX_INDEX_SIZE);
@@ -502,14 +502,14 @@ Atom Storage::makeNumber(long value) {
     }
 }
 
-long Storage::getNumber(Atom atom) {
+Number Storage::getNumber(Atom atom) {
     assert(isNumber(atom));
     if (isSmallNumber(atom)) {
         Word result = atom >> TAG_LENGTH;
         if (atom & SIGN_CHECK_BIT) {
             result |= LOST_BITS;
         }
-        return (long)result;
+        return static_cast<Number>(result);
     } else {
         Word index = untagIndex(atom);
         return largeNumberTable.get(index);
