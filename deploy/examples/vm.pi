@@ -11,7 +11,7 @@ vm := code -> [
       [op = #LDC  : pushStack(s, popStack(c)) ]
       [op = #LD   : 
          location := popStack(c);
-         pushStack(s, at(tail(location), at(head(location), e))); 
+         pushStack(s, at(at(getStack(e), head(location)), tail(location))); 
       ]
       [op = #ADD  : pushStack(s, popStack(s) + popStack(s)) ]
       [op = #SUB  : 
@@ -37,8 +37,8 @@ vm := code -> [
          pushStack(s, makePair(f, e));
       ]
       [op = #AP   : 
-         f := popStack(s);
          p := popStack(s);
+         f := popStack(s);
          pushStack(d, c);
          pushStack(d, e);
          pushStack(d, s);
@@ -63,7 +63,82 @@ vm := code -> [
    popStack(s);
 ];
 
-s := '+ (- 14 2) 3';
+reverse ::= list -> [
+    fold: list with: [e, l -> append(e, l) ] start: #()
+];
+
+comp := code -> [
+   bytecode := #();
+   
+   compileList := #();
+
+   knownSymbols := makeStack(#());
+
+   lookup := symbol -> [
+      find := (offset, list) -> {
+         [ isNil(list) : makePair(1 , 1) ]
+         [ indexOf(symbol, head(list)) > 0 : makePair(offset , indexOf(symbol, head(list)))]
+         [ - : find(offset + 1, tail(list))]
+      };
+
+      find(1, getStack(knownSymbols));
+   ];
+
+   compileAtom := code -> {
+      [ isList(code) : compileList(code)]
+      [ isSymbol(code) : bytecode := append(bytecode & #LD, lookup(code)) ]
+      [ isString(code) : bytecode := bytecode & #LDC & code]
+      [ isNumber(code) : bytecode := bytecode & #LDC & code]
+   };   
+
+   isPrimitive := h -> h = #ADD || h = #SUB || h = #MUL || h = #DIV || h = #EQ || h = #NOT;
+
+   compileList := list -> {
+      [ head(list) = #lambda : 
+         pushStack(knownSymbols, at(list, 2));
+         buffer := bytecode;
+         bytecode := #();
+         compileList(at(list, 3));
+         popStack(knownSymbols);
+         bytecode := append(buffer & #LDF, bytecode & #RET); 
+      ]
+      [ head(list) = #if : #false ]
+      [ head(list) = #quote: bytecode := append(bytecode & #LDC, tail(list)); ]
+      [ isPrimitive(head(list)) : each: tail(list) do: sub -> compileAtom(sub);
+            bytecode := bytecode & head(list); ]
+      [ head(list) = #let : 
+            symbols := project: at(list, 2) with: p -> head(p);
+            pushStack(knownSymbols, symbols);
+            buffer := bytecode;
+            bytecode := #();
+            compileList(at(list, 3));
+            popStack(knownSymbols);
+            bytecode := append(buffer & #LDF, bytecode & #RET); 
+            
+            args := at(list, 2);
+            bytecode := bytecode & #NIL;
+log(reverse(args));
+            each: reverse(args) do: arg -> [
+               compileAtom(at(arg, 2));
+               bytecode := bytecode & #CONS;
+            ];
+            bytecode := bytecode & #AP;
+      ]
+      [ - : compileAtom(head(list));
+            args := tail(list);
+            bytecode := bytecode & #NIL;
+            each: reverse(args) do: arg -> [
+               compileAtom(arg);
+               bytecode := bytecode & #CONS;
+            ];
+            bytecode := bytecode & #AP;
+       ]
+   };
+
+   compileAtom(code);
+];
+
+s := 'let ((x 2) (y 4)) (- x y)';
 
 t := tokenize(s);
 

@@ -18,6 +18,9 @@
 // Returns: #TRUE is the given argument is a list, #FALSE otherwise.
 // ---------------------------------------------------------------------------
 isList ::= x -> typeOf(x) = #TYPE_CONS;
+isString ::= x -> typeOf(x) = #TYPE_STRING;
+isNumber ::= x -> typeOf(x) = #TYPE_NUMBER;
+isSymbol ::= x -> typeOf(x) = #TYPE_SYMBOL;
 
 // ---------------------------------------------------------------------------
 // Checks if the given argument is NIL.
@@ -130,7 +133,7 @@ length ::= list -> [
 //          If the given value was not a list, NIL will be returned.
 // ---------------------------------------------------------------------------
 reverse ::= list -> [
-    fold: list with: [e, l -> e & l ] start: #()
+    fold: list with: [e, l -> makePair(e, l) ] start: #()
 ];
 
 // ---------------------------------------------------------------------------

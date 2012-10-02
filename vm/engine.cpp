@@ -501,20 +501,12 @@ void Engine::opCONCAT() {
             tail = cell.cdr;
             cell = storage.getCons(cell.cdr);
         }
-        if (isCons(b) || isNil(b)) {
+        if (isNil(b)) {
             storage.setCDR(tail, b);
         } else {
             storage.setCDR(tail, storage.makeCons(b, NIL));
         }
         push(s, a);
-        return;
-    }
-    if (isCons(b)) {
-        if (isNil(a)) {
-            push(s, b);
-        } else {
-            push(s, storage.makeCons(a, b));
-        }
         return;
     }
     if (isNil(a)) {
@@ -525,15 +517,7 @@ void Engine::opCONCAT() {
         push(s, storage.makeCons(a, NIL));
         return;
     }
-    if (isString(a) || isString(b)) {
-        push(s, storage.makeString(toSimpleString(a) + toSimpleString(b)));
-        return;
-    }
-    panic(QString("Invalid operands for concat: '")
-          + toSimpleString(a)
-          + QString("' and '")
-          + toSimpleString(b)
-          + QString("'"));
+    push(s, storage.makeCons(a, storage.makeCons(b, NIL)));
 }
 
 void Engine::opAND() {
@@ -570,11 +554,15 @@ void Engine::convertNumeric(Word atoma, Word atomb, double* a, double* b) {
 
 void Engine::dispatchArithmetic(Atom opcode) {
     Atom atomb = pop(s);
+    Atom atoma = pop(s);
+    if (opcode == SYMBOL_OP_ADD && (isString(atoma) || isString(atomb))) {
+        push(s, storage.makeString(toSimpleString(atoma) + toSimpleString(atomb)));
+        return;
+    }
     expect(isNumeric(atomb),
            "Arithmetic: 1st stack top was not a number!",
            __FILE__,
            __LINE__);
-    Atom atoma = pop(s);
     expect(isNumeric(atoma),
            "Arithmetic: 2nd stack top was not a number!",
            __FILE__,
