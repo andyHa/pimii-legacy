@@ -254,9 +254,19 @@ private:
     void opRTN();
 
     /**
-      Branches is the stack top is true.
+      Returns from a function (from within a conditional).
+      */
+    void opLONG_RTN();
+
+    /**
+      Branches if the stack top is true.
       */
     inline void opBT();
+
+    /**
+      Returns from a branch (conditional).
+      */
+    inline void opJOIN();
 
     /**
       Loads a global onto the stack.
@@ -297,18 +307,6 @@ private:
       Splits a given cons cell.
       */
     void opSPLIT();
-
-    /**
-      Pops a list and a value from the stack,
-      and appends the value to the list.
-      */
-    void opCHAIN();
-
-    /**
-      Pushes the final list onto the stack which was
-      created by a sequence of CHAIN bytecodes.
-      */
-    void opCHAINEND();
 
     /**
       Compares the two given atoms and returns a negative value, if a is less

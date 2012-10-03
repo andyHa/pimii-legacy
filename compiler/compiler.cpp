@@ -73,6 +73,7 @@ Atom Compiler::getCode() {
 
 bool Compiler::compile(bool appendStop) {
     code->atom(NIL);
+    inCondtitional = false;
     errors.clear();
     tokenizer.fetch();
     updatePosition(true);
@@ -92,15 +93,12 @@ bool Compiler::compile(bool appendStop) {
 
 void Compiler::block() {
     statement();
-    while(tokenizer.isCurrent(TT_SEMICOLON)
-          && !tokenizer.isLookahead(TT_R_BRACE)
-          && !tokenizer.isLookahead(TT_R_BRACKET)
-          && !tokenizer.isLookahead(TT_EOF)) {
-        tokenizer.fetch();
-        statement();
-    }
-    if (tokenizer.isCurrent(TT_SEMICOLON)) {
-        tokenizer.fetch();
+    while(!tokenizer.isCurrent(TT_R_CURLY) && !tokenizer.isCurrent(TT_R_BRACKET) && !tokenizer.isCurrent(TT_EOF)) {
+        if (tokenizer.isCurrent(TT_SEMICOLON)) {
+            tokenizer.fetch();
+        } else {
+            statement();
+        }
     }
 }
 
@@ -143,23 +141,23 @@ void Compiler::expression() {
             tokenizer.isLookahead(TT_NAME) &&
             tokenizer.isLookahead2(TT_KOMMA))
     {
-        definition();
+        normalDefinition();
     } else if (tokenizer.isCurrent(TT_NAME) &&
                tokenizer.isLookahead(TT_ARROW))
     {
         shortDefinition();
     } else if (tokenizer.isCurrent(TT_L_BRACKET))
     {
-        inlineDefinition();
+        conditional();
     } else if (tokenizer.isCurrent(TT_L_CURLY))
     {
-        directGuardedDefinition();
+        inlineDefinition();
     } else {
         basicExp();
     }
 }
 
-void Compiler::definition() {
+void Compiler::normalDefinition() {
     tokenizer.fetch(); // (
     std::vector<QString>* symbols = new std::vector<QString>();
     symbols->push_back(tokenizer.getCurrentString());
@@ -172,54 +170,42 @@ void Compiler::definition() {
     expect(TT_R_BRACE, ")");
     expect(TT_ARROW, "->");
     symbolTable.insert(symbolTable.begin(), symbols);
+    bool brackets = false;
     if (tokenizer.isCurrent(TT_L_CURLY)) {
-        generateGuardedFunctionCode();
-    } else {
-        bool brackets = false;
-        if (tokenizer.isCurrent(TT_L_BRACKET)) {
-            tokenizer.fetch();
-            brackets = true;
-        }
-        addCode(SYMBOL_OP_LDF);
-        generateFunctionCode(brackets, true);
+        tokenizer.fetch();
+        brackets = true;
     }
+    addCode(SYMBOL_OP_LDF);
+    generateFunctionCode(brackets, true);
     symbolTable.erase(symbolTable.begin());
     delete symbols;
 }
 
-void Compiler::generateGuardedFunctionCode() {
-    expect(TT_L_CURLY, "{");
-    addCode(SYMBOL_OP_LDF);
+void Compiler::conditional() {
+    expect(TT_L_BRACKET, "[");
+    updatePosition(false);
+    basicExp();
+    addCode(SYMBOL_OP_BT);
+    expect(TT_COLON, ":");
     AtomRef* backupCode = engine->storage.ref(code->atom());
     AtomRef* backupTail = engine->storage.ref(tail->atom());
+    bool backupInConditional = inCondtitional;
+    inCondtitional = true;
     code->atom(NIL);
     tail->atom(NIL);
-    updatePosition(true);
-    do {
-        expect(TT_L_BRACKET, "[");
-        bool asSublist = false;
-        if (tokenizer.isCurrent(TT_MINUS) && tokenizer.isLookahead(TT_COLON))
-        {
-            //[ - : ... ] means no condition...
-            tokenizer.fetch();
-        } else if (!tokenizer.isCurrent(TT_COLON)) {
-            // Everything but [  : ...] means we need to compile a condition.
-            asSublist = true;
-            updatePosition(false);
-            basicExp();
-            addCode(SYMBOL_OP_BT);
-        }
-        expect(TT_COLON, ":");
-        generateFunctionCode(true, asSublist);
-    } while(tokenizer.isCurrent(TT_L_BRACKET));
-    addCode(SYMBOL_OP_RTN);
+    block();
+    addCode(SYMBOL_OP_JOIN);
+    if (!tokenizer.isCurrent(TT_R_BRACKET)) {
+        addError(tokenizer.getCurrent(), "Missing Semicolon!");
+    }
+    expect(TT_R_BRACKET, "]");
     Atom fn = code->atom();
     code->atom(backupCode->atom());
     delete backupCode;
     tail->atom(backupTail->atom());
     delete backupTail;
+    inCondtitional = backupInConditional;
     addCode(fn);
-    expect(TT_R_CURLY, "}");
 }
 
 void Compiler::shortDefinition() {
@@ -228,85 +214,43 @@ void Compiler::shortDefinition() {
     tokenizer.fetch(); // param name...
     expect(TT_ARROW, "->");
     symbolTable.insert(symbolTable.begin(), symbols);
+    bool brackets = false;
     if (tokenizer.isCurrent(TT_L_CURLY)) {
-        generateGuardedFunctionCode();
-    } else {
-        bool brackets = false;
-        if (tokenizer.isCurrent(TT_L_BRACKET)) {
-            tokenizer.fetch();
-            brackets = true;
-        }
-        addCode(SYMBOL_OP_LDF);
-        generateFunctionCode(brackets, true);
+        tokenizer.fetch();
+        brackets = true;
     }
+    addCode(SYMBOL_OP_LDF);
+    generateFunctionCode(brackets, true);
     symbolTable.erase(symbolTable.begin());
     delete symbols;
 }
 
 void Compiler::inlineDefinition() {
-    tokenizer.fetch(); // [
-    std::vector<QString>* symbols = new std::vector<QString>();
-    if (tokenizer.isCurrent(TT_NAME) &&
-            (tokenizer.isLookahead(TT_KOMMA) ||
-             tokenizer.isLookahead(TT_ARROW)))
-    {
-        symbols->push_back(tokenizer.getCurrentString());
-        tokenizer.fetch(); // 1st param
-        while(tokenizer.isCurrent(TT_KOMMA)) {
-            tokenizer.fetch(); // ,
-            symbols->push_back(tokenizer.getCurrentString());
-            tokenizer.fetch(); // nth param
-        }
-        expect(TT_ARROW, "->");
-    } else if (tokenizer.isCurrent(TT_L_BRACE) &&
-               (tokenizer.isLookahead(TT_NAME) &&
-                tokenizer.isLookahead2(TT_KOMMA))) {
-        tokenizer.fetch(); // (
-        symbols->push_back(tokenizer.getCurrentString());
-        tokenizer.fetch(); // 1st param
-        while(tokenizer.isCurrent(TT_KOMMA)) {
-            tokenizer.fetch(); // ,
-            symbols->push_back(tokenizer.getCurrentString());
-            tokenizer.fetch(); // nth param
-        }
-        expect(TT_R_BRACE, ")");
-        expect(TT_ARROW, "->");
-    } else if (tokenizer.isCurrent(TT_ARROW)) {
-        tokenizer.fetch(); // ->
-    }
-    symbolTable.insert(symbolTable.begin(), symbols);
+    tokenizer.fetch(); // {
     addCode(SYMBOL_OP_LDF);
     generateFunctionCode(true, true);
-    symbolTable.erase(symbolTable.begin());
-    delete symbols;
-}
-
-void Compiler::directGuardedDefinition() {
-    std::vector<QString>* symbols = new std::vector<QString>();
-    symbolTable.insert(symbolTable.begin(), symbols);
-    generateGuardedFunctionCode();
-    symbolTable.erase(symbolTable.begin());
-    delete symbols;
 }
 
 void Compiler::generateFunctionCode(bool expectBracet, bool asSublist) {
     AtomRef* backupCode = engine->storage.ref(code->atom());
     AtomRef* backupTail = engine->storage.ref(tail->atom());
+    bool backupInConditional = inCondtitional;
     if (asSublist) {
         code->atom(NIL);
         tail->atom(NIL);
+        inCondtitional = false;
     }
     updatePosition(true);
     if (expectBracet) {
-        while (!tokenizer.isCurrent(TT_R_BRACKET) &&
+        while (!tokenizer.isCurrent(TT_R_CURLY) &&
                !tokenizer.isCurrent(TT_EOF))
         {
             block();
-            if (!tokenizer.isCurrent(TT_R_BRACKET)) {
+            if (!tokenizer.isCurrent(TT_R_CURLY)) {
                 addError(tokenizer.getCurrent(), "Missing Semicolon!");
             }
         }
-        expect(TT_R_BRACKET, "]");
+        expect(TT_R_CURLY, "}");
     } else {
         statement();
     }
@@ -318,6 +262,7 @@ void Compiler::generateFunctionCode(bool expectBracet, bool asSublist) {
         tail->atom(backupTail->atom());
         delete backupTail;
         addCode(fn);
+        inCondtitional = backupInConditional;
     }
 }
 
@@ -458,6 +403,8 @@ void Compiler::factorExp() {
             splitAssignment();
         } else if (tokenizer.isCurrent(TT_LIST_START)) {
             inlineList();
+        } else if (tokenizer.isCurrent(TT_RTN)) {
+            rtn();
         } else if (tokenizer.isCurrent(TT_NAME)) {
             if (tokenizer.isLookahead(TT_L_BRACE)) {
                 call();
@@ -504,19 +451,14 @@ void Compiler::inlineList() {
         addCode(engine->storage.makeCons(car, cdr));
     } else {
         addCode(SYMBOL_OP_NIL);
-        bool useChain = false;
         while(!tokenizer.isCurrent(TT_R_BRACE) &&
               !tokenizer.isCurrent(TT_EOF))
         {
             expression();
-            addCode(SYMBOL_OP_CHAIN);
-            useChain = true;
+            addCode(SYMBOL_OP_CONS);
             if (tokenizer.isCurrent(TT_KOMMA)) {
                 tokenizer.fetch();
             }
-        }
-        if (useChain) {
-            addCode(SYMBOL_OP_CHAIN_END);
         }
     }
     expect(TT_R_BRACE, ")");
@@ -593,31 +535,49 @@ void Compiler::colonCall() {
         name += tokenizer.getCurrentString();
         tokenizer.fetch();
         expression();
-        addCode(SYMBOL_OP_CHAIN);
+        addCode(SYMBOL_OP_CONS);
     }
-    addCode(SYMBOL_OP_CHAIN_END);
     load(name);
     addCode(SYMBOL_OP_AP);
     addCode(engine->storage.makeSymbol(name));
 }
 
-void Compiler::standardCall() {
+void Compiler::standardCall() {    
     QString name = tokenizer.getCurrentString();
     tokenizer.fetch(); // name
     tokenizer.fetch(); // (
     if (!tokenizer.isCurrent(TT_R_BRACE)) {
         addCode(SYMBOL_OP_NIL);
+        AtomRef* backupCode = engine->storage.ref(code->atom());
+        AtomRef* backupTail = engine->storage.ref(tail->atom());
+        AtomRef* argsList = engine->storage.ref(NIL);
+        code->atom(NIL);
+        tail->atom(NIL);
+
         while(!tokenizer.isCurrent(TT_R_BRACE) &&
               !tokenizer.isCurrent(TT_EOF))
         {
             expression();
-            addCode(SYMBOL_OP_CHAIN);
+            addCode(SYMBOL_OP_CONS);
+            if (isNil(argsList->atom())) {
+                argsList->atom(code->atom());
+            } else {
+                engine->storage.setCDR(tail->atom(), argsList->atom());
+                argsList->atom(code->atom());
+            }
+            code->atom(NIL);
+            tail->atom(NIL);
             if (tokenizer.isCurrent(TT_KOMMA)) {
                 tokenizer.fetch();
             }
         }
-        addCode(SYMBOL_OP_CHAIN_END);
+
         expect(TT_R_BRACE, ")");
+        code->atom(backupCode->atom());
+        tail->atom(engine->storage.setCDR(backupTail->atom(), argsList->atom()));
+        delete backupCode;
+        delete backupTail;
+        delete argsList;
         load(name);
         addCode(SYMBOL_OP_AP);
         addCode(engine->storage.makeSymbol(name));
@@ -676,6 +636,19 @@ void Compiler::splitAssignment() {
                 engine->storage.makeNumber(1),
                 engine->storage.makeNumber(tailMinorIndex)));
 }
+
+
+
+void Compiler::rtn() {
+    expect(TT_RTN, "^");
+    expression();
+    if (inCondtitional) {
+        addCode(SYMBOL_OP_LONG_RTN);
+    } else {
+        addCode(SYMBOL_OP_RTN);
+    }
+}
+
 
 void Compiler::localAssignment() {
     if (symbolTable.size() == 0) {

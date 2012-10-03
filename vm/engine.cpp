@@ -182,8 +182,13 @@ void Engine::opBT() {
     Atom discriminator = pop(s);
     Atom ct = pop(c);
     if (discriminator == SYMBOL_TRUE) {
+        push(d, c->atom());
         c->atom(ct);
     }
+}
+
+void Engine::opJOIN() {
+    c->atom(pop(d));
 }
 
 void Engine::opLDF() {
@@ -206,7 +211,7 @@ Atom Engine::head(AtomRef* list) {
     if (isCons(list->atom())) {
        return storage.getCons(list->atom()).car;
     } else {
-        return NIL;
+       return NIL;
     }
 }
 
@@ -233,11 +238,24 @@ void Engine::opAP(bool hasArguments) {
         Cell funPair = storage.getCons(fun.atom());
         if ((head(c) == SYMBOL_OP_RTN) && (funPair.car == head(d))) {
 
-            //            INFO(log, storage.getSymbolName(name.atom()));
+            INFO(log, storage.getSymbolName(name.atom()));
 
             // We have a tail recursion -> don't push useless stuff on the
             // dump-stack, only flush stack, restart code and environment
             // (with new args)
+            s->atom(NIL);
+            c->atom(funPair.car);
+            e->atom(storage.makeCons(v.atom(), funPair.cdr));
+        } else if ((head(c) == SYMBOL_OP_LONG_RTN) &&
+                   (funPair.car == nth(d->atom(), 1)))
+        {
+            // We have a tail recursion from within a conditional, pop off the original
+            // code from d
+            pop(d);
+
+            INFO(log, storage.getSymbolName(name.atom()));
+
+            // Flush stack and reset code + env...
             s->atom(NIL);
             c->atom(funPair.car);
             e->atom(storage.makeCons(v.atom(), funPair.cdr));
@@ -268,6 +286,11 @@ void Engine::opRTN() {
         currentFile = cell.car;
         currentLine = storage.getNumber(cell.cdr);
     }
+}
+
+void Engine::opLONG_RTN() {
+    pop(d);
+    opRTN();
 }
 
 void Engine::opCAR() {
@@ -313,8 +336,8 @@ void Engine::opCDR() {
 }
 
 void Engine::opCONS() {
-    Atom b = pop(s);
     Atom a = pop(s);
+    Atom b = pop(s);
     push(s, storage.makeCons(a,b));
 }
 
@@ -337,33 +360,6 @@ void Engine::opSPLIT() {
         push(s, SYMBOL_TRUE);
     } else {
         push(s, SYMBOL_FALSE);
-    }
-}
-
-void Engine::opCHAIN() {
-    Atom element = pop(s);
-    Atom cell = pop(s);
-    if (isNil(cell)) {
-        Atom a = storage.makeCons(element, NIL);
-        push(s, storage.makeCons(a, a));
-    } else {
-        expect(isCons(cell),
-               "#CHAIN: stack top was not a cons!",
-               __FILE__,
-               __LINE__);
-        Cell c = storage.getCons(cell);
-        storage.setCDR(cell, storage.append(c.cdr, element));
-        push(s, cell);
-    }
-}
-
-void Engine::opCHAINEND() {
-    Atom cell = pop(s);
-    if (!isCons(cell)) {
-        push(s, storage.makeCons(cell, NIL));
-    } else {
-        Cell c = storage.getCons(cell);
-        push(s, c.car);
     }
 }
 
@@ -754,6 +750,12 @@ void Engine::dispatch(Atom opcode) {
     case SYMBOL_OP_BT:
         opBT();
         return;
+    case SYMBOL_OP_JOIN:
+        opJOIN();
+        return;
+    case SYMBOL_OP_LONG_RTN:
+        opLONG_RTN();
+        return;
     case SYMBOL_OP_LDF:
         opLDF();
         return;
@@ -784,7 +786,7 @@ void Engine::dispatch(Atom opcode) {
     case SYMBOL_OP_GTQ:
         opGTQ();
         return;
-    case SYMBOL_OP_NOOP:
+    case SYMBOL_OP_NOOP2:
         return;
     case SYMBOL_OP_CONCAT:
         opCONCAT();
@@ -822,13 +824,6 @@ void Engine::dispatch(Atom opcode) {
         return;
     case SYMBOL_OP_SPLIT:
         opSPLIT();
-        return;
-    case SYMBOL_OP_CHAIN:
-        opCHAIN();
-        return;
-    case SYMBOL_OP_CHAIN_END:
-        opCHAINEND();
-        return;
     case SYMBOL_OP_FILE:
         opFile();
         return;

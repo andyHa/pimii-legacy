@@ -112,7 +112,9 @@ enum InputTokenType {
     // ->
     TT_ARROW,
     // #(
-    TT_LIST_START
+    TT_LIST_START,
+    // ^
+    TT_RTN
 };
 
 /**

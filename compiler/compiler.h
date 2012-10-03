@@ -79,19 +79,19 @@
 
   BLOCK -> EXPRESSION ( ';' EXPRESSION )* ';'?;
 
-  EXPRESSION -> DEFINITION | BASIC;
+  EXPRESSION -> DEFINITION | CONDITIONAL | BASIC;
+
+  CONDITIONAL -> '[' EXPRESSION ':' BLOCK ']';
 
   BASIC -> LOG ( ('&' | '|') LOG )*;
 
-  DEFINITION -> NORMAL_DEFINITION | SHORT_DEFINITION | INLINE_DEFINITION;
+  DEFINITION -> SHORT_DEFINITION | NORMAL_DEFINITION | INLINE_DEFINITION;
 
-  NORMAL_DEFINITION -> '(' $NAME ( ',' $NAME)+ ')' '->' ('[' BLOCK ']' | STATEMENT | GUARDED);
+  SHORT_DEFINITION -> $NAME '->'  ( '{' BLOCK '}' | EXPRESSION );
 
-  SHORT_DEFINITION -> $NAME '->' ('[' BLOCK ']' | STATEMENT | GUARDED);
+  NORMAL_DEFINITION -> '(' $NAME ( ',' $NAME)* ')' '->' ( '{' BLOCK '}' | EXPRESSION );
 
-  GUARDED -> '{' ( '[' BASIC? ':' BLOCK ']' )+ '}';
-
-  INLINE_DEFINITION -> '[' ( $NAME ( ',' $NAME )* '->' )? BLOCK ']';
+  INLINE_DEFINITION -> '{' ( '{' BLOCK '}' | EXPRESSION ) '}';
 
   LOG -> REL ( ( '=' | '!=' | '<' | '>' | '<=' | '>=' ) REL )*;
 
@@ -99,13 +99,15 @@
 
   TERM -> FACTOR ( ('*' | '/' | '%') FACTOR )*;
 
-  FACTOR -> '!' FACTOR | '(' EXPRESSION ')' | LITERAL | VARIABLE | CALL | ASSIGNMENT;
+  FACTOR -> '!' FACTOR | '(' EXPRESSION ')' | LITERAL | VARIABLE | CALL | ASSIGNMENT | RETURN;
 
   LITERAL -> $NUMBER | $STRING | $SYMBOL | INLINE_LIST;
 
   INLINE_LIST -> '#(' EXPRESSION ( ',' EXPRESSION )* ')';
 
   VARIABLE -> $NAME;
+
+  RETURN -> '^' EXPRESSION;
 
   CALL -> SIMPLE_CALL | COLON_CALL;
 
@@ -193,6 +195,12 @@ private:
     AtomRef* tail;
 
     /**
+      Is true, if we're compiling a sublist for a conditional. This is used to generate
+      a #LONG_RET instead of a #RET for a return statement within a conditional.
+      */
+    bool inCondtitional;
+
+    /**
       Contains a list of all discovered errors.
       */
     std::vector<CompilationError> errors;
@@ -243,29 +251,24 @@ private:
     void expression();
 
     /**
-      Compiles a function definition.
-      */
-    void definition();
-
-    /**
       Compiles a shortened function definition: x -> ...
       */
     void shortDefinition();
 
     /**
-      Compiles an inline function definition: [ x -> ...] or [...]
+      Compiles a shortened function definition: (x, y) -> ...
+      */
+    void normalDefinition();
+
+    /**
+      Compiles an inline function definition: { ... }
       */
     void inlineDefinition();
 
     /**
-      Compiles a guarded function w/o parameters:  f := { [x > 3 : ...] };
+      Compiles a guarded block: [ x > 0 : 1 + 2 ]
       */
-    void directGuardedDefinition();
-
-    /**
-      Compiles a guarded function: {[x > 3 : ...]}
-      */
-    void generateGuardedFunctionCode();
+    void conditional();
 
     /**
       Compiles a function body.
@@ -338,9 +341,14 @@ private:
     void standardCall();
 
     /**
-      Compiles a lokal assignment: x := 1;
+      Compiles a local assignment: x := 1;
       */
     void localAssignment();
+
+    /**
+      Compiles a return statement like ^1
+      */
+    void rtn();
 
     /**
       Compiles a split assignment like: x|y := a; This is the same as:

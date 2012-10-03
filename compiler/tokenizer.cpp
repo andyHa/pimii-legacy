@@ -250,6 +250,8 @@ InputToken Tokenizer::parseOperator() {
         result.type = TT_DIV;
     } else if (ch == '*') {
         result.type = TT_MUL;
+    } else if (ch == '^') {
+        result.type = TT_RTN;
     } else if (ch == ':') {
         if (hasPreview() && preview() == '=') {
             nextChar();

@@ -81,9 +81,9 @@ void Storage::initializeSymbols() {
     declaredFixedSymbol(SYMBOL_OP_STOP, "STOP");
     declaredFixedSymbol(SYMBOL_OP_SPLIT, "SPLIT");
     declaredFixedSymbol(SYMBOL_OP_CONCAT, "CONCAT");
-    declaredFixedSymbol(SYMBOL_OP_NOOP, "NOOP");
-    declaredFixedSymbol(SYMBOL_OP_CHAIN, "CHAIN");
-    declaredFixedSymbol(SYMBOL_OP_CHAIN_END, "CHAINEND");
+    declaredFixedSymbol(SYMBOL_OP_JOIN, "JOIN");
+    declaredFixedSymbol(SYMBOL_OP_LONG_RTN, "LONG_RTN");
+    declaredFixedSymbol(SYMBOL_OP_NOOP2, "NOOP2");
     declaredFixedSymbol(SYMBOL_OP_FILE, "FILE");
     declaredFixedSymbol(SYMBOL_OP_LINE, "LINE");
     declaredFixedSymbol(SYMBOL_OP_RPLCAR, "RPLCAR");

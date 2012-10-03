@@ -7,23 +7,23 @@ fun := #(#(#START,    'a', #VARIABLE),
 
 ok := #(#VARIABLE);
 ea := (start, fun, ok) -> 
-[
+{
    string -> 
-   [
+   {
       zustand := start;
       eachChar: string do: c -> 
-      [
+      {
               check := #(zustand, c); 
               zustand := #FEHLER;
               each: fun do: line -> 
-              [ 
+              { 
                  if: isStartOf(check, line) 
-                 then: [zustand := at(line, 3)]
-              ]
-      ];
+                 then: {zustand := at(line, 3)}
+              }
+      }
       indexOf(zustand, ok) > 0;
-   ]
-];
+   }
+}
 
 math := ea(#START, fun, ok);
 math('a+b+b+b-b');

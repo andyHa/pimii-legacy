@@ -40,27 +40,27 @@ isNotNil ::= x -> (x != nil);
 // used. Otherwise the value of var will be returned.
 // ---------------------------------------------------------------------------
 nilSave ::= (var, backup) -> {
-   [ var = nil : backup ]
-   [     -     : var    ]
-};
+   [ var = nil : ^backup ]
+   ^var
+}
 
 // ---------------------------------------------------------------------------
 // Returns the first element of the given list or nil, if the given value
 // isn't a list or empty.
 // ---------------------------------------------------------------------------
 head ::= list -> {
-   [ h|t := list : h   ]
-   [     -       : nil ]
-};
+   [ h|t := list : ^h   ]
+   ^nil
+}
 
 // ---------------------------------------------------------------------------
 // Returns the the sublist after the first element of the given list or nil,
 // if the given value isn't a list or empty.
 // ---------------------------------------------------------------------------
 tail ::= list -> {
-   [ h|t := list : t   ]
-   [     -       : nil ]
-};
+   [ h|t := list : ^t   ]
+   ^nil
+}
 
 // ---------------------------------------------------------------------------
 // Sets the head of the given cell. This method is written in inline
@@ -89,10 +89,10 @@ makePair := #(#(#LD #(1 . 1) #LD #(1 . 2) #CONS #RTN));
 // Returns: The value of the nth (index) element, or nil
 // ---------------------------------------------------------------------------
 at ::= (list, index) -> {
-    [ head|tail := list && index = 1 : head ]
-    [ head|tail := list && index > 1 : at(tail, index - 1) ]
-    [ - : nil ]
-};
+    [ head|tail := list && index = 1 : ^head ]
+    [ head|tail := list && index > 1 : ^at(tail, index - 1) ]
+    ^nil
+}
 
 // ---------------------------------------------------------------------------
 // Sets the nth (index) element, of the given list.
@@ -103,10 +103,10 @@ at ::= (list, index) -> {
 // Returns: The value of the nth (index) element, or nil
 // ---------------------------------------------------------------------------
 set := (list, index, value) -> {
-    [ isList(list) && index = 1 : setHead(list, value) ]
-    [ head|tail := list && index > 1 : set(tail, index - 1, value) ]
-    [ - : nil ]
-};
+    [ isList(list) && index = 1 : ^setHead(list, value) ]
+    [ head|tail := list && index > 1 : ^set(tail, index - 1, value) ]
+    ^nil
+}
 
 // ---------------------------------------------------------------------------
 // Computes the length of a given list. If the given value is not a list,
@@ -116,9 +116,9 @@ set := (list, index, value) -> {
 // Returns: The length of the given list, or 0 if the given value was not
 //          a list.
 // ---------------------------------------------------------------------------
-length ::= list -> [
-    fold: list with: [e, sum -> sum + 1] start: 0
-];
+length ::= list -> {
+    fold: list with: (e, sum) -> sum + 1 start: 0
+}
 
 // ---------------------------------------------------------------------------
 // Reverses the order of the items in the given list.
@@ -132,9 +132,9 @@ length ::= list -> [
 // Returns: A list with the reverse order of the items in the given list.
 //          If the given value was not a list, NIL will be returned.
 // ---------------------------------------------------------------------------
-reverse ::= list -> [
-    fold: list with: [e, l -> makePair(e, l) ] start: #()
-];
+reverse ::= list -> {
+    fold: list with: (e, l) -> makePair(e, l) start: #()
+}
 
 // ---------------------------------------------------------------------------
 // LIST MANIPULATION
@@ -148,8 +148,8 @@ reverse ::= list -> [
 //                given list.
 // ---------------------------------------------------------------------------
 each:do: ::= (list, block) -> {
-    [h|t := list : block(h); each: t do: block]
-};
+    [h|t := list : block(h); ^(each: t do: block)]
+}
 
 // ---------------------------------------------------------------------------
 // "Folds" the given list from left to right by calling this given block
@@ -165,9 +165,9 @@ each:do: ::= (list, block) -> {
 //          of the sum parameter, if the given list was empty.
 // ---------------------------------------------------------------------------
 fold:with:start: ::= (list, block, sum) -> {
-    [h|t := list : fold: t with: block start: block(h, sum)]
-    [     -      : sum ]
-};
+    [h|t := list : ^(fold: t with: block start: block(h, sum))]
+    ^sum
+}
 
 // ---------------------------------------------------------------------------
 // Takes a list and a filter as arguments. Returns a copy of the given list
@@ -180,16 +180,16 @@ fold:with:start: ::= (list, block, sum) -> {
 // Returns: A copy of the given list, which contains only those elements, for
 //          which the given filter function returned #TRUE.
 // ---------------------------------------------------------------------------
-collect:with: ::= (list, filter) -> [
+collect:with: ::= (list, filter) -> {
     result := fold: list
               with: (e,l) -> {
-                        [filter(e) : e & l]
-                        [    -     : l]
+                        [filter(e) : ^(e & l)]
+                        ^l
                     }
               start: #();
 
     reverse(result);
-];
+}
 
 // ---------------------------------------------------------------------------
 // Takes a list and a filter as arguments. Returns a copy of the given list
@@ -202,9 +202,9 @@ collect:with: ::= (list, filter) -> [
 // Returns: A copy of the given list, which contains only those elements, for
 //          which the given filter function returned anything but #TRUE.
 // ---------------------------------------------------------------------------
-reject:with: ::= (list, filter) -> [
-    collect: list with: [ e -> !filter(e)]
-];
+reject:with: ::= (list, filter) -> {
+    collect: list with: e -> !filter(e)
+}
 
 // ---------------------------------------------------------------------------
 // Takes a list and a mapping function as arguments. Returns a new list which
@@ -218,10 +218,10 @@ reject:with: ::= (list, filter) -> [
 // Returns: A list which contains the results of each call of the mapping
 //          function.
 // ---------------------------------------------------------------------------
-project:with: ::= (list, mapping) -> [
-    result := fold: list with: [e,l -> mapping(e) & l] start: #();
+project:with: ::= (list, mapping) -> {
+    result := fold: list with: (e,l) -> mapping(e) & l start: #();
     reverse(result);
-];
+}
 
 // ---------------------------------------------------------------------------
 // Replaces all occurences of "key" with "replacement" in the given list.
@@ -232,12 +232,12 @@ project:with: ::= (list, mapping) -> [
 // Returns: A list where all occurences of key are replaced by the given
 //          replacement
 // ---------------------------------------------------------------------------
-replace:by:in: ::= (key, replacement, list) -> [
+replace:by:in: ::= (key, replacement, list) -> {
    project: list with: value -> {
-      [value = key : replacement]
-      [      -     : value]
+      [ value = key : ^replacement ]
+      ^value
    }
-];
+}
 
 // ---------------------------------------------------------------------------
 // Finds the first index of key in the given list.
@@ -247,14 +247,14 @@ replace:by:in: ::= (key, replacement, list) -> [
 // Returns: The numeric index of the first occurence of key or 0 if it does
 //          not occur.
 // ---------------------------------------------------------------------------
-indexOf ::= (key, list) -> [
+indexOf ::= (key, list) -> {
     iterator := (pos, list) -> {
-        [ h|t := list && h = key : pos ]
-        [ h|t := list : iterator(pos + 1, t) ]
-        [ - : 0 ]
+        [ h|t := list && h = key : ^pos       ]
+        [ h|t := list : ^iterator(pos + 1, t) ]
+        ^0
     };
     iterator(1, list);
-];
+}
 
 // ---------------------------------------------------------------------------
 // Finds the last index of key in the given list.
@@ -264,14 +264,14 @@ indexOf ::= (key, list) -> [
 // Returns: The numeric index of the last occurence of key or 0 if it does
 //          not occur.
 // ---------------------------------------------------------------------------
-lastIndexOf ::= (key, list) -> [
+lastIndexOf ::= (key, list) -> {
     iterator := (lastIndex, pos, list) -> {
-        [ h|t := list && h = key : iterator(pos, pos + 1, t)]
-        [ h|t := list : iterator(lastIndex, pos + 1, t) ]
-        [ - : lastIndex ]
+        [ h|t := list && h = key : ^iterator(pos, pos + 1, t)]
+        [ h|t := list : ^iterator(lastIndex, pos + 1, t)     ]
+        ^lastIndex
     };
     iterator(0, 1, list);
-];
+}
 
 // ---------------------------------------------------------------------------
 // Checks if the given key occurs in the given list.
@@ -293,44 +293,12 @@ contains ::= (key, list) -> indexOf(key, list) > 0;
 // ---------------------------------------------------------------------------
 isStartOf ::= (subList, list) -> {
    [ x|subListTail := subList && y|listTail := list  && x = y :
-      isStartOf(subListTail, listTail);
+      ^isStartOf(subListTail, listTail);
    ]
-   [ x|listTail := list  && subList = x : #TRUE ]
-   [ isNil( subList) : #TRUE  ]
-   [        -        : #FALSE ]
-};
-
-// ---------------------------------------------------------------------------
-// Appends the given child to the given list. Unlike the & operator, this won't
-// return join them if both parameters were lists, but still add the list child
-// as last element of the given list.
-//
-// Param: list  - The given list to append child to.
-// Param: child - The child which will be appended to the list.
-// Returns: A list which contains all items of "list" and additionally
-//          child as last item.
-// ---------------------------------------------------------------------------
-append ::= (list, child) -> {
-   [ isNil(child) : list ]
-   [ isNil(list) : #(child) ]
-   [      -       : list & #(child) ]
-};
-
-// ---------------------------------------------------------------------------
-// Prepends the given child to the given list. Unlike the & operator, this won't
-// return join them if both parameters were lists, but still add the list child
-// as first element of the given list.
-//
-// Param: list  - The given list to prepend child to.
-// Param: child - The child which will be prepended to the list.
-// Returns: A list which contains all items of "list" and additionally
-//          child as first item.
-// ---------------------------------------------------------------------------
-prepend ::= (child, list) -> {
-    [ isNil(child) : list ]
-    [ isNil(list) : #(child) ]
-    [      -       : #(child) & list ]
-};
+   [ x|listTail := list  && subList = x : ^#TRUE ]
+   [ isNil(subList) : ^#TRUE                     ]
+   ^#FALSE
+}
 
 // ---------------------------------------------------------------------------
 // Splits a given list on each occurence of a given key.
@@ -340,16 +308,15 @@ prepend ::= (child, list) -> {
 // Returns: A list of sub lists which contain the elements between the given
 //          key.
 // ---------------------------------------------------------------------------
-split ::= (key, list) -> [
+split ::= (key, list) -> {
     iterator := (collection, currentList, list) -> {
         [ h|t := list && h = key :
-            iterator(append(collection, currentList), #(), t)
-        ]
-        [ h|t := list :  iterator(collection, currentList & h, t) ]
-        [ - : append(collection, currentList) ]
+            ^iterator(append(collection, currentList), #(), t)     ]
+        [ h|t := list :  ^iterator(collection, currentList & h, t) ]
+        ^append(collection, currentList)
     };
     iterator(#(), #(), list);
-];
+}
 
 // ---------------------------------------------------------------------------
 // Creates a list which contains all items of all sub lists of the given list.
@@ -359,13 +326,13 @@ split ::= (key, list) -> [
 // ---------------------------------------------------------------------------
 flatten ::= list -> {
    [ isList(list) :
-      reverse(
+      ^reverse(
          fold: list
-         with: [ (x, sum) -> reverse(flatten(x)) & sum ]
+         with: (x, sum) -> reverse(flatten(x)) & sum
          start: #())
    ]
-   [ - : #(list) ]
-};
+   ^#(list)
+}
 
 // ---------------------------------------------------------------------------
 // Performs a quicksort on the given list and uses the given predicate to
@@ -378,17 +345,17 @@ flatten ::= list -> {
 // ---------------------------------------------------------------------------
 quicksortBy ::= (list, predicate) -> {
     [ pivot|rest := list :
-        left := collect: rest with: [ x -> predicate(x, pivot) ];
-        right := reject: rest with: [ x -> predicate(x, pivot) ];
-        quicksortBy(left, predicate) & pivot & quicksortBy(right, predicate);
+        left := collect: rest with: x -> predicate(x, pivot);
+        right := reject: rest with: x -> predicate(x, pivot);
+        ^quicksortBy(left, predicate) & pivot & quicksortBy(right, predicate);
     ]
-    [ - : list ]
+    ^list
 };
 
 // ---------------------------------------------------------------------------
 // Sorts the given list in ascending order.
 // ---------------------------------------------------------------------------
-sort ::= list -> quicksortBy(list, [ (x, y) -> x < y ]);
+sort ::= list -> quicksortBy(list, (x, y) -> x < y);
 
 
 // ---------------------------------------------------------------------------
@@ -403,7 +370,7 @@ sort ::= list -> quicksortBy(list, [ (x, y) -> x < y ]);
 // ---------------------------------------------------------------------------
 if:then: ::= (decision, block) -> {
     [decision : block()]
-};
+}
 
 // ---------------------------------------------------------------------------
 // Executes the given block, if the given value is not nil.
@@ -413,9 +380,9 @@ if:then: ::= (decision, block) -> {
 // Returns: The result of block if the value was not nil, nil otherwise.
 // ---------------------------------------------------------------------------
 notNil:do: ::= (value, block) -> {
-    [ isNotNil(value) : block() ]
-    [          -      : nil     ]
-};
+    [ isNotNil(value) : ^block() ]
+    ^nil
+}
 
 // ---------------------------------------------------------------------------
 // Checks the given value, if it is nil, the given block is evaluated and its
@@ -426,9 +393,9 @@ notNil:do: ::= (value, block) -> {
 // Returns: value if not nil, the result of the block otherwise.
 // ---------------------------------------------------------------------------
 ifNil:then: ::= (value, block) -> {
-    [ isNil(value) : block() ]
-    [       -      : value   ]
-};
+    [ isNil(value) : ^block() ]
+    ^value
+}
 
 // ---------------------------------------------------------------------------
 // Emulates an if statement for imperative programming. Additionally supports
@@ -439,8 +406,8 @@ ifNil:then: ::= (value, block) -> {
 // Param: elseBlock - executed if the given decision is not #TRUE
 // ---------------------------------------------------------------------------
 if:then:else: ::= (decision, block, elseBlock) -> {
-    [decision : block()]
-    [    -    : elseBlock()]
+    [decision : ^block()]
+    ^elseBlock()
 };
 
 // ---------------------------------------------------------------------------
@@ -450,7 +417,7 @@ if:then:else: ::= (decision, block, elseBlock) -> {
 // Param: loopBody      - executed as long as decisionBlock evaluates to #TRUE
 // ---------------------------------------------------------------------------
 while:do: ::= (descisionBlock, loopBody) -> {
-    [descisionBlock() : loopBody(); while: descisionBlock do: loopBody]
+    [descisionBlock() : loopBody(); ^(while: descisionBlock do: loopBody)]
 };
 
 // ---------------------------------------------------------------------------
@@ -464,19 +431,19 @@ while:do: ::= (descisionBlock, loopBody) -> {
 // Param: block - Called with all numbers between from and to (inclusive) with
 //                the distance of step.
 // ---------------------------------------------------------------------------
-from:to:step:do: ::= (from, to, step, block) -> [
+from:to:step:do: ::= (from, to, step, block) -> {
     i := from;
-    while: [ i <= to ] do: [block(i); i := i + step;]
-];
+    while: { i <= to } do: { block(i); i := i + step; }
+}
 
 // ---------------------------------------------------------------------------
 // Emulates a for statement with a step of 1.
 //
 // Short for "from: from to: to step: 1 do: block;"
 // ---------------------------------------------------------------------------
-from:to:do: ::= (from, to, block) -> [
-    from: from to: to step: 1 do: block;
-];
+from:to:do: ::= (from, to, block) -> {
+    from: from to: to step: 1 do: block
+}
 
 // ---------------------------------------------------------------------------
 // STRING FUNCTIONS
@@ -492,28 +459,28 @@ from:to:do: ::= (from, to, block) -> [
 eachChar:do: ::= (string, block) -> {
     [ strLength(string) > 0 :
         block(strPart(string, 1, 1));
-        eachChar: strPart(string, 2, strLength(string)) do: block;
+        ^eachChar: strPart(string, 2, strLength(string)) do: block;
     ]
-};
+}
 
 // ---------------------------------------------------------------------------
 // Returns the first n characters of the given string. If length is negative,
 // the string without the first n characters is returned.
 // ---------------------------------------------------------------------------
 strLeft ::= (string, length) -> {
-    [ length >= 0 : strPart(string, 1, length) ]
-    [ length <  0 : strPart(string, length * -1 + 1,
-                            strLength(string) + length)
-    ]
-};
+    [ length >= 0 : ^strPart(string, 1, length) ]
+    ^strPart(string, 
+             length * -1 + 1,
+             strLength(string) + length)
+}
 
 // ---------------------------------------------------------------------------
 // Returns the last n characters of the given string. If length is negative,
 // the string without the last n characters is returned.
 // ---------------------------------------------------------------------------
 strRight ::= (string, length) -> {
-    [ length >= 0 : strPart(string, strLength(string) - length + 1, length) ]
-    [ length <  0 : strPart(string, 1, strLength(string) + length)          ]
+    [ length >= 0 : ^strPart(string, strLength(string) - length + 1, length) ]
+    ^strPart(string, 1, strLength(string) + length)     
 };
 
 // ---------------------------------------------------------------------------
@@ -525,29 +492,28 @@ strCut ::= (subString, string) -> strLeft(string, strLength(subString) * -1);
 // Returns the character position of subString within string. If it doesn't
 // occur 0 is returned.
 // ---------------------------------------------------------------------------
-strIndexOf ::= (subString, string) -> [
+strIndexOf ::= (subString, string) -> {
     iterator := pos -> {
-        [ strPart(string, pos, strLength(subString)) = subString : pos ]
-        [ pos < strLength(string) : iterator(pos + 1);                 ]
-        [ - : 0 ]
-    };
+        [ strPart(string, pos, strLength(subString)) = subString : ^pos ]
+        [ pos < strLength(string) : ^iterator(pos + 1);                 ]
+        ^0
+    }
     iterator(1);
-];
+}
 
 // ---------------------------------------------------------------------------
 // Returns the last character position of subString within string. If it
 // doesn't occur 0 is returned.
 // ---------------------------------------------------------------------------
-strLastIndexOf ::= (subString, string) -> [
+strLastIndexOf ::= (subString, string) -> {
     iterator := (lastIndex, pos) -> {
         [ strPart(string, pos, strLength(subString)) = subString :
-            iterator(pos, pos + 1)
-        ]
-        [ pos < strLength(string) : iterator(lastIndex, pos + 1) ]
-        [ - : lastIndex                                          ]
+            ^iterator(pos, pos + 1)                               ]
+        [ pos < strLength(string) : ^iterator(lastIndex, pos + 1) ]
+        ^lastIndex
     };
     iterator(0, 1);
-];
+}
 
 // ---------------------------------------------------------------------------
 // Checks whether the given subString is contained in the given string.
@@ -570,22 +536,19 @@ strEndsWith ::= (subString, string) ->
 // Splits the given string into a list of strings at each occurence of the
 // given separator.
 // ---------------------------------------------------------------------------
-strSplit ::= (separator, string) -> [
+strSplit ::= (separator, string) -> {
     result := #();
     iterator := subStr -> {
         [ (idx := strIndexOf(separator, subStr)) > 0 :
           result := result & strLeft(subStr, idx - 1);
-            iterator(strLeft(subStr, (idx - 1 + strLength(separator)) * -1));
-        ]
-        [ - :
-          result := result & subStr;
-        ]
+          ^iterator(strLeft(subStr, (idx - 1 + strLength(separator)) * -1)) ]
+        ^result := result & subStr;
     };
     iterator(string);
 
     // Filter empty strings...
     collect: result with: s -> strLength(s) > 0;
-];
+}
 
 // ---------------------------------------------------------------------------
 // Determines if the first character of the given string is a digit (0..9)
@@ -632,9 +595,9 @@ isLetterOrDigit ::= char -> isCharacter(char) || isDigit(char);
 // Measures and prints the execution time of a given function.
 // Param: block - Called to measure the exectuion duration.
 // ---------------------------------------------------------------------------
-measure: ::= block -> [
+measure: ::= block -> {
    start := time();
    result := block();
    log('Duration: ' & (time() - start) & 'ms');
-   result;
-];
+   ^result;
+}

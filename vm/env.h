@@ -395,22 +395,19 @@ const Atom SYMBOL_OP_SPLIT = SYMBOL(OP_CODE_INDEX + 29);
 const Atom SYMBOL_OP_CONCAT = SYMBOL(OP_CODE_INDEX + 30);
 
 /**
-  Op code: (Was for XML processing - see branch xml_and_web).
-           Currently a NOOP.
+  Op code: Returns from a branched sublist (see: BT).
   */
-const Atom SYMBOL_OP_NOOP = SYMBOL(OP_CODE_INDEX + 31);
+const Atom SYMBOL_OP_JOIN = SYMBOL(OP_CODE_INDEX + 31);
 
 /**
-  Op code: Appends a value to a list. Short form of:
-  #LDC list, #LDC x, #NIL, #CONS #RPLACDR
+  Op code: Returns from a function from withing a branched sublist.
   */
-const Atom SYMBOL_OP_CHAIN = SYMBOL(OP_CODE_INDEX + 32);
+const Atom SYMBOL_OP_LONG_RTN = SYMBOL(OP_CODE_INDEX + 32);
 
 /**
-  Op code: Finishes a sequence of chains and pushes
-  the resulting list onto the stack.
+  Op code: (WAS OP_CHAIN_END) - NOOP
   */
-const Atom SYMBOL_OP_CHAIN_END = SYMBOL(OP_CODE_INDEX + 33);
+const Atom SYMBOL_OP_NOOP2 = SYMBOL(OP_CODE_INDEX + 33);
 
 /**
   Op code: Used to tell the VM the currently active file.
