@@ -551,22 +551,22 @@ void Compiler::standardCall() {
         AtomRef* backupCode = engine->storage.ref(code->atom());
         AtomRef* backupTail = engine->storage.ref(tail->atom());
         AtomRef* argsList = engine->storage.ref(NIL);
-        code->atom(NIL);
-        tail->atom(NIL);
+        AtomRef* argsTail = engine->storage.ref(NIL);
 
         while(!tokenizer.isCurrent(TT_R_BRACE) &&
               !tokenizer.isCurrent(TT_EOF))
         {
+            code->atom(NIL);
+            tail->atom(NIL);
             expression();
             addCode(SYMBOL_OP_CONS);
             if (isNil(argsList->atom())) {
                 argsList->atom(code->atom());
+                argsTail->atom(tail->atom());
             } else {
                 engine->storage.setCDR(tail->atom(), argsList->atom());
                 argsList->atom(code->atom());
             }
-            code->atom(NIL);
-            tail->atom(NIL);
             if (tokenizer.isCurrent(TT_KOMMA)) {
                 tokenizer.fetch();
             }
