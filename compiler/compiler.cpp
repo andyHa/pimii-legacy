@@ -530,13 +530,34 @@ void Compiler::call() {
 void Compiler::colonCall() {
     QString name("");
     addCode(SYMBOL_OP_NIL);
+    AtomRef* backupCode = engine->storage.ref(code->atom());
+    AtomRef* backupTail = engine->storage.ref(tail->atom());
+    AtomRef* argsCode = engine->storage.ref(NIL);
+    AtomRef* argsTail = engine->storage.ref(NIL);
+
     while(tokenizer.isCurrent(TT_NAME) &&
           tokenizer.getCurrentString().endsWith(':')) {
         name += tokenizer.getCurrentString();
         tokenizer.fetch();
+        code->atom(NIL);
+        tail->atom(NIL);
         expression();
         addCode(SYMBOL_OP_CONS);
+        if (isNil(argsCode->atom())) {
+            argsCode->atom(code->atom());
+            argsTail->atom(tail->atom());
+        } else {
+            engine->storage.setCDR(tail->atom(), argsCode->atom());
+            argsCode->atom(code->atom());
+        }
     }
+    code->atom(backupCode->atom());
+    engine->storage.setCDR(backupTail->atom(), argsCode->atom());
+    tail->atom(argsTail->atom());
+    delete backupCode;
+    delete backupTail;
+    delete argsCode;
+    delete argsTail;
     load(name);
     addCode(SYMBOL_OP_AP);
     addCode(engine->storage.makeSymbol(name));
@@ -550,7 +571,7 @@ void Compiler::standardCall() {
         addCode(SYMBOL_OP_NIL);
         AtomRef* backupCode = engine->storage.ref(code->atom());
         AtomRef* backupTail = engine->storage.ref(tail->atom());
-        AtomRef* argsList = engine->storage.ref(NIL);
+        AtomRef* argsCode = engine->storage.ref(NIL);
         AtomRef* argsTail = engine->storage.ref(NIL);
 
         while(!tokenizer.isCurrent(TT_R_BRACE) &&
@@ -560,12 +581,12 @@ void Compiler::standardCall() {
             tail->atom(NIL);
             expression();
             addCode(SYMBOL_OP_CONS);
-            if (isNil(argsList->atom())) {
-                argsList->atom(code->atom());
+            if (isNil(argsCode->atom())) {
+                argsCode->atom(code->atom());
                 argsTail->atom(tail->atom());
             } else {
-                engine->storage.setCDR(tail->atom(), argsList->atom());
-                argsList->atom(code->atom());
+                engine->storage.setCDR(tail->atom(), argsCode->atom());
+                argsCode->atom(code->atom());
             }
             if (tokenizer.isCurrent(TT_KOMMA)) {
                 tokenizer.fetch();
@@ -574,10 +595,12 @@ void Compiler::standardCall() {
 
         expect(TT_R_BRACE, ")");
         code->atom(backupCode->atom());
-        tail->atom(engine->storage.setCDR(backupTail->atom(), argsList->atom()));
+        engine->storage.setCDR(backupTail->atom(), argsCode->atom());
+        tail->atom(argsTail->atom());
         delete backupCode;
         delete backupTail;
-        delete argsList;
+        delete argsCode;
+        delete argsTail;
         load(name);
         addCode(SYMBOL_OP_AP);
         addCode(engine->storage.makeSymbol(name));
