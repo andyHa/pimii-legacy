@@ -41,7 +41,7 @@
       like inlining etc. The compiler and its generated code, should be
       easily understood by people new to this subject.
 
-  The compiler is implemented as recursive descendand parser with a hand
+  The compiler is implemented as recursive descending parser with a hand
   written tokenizer. Therefore for each non-terminal is a method with the
   same name.
 
@@ -331,14 +331,10 @@ private:
     void call();
 
     /**
-      Compiles a function call with colons, like: if: x then: y
+      Parses a list of arguments. If expectNames is true, a colon call
+      like each: x do: y is expected. Otherwise a list like (x, y).
       */
-    void colonCall();
-
-    /**
-      Compiles a standard call, like f(x)
-      */
-    void standardCall();
+    QString parseArgumentList(bool expectNames);
 
     /**
       Compiles a local assignment: x := 1;

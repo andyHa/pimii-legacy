@@ -13,6 +13,7 @@
 
 #include <QApplication>
 #include <QEventLoop>
+#include "occcdate.h"
 
 
 EditorWindow* window;
@@ -46,6 +47,9 @@ void loadStartupScript(Engine& engine) {
     if (!startScript.exists()) {
         startScript =  QFileInfo("start.pi");
     }
+    if (!startScript.exists()) {
+        startScript = QFileInfo("../../start.pi");
+    }
     if (startScript.exists()) {
         QFile file(startScript.absoluteFilePath());
         if (file.open(QFile::ReadOnly | QFile::Text)) {
@@ -70,6 +74,7 @@ void eventLoop(QApplication& a, Engine& engine) {
 
 int main(int argc, char *argv[])
 {    
+    /*
     QApplication a(argc, argv);
     QSettings settings("pimii","pimii");
 
@@ -86,7 +91,10 @@ int main(int argc, char *argv[])
     // Runs the QT eventloop interleaved with the execution of the pimii
     // engine.
     eventLoop(a, engine);
-
+*/
+    OCCCDate a(01,01,2013);
+    OCCCDate b(01,01,2010);
+    printf("Diff: %i\n", a.getDifference(b));
     return 0;
 }
 

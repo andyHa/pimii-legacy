@@ -78,7 +78,7 @@ setTail := #(#(#LD #(1 . 1) #LD #(1 . 2) #RPLCDR #RTN));
 // Generates a pair with the two given parameters. This method is written in 
 // inline assembler since there is only an op code and no BIF.
 // ---------------------------------------------------------------------------
-makePair := #(#(#LD #(1 . 1) #LD #(1 . 2) #CONS #RTN));
+makePair := #(#(#LD #(1 . 2) #LD #(1 . 1) #CONS #RTN));
 
 
 // ---------------------------------------------------------------------------

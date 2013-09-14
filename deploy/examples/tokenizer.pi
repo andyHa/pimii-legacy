@@ -9,7 +9,7 @@ isChar := s -> isLowerCase(s) || isUpperCase(s);
 isCharOrDigit := s -> isChar(s) || isDigit(s);
 
 
-tokenizer := text -> [
+tokenizer := text -> {
    index := 1;
    length := strLength(text);
    currentChar := strPart(text, index, 1);
@@ -17,88 +17,83 @@ tokenizer := text -> [
    nextChar := {
       [ index <= length : 
            index := index + 1; 
-           currentChar := strPart(text, index, 1) 
+           currentChar := strPart(text, index, 1);
+           ^currentChar;
       ]
-      [ - : currentChar := '' ]
+      currentChar := '';
    };
 
-   atEnd := [ currentChar = '' ];
+   atEnd := { currentChar = '' };
 
    tokenize := {
-      [ currentChar = '+' : nextChar(); #(#PLUS, '+') ]
-      [ currentChar = '-' : nextChar(); #(#MINUS, '-') ]
-      [ currentChar = '*' : nextChar(); #(#TIME, '*') ]
-      [ currentChar = '/' : nextChar(); #(#DIV, '/') ]
-      [ currentChar = '(' : nextChar(); #(#OPEN, '(') ]
-      [ currentChar = ')' : nextChar(); #(#CLOSE, ')') ]
+      [ currentChar = '+' : nextChar(); ^#(#PLUS, '+') ]
+      [ currentChar = '-' : nextChar(); ^#(#MINUS, '-') ]
+      [ currentChar = '*' : nextChar(); ^#(#TIME, '*') ]
+      [ currentChar = '/' : nextChar(); ^#(#DIV, '/') ]
+      [ currentChar = '(' : nextChar(); ^#(#OPEN, '(') ]
+      [ currentChar = ')' : nextChar(); ^#(#CLOSE, ')') ]
       [ isDigit(currentChar) : 
            token := currentChar;
-           while: [ isDigit(nextChar()) ] 
-              do: [ token := token & currentChar ];
-           #(#NUMBER, parse(token)); 
+           while: { isDigit(nextChar()) } 
+              do: { token := token & currentChar };
+           ^#(#NUMBER, parse(token)); 
       ]
       [ isChar(currentChar) : 
            token := currentChar;
-           while: [ nextChar() != ' ' && !atEnd() ] 
-              do: [ token := token & currentChar ];
-           #(#IDENTIFIER, token); 
+           while: { nextChar() != ' ' && !atEnd() } 
+              do: { token := token + currentChar };
+           ^#(#IDENTIFIER, token); 
       ]
       [ currentChar = '"' : 
            token := '';
-           while: [ nextChar() != '"' && !atEnd() ] 
-              do: [ token := token & currentChar ];
+           while: { nextChar() != '"' && !atEnd() }
+              do: { token := token + currentChar };
            nextChar();
-           #(#STRING, token); 
+           ^#(#STRING, token); 
       ]
-      [  - : 
-            lastChar := currentChar; 
-            nextChar(); 
-            #(#UNKNOWN, lastChar) 
-      ]      
+      lastChar := currentChar; 
+      nextChar(); 
+      ^#(#UNKNOWN, lastChar);     
    };
 
    tokens := #();
    result := #(tokens);
 
-   while: [ currentChar != '' ] do: [
+   while: { currentChar != '' } do: {
       // Skip whitespaces..
-      while: [ currentChar = ' ' ] 
-         do: [ nextChar() ]; 
+      while: { currentChar = ' ' } 
+         do: { nextChar() }; 
       // Append next token to list...
-      tokens := append(tokens, tokenize());
-   ];
+      tokens := tokens & tokenize();
+   };
 
    tokens;
-];
+};
 
 x := tokenizer('print-it (+ 4 5)');
 
-transform := tokens -> [
+transform := tokens -> {
    current := #();
    stack := #(current);
 
    each: tokens do: t -> {
        [ head(t) = #OPEN : 
-            stack := prepend(current, stack); 
-            current := #() 
+            stack := #(current) & head(stack); 
+            current := #();
+            ^current;
        ]  
        [ head(t) = #CLOSE && top|rest := stack : 
-            current := append(top, current); 
+            current := top & current; 
             stack := rest 
+            ^current;
        ]  
-       [ - : current := append(current, t) ]  
+       current := current & t;
    };
 
-   current;
-];
-
-transform(x);
-
-compileList := (name, params, n, c) -> {
-   [ name = '+' : 
+   ^current;
 };
 
-compile := (e, n, c) := {
+compile := (e, n, c) -> {
    [ head(e) = #NUMBER || head(e) = #STRING : at(e, 2) & #LDC & c ]
    [ head(e) = #IDENTIFIER : index(e, n) & #LD & c ]  
    [ isList(e) : 
@@ -107,3 +102,12 @@ compile := (e, n, c) := {
       compileList(name, params, n, c);
    ]
 }
+
+
+transform(x);
+
+//compileList := (name, params, n, c) -> {
+//   [ name = '+' : 
+//};
+
+

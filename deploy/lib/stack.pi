@@ -1,13 +1,10 @@
 makeStack := initialValue -> #(initialValue);
 
 popStack := stack -> {
-      [h|t := head(stack) : setHead(stack, t); h]
+   [h|t := head(stack) : setHead(stack, t); ^h ];
+   ^nil;
 };
 
-peekStack := stack -> {
-      [h|t := head(stack) : h]
+pushStack := (stack, value) -> {
+   setHead(stack, value & head(stack));
 };
-
-pushStack := (stack, value) -> [
-   setHead(stack, #(value) & head(stack));
-];

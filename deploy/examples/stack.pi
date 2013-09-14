@@ -1,15 +1,15 @@
-makeStack := [
-   #(nil)
-];
-
-popStack := stack -> {
-   [h|t := head(stack) : setHead(stack, t); h ]
-   [       -           : nil                  ]
+makeStack := {
+   ^#(nil)
 };
 
-pushStack := (stack, value) -> [
-   setHead(stack, #(value) & head(stack));
-];
+popStack := stack -> {
+   [h|t := head(stack) : setHead(stack, t); ^h ];
+   ^nil;
+};
+
+pushStack := (stack, value) -> {
+   setHead(stack, value & head(stack));
+};
 
 s := makeStack();
 pushStack(s, 3);

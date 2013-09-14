@@ -237,9 +237,6 @@ void Engine::opAP(bool hasArguments) {
         }
         Cell funPair = storage.getCons(fun.atom());
         if ((head(c) == SYMBOL_OP_RTN) && (funPair.car == head(d))) {
-
-            INFO(log, storage.getSymbolName(name.atom()));
-
             // We have a tail recursion -> don't push useless stuff on the
             // dump-stack, only flush stack, restart code and environment
             // (with new args)
@@ -252,9 +249,6 @@ void Engine::opAP(bool hasArguments) {
             // We have a tail recursion from within a conditional, pop off the original
             // code from d
             pop(d);
-
-            INFO(log, storage.getSymbolName(name.atom()));
-
             // Flush stack and reset code + env...
             s->atom(NIL);
             c->atom(funPair.car);
@@ -513,7 +507,11 @@ void Engine::opCONCAT() {
         push(s, storage.makeCons(a, NIL));
         return;
     }
-    push(s, storage.makeCons(a, storage.makeCons(b, NIL)));
+    if (isCons(b)) {
+        push(s, storage.makeCons(a, b));
+    } else {
+        push(s, storage.makeCons(a, storage.makeCons(b, NIL)));
+    }
 }
 
 void Engine::opAND() {
@@ -824,6 +822,7 @@ void Engine::dispatch(Atom opcode) {
         return;
     case SYMBOL_OP_SPLIT:
         opSPLIT();
+        return;
     case SYMBOL_OP_FILE:
         opFile();
         return;

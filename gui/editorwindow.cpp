@@ -87,6 +87,7 @@ void EditorWindow::on_action_Inspect_Selection_triggered()
 
 void EditorWindow::on_action_Quit_triggered()
 {
+    close();
     qApp->quit();
 }
 

@@ -21,7 +21,8 @@ SOURCES += main.cpp \
     bif/filesextension.cpp \
     tools/logger.cpp \
     gui/editorwindow.cpp \
-    gui/codeedit.cpp
+    gui/codeedit.cpp \
+    occcdate.cpp
 
 HEADERS += \
     vm/engine.h \
@@ -41,7 +42,8 @@ HEADERS += \
     tools/average.h \
     gui/editorwindow.h \
     vm/array.h \
-    gui/codeedit.h
+    gui/codeedit.h \
+    occcdate.h
 
 OTHER_FILES += \
     example.pi \
